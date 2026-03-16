@@ -6,41 +6,6 @@
     <title>Cine Grand Hygiene Control</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="shortcut icon" href="favicon.svg" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-    <script>
-      // ── Security: block DevTools & source inspection ──────────────────────
-
-      // 1. Disable right-click context menu
-      document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-
-      // 2. Block keyboard shortcuts
-      document.addEventListener('keydown', function(e) {
-        var key = e.key || e.keyCode;
-        // F12
-        if (e.keyCode === 123) { e.preventDefault(); return false; }
-        // Ctrl+Shift+I / Ctrl+Shift+J / Ctrl+Shift+C  (DevTools)
-        if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) { e.preventDefault(); return false; }
-        // Ctrl+U  (View Source)
-        if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
-        // Ctrl+S  (Save page)
-        if (e.ctrlKey && e.keyCode === 83) { e.preventDefault(); return false; }
-        // Ctrl+A  (Select All)
-        if (e.ctrlKey && e.keyCode === 65) { e.preventDefault(); return false; }
-        // Ctrl+P  (Print)
-        if (e.ctrlKey && e.keyCode === 80) { e.preventDefault(); return false; }
-      });
-
-      // 3. Block drag-select of content
-      document.addEventListener('selectstart', function(e) { e.preventDefault(); });
-
-      // 5. Warn before closing / navigating away
-      window.addEventListener('beforeunload', function(e) {
-        e.preventDefault();
-        e.returnValue = 'Сайтът е част от работния процес. Сигурни ли сте, че искате да излезете?';
-        return e.returnValue;
-      });
-
-</script>
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap");
 
@@ -467,98 +432,9 @@
         #qr-modal-backdrop { position: static !important; background: #fff !important; padding: 20px !important; width: 100% !important; min-height: 100vh !important; }
         .qr-modal { box-shadow: none !important; border: 1px solid #ddd !important; max-width: 100% !important; }
       }
-
-      /* ── Bloom ефект ──────────────────────────────────── */
-      .bloom-layer {
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        z-index: 0;
-        overflow: hidden;
-      }
-      .bloom-orb {
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(90px);
-        animation: bloomPulse 8s ease-in-out infinite;
-        will-change: opacity, transform;
-      }
-      .bloom-orb--gold {
-        width: 55vw; height: 55vw;
-        top: -15%; left: -10%;
-        background: radial-gradient(circle, rgba(200,120,24,.28), transparent 70%);
-        animation-duration: 9s;
-        animation-delay: 0s;
-      }
-      .bloom-orb--blue {
-        width: 45vw; height: 45vw;
-        top: 10%; right: -10%;
-        background: radial-gradient(circle, rgba(98,169,255,.18), transparent 70%);
-        animation-duration: 11s;
-        animation-delay: -3s;
-      }
-      .bloom-orb--red {
-        width: 40vw; height: 40vw;
-        bottom: 5%; left: 20%;
-        background: radial-gradient(circle, rgba(239,91,91,.12), transparent 70%);
-        animation-duration: 13s;
-        animation-delay: -6s;
-      }
-      .bloom-orb--gold2 {
-        width: 30vw; height: 30vw;
-        bottom: 15%; right: 5%;
-        background: radial-gradient(circle, rgba(200,120,24,.14), transparent 70%);
-        animation-duration: 10s;
-        animation-delay: -2s;
-      }
-      @keyframes bloomPulse {
-        0%   { opacity: 0.5; transform: scale(1); }
-        50%  { opacity: 1;   transform: scale(1.12); }
-        100% { opacity: 0.5; transform: scale(1); }
-      }
-
-      /* ── Charts Screen ──────────────────────────────── */
-      .charts-grid { display: grid; gap: 20px; grid-template-columns: repeat(2, 1fr); }
-      .chart-card {
-        background: var(--panel); border: 1px solid var(--border);
-        border-radius: 18px; padding: 22px 22px 16px;
-      }
-      .chart-title {
-        font-size: 13px; font-weight: 600; text-transform: uppercase;
-        letter-spacing: .12em; color: var(--muted); margin-bottom: 4px;
-      }
-      .chart-subtitle { font-size: 11px; color: var(--muted-2); margin-bottom: 18px; }
-      .chart-wrap { position: relative; }
-      .charts-loading {
-        display: flex; align-items: center; justify-content: center;
-        min-height: 300px; color: var(--muted); gap: 12px; flex-direction: column;
-      }
-      .charts-refresh {
-        background: none; border: 1px solid var(--border); color: var(--muted);
-        border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: 13px;
-        transition: border-color .2s, color .2s;
-      }
-      .charts-refresh:hover { border-color: var(--gold); color: var(--gold); }
-      .charts-stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-      .charts-stat-pill {
-        background: var(--panel-2); border: 1px solid var(--border);
-        border-radius: 12px; padding: 14px 16px; text-align: center;
-      }
-      .charts-stat-pill strong { display: block; font-size: 24px; font-weight: 700; }
-      .charts-stat-pill span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
-      @media (max-width: 900px) {
-        .charts-grid { grid-template-columns: 1fr; }
-        .charts-stat-row { grid-template-columns: repeat(3, 1fr); }
-      }
     </style>
   </head>
   <body>
-    <div class="bloom-layer" aria-hidden="true">
-      <span class="bloom-orb bloom-orb--gold"></span>
-      <span class="bloom-orb bloom-orb--blue"></span>
-      <span class="bloom-orb bloom-orb--red"></span>
-      <span class="bloom-orb bloom-orb--gold2"></span>
-    </div>
     <div id="app"></div>
     <div class="broom-fun" aria-hidden="true">
       <span class="broom-dust"></span><span class="broom-dust"></span><span class="broom-dust"></span>
@@ -805,12 +681,6 @@
       /* ── Helpers ── */
       const app = document.getElementById("app");
 
-      function isMobile() {
-        if (typeof navigator === "undefined") return false;
-        const ua = navigator.userAgent || "";
-        return /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
-      }
-
       function getConfig(type) { return CONFIGS[type] || CONFIGS.hall; }
 
       function fmt(iso) {
@@ -829,8 +699,6 @@
           .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
       }
 
-      function csvEscape(v) { return '"' + String(v ?? "").replace(/"/g, '""') + '"'; }
-
       const RANGE_OPTIONS = [["today", "\u0414\u043d\u0435\u0441"], ["week", "\u0421\u0435\u0434\u043c\u0438\u0446\u0430"]];
 
       function rangeLabel(range) {
@@ -843,7 +711,6 @@
         return state.records.filter((r) => {
           const d = new Date(r.timestamp);
           if (range === "today") return d.toDateString() === now.toDateString();
-          if (range === "week") return now - d < 7 * 86400000;
           return now - d < 7 * 86400000;
         });
       }
@@ -873,15 +740,6 @@
           });
         });
         return { byLocation, byItem };
-      }
-
-      function latestIssues(limit = 6) {
-        return state.records
-          .flatMap((r) => dirtyItems(r).map((i) => ({
-            ...i, location: r.location, inspector: r.inspector, timestamp: r.timestamp,
-          })))
-          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-          .slice(0, limit);
       }
 
       /* ── Persistence ── */
@@ -1067,29 +925,6 @@
         });
       }
 
-      function downloadFile(filename, content, mimeType) {
-        const blob = new Blob([content], { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        const a = Object.assign(document.createElement("a"), { href: url, download: filename });
-        document.body.appendChild(a); a.click(); a.remove();
-        URL.revokeObjectURL(url);
-      }
-
-      function exportCsv() {
-        const records = historyRecords();
-        if (!records.length) { showToast("Няма записи за експорт.", "error"); return; }
-        const header = ["Дата/Час", "Тип", "Локация", "Проверяващ", "Статус", "Проблеми", "Бележки", "Sheets"];
-        const rows = exportRows(records).map((r) =>
-          [r.date, r.type, r.location, r.inspector, r.status, r.issues, r.notes, r.sheets].map(csvEscape).join(";")
-        );
-        downloadFile(
-          "cinegrand-report-" + state.exportRange + ".csv",
-          "\uFEFF" + [header.join(";"), ...rows].join("\n"),
-          "text/csv;charset=utf-8;"
-        );
-        showToast("Excel файлът за " + rangeLabel(state.exportRange).toLowerCase() + " е готов.");
-      }
-
       function exportPdf() {
         const records = historyRecords();
         if (!records.length) { showToast("\u041d\u044f\u043c\u0430 \u0437\u0430\u043f\u0438\u0441\u0438 \u0437\u0430 PDF \u043e\u0442\u0447\u0435\u0442.", "error"); return; }
@@ -1151,7 +986,6 @@
       function renderTopbar() {
         const navItems = isQROnlySession() ? "" : [
           state.screen !== "home" ? `<button class="nav-btn" data-action="go-home" aria-label="Начална страница">Начало</button>` : "",
-          `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''}" data-action="go-charts" aria-label="Диаграми от Sheets">📊 Диаграми</button>`,
           `<button class="nav-btn" data-action="open-qr" aria-label="QR кодове за печат">QR кодове</button>`,
           `<a class="nav-btn${isSheetsConfigured() ? ' state' : ''}" href="${SHEETS_SPREADSHEET_URL}" target="_blank" rel="noopener" aria-label="Отвори Sheets таблица">${isSheetsConfigured() ? "Sheets ✓" : "Sheets ✗"}</a>`,
         ].filter(Boolean).join("");
@@ -1200,11 +1034,6 @@
           </div>`;
       }
       function renderHome() {
-        const today = state.records.filter((r) => new Date(r.timestamp).toDateString() === new Date().toDateString());
-        const issuesLastWeek = recordsForRange("week").reduce((s, r) => s + dirtyItems(r).length, 0);
-        const pendingSync = state.records.filter((r) => !state.syncHistory[r.id] || state.syncHistory[r.id] === "error").length;
-        const recentIssues = latestIssues(6);
-        const latestRecord = state.records[0];
 
         return `<div class="page">
           <div class="panel panel-soft" style="margin-bottom:18px;">
@@ -1343,229 +1172,6 @@
           </div>
         </div>`;
       }
-
-      /* ── Charts Screen ──────────────────────────────────────────────────── */
-      function renderCharts() {
-        return `<div class="page">
-          <div class="panel" style="margin-bottom:16px;">
-            <div class="toolbar">
-              <div>
-                <h3 class="section-title" style="margin:0;">Диаграми</h3>
-                <div class="muted" style="font-size:13px;margin-top:4px;">Данни от Google Sheets — актуални</div>
-              </div>
-              <button class="charts-refresh" data-action="refresh-charts">⟳ Обнови</button>
-            </div>
-          </div>
-          <div id="charts-container">
-            <div class="charts-loading"><div class="spinner"></div><span>Зарежда от Sheets…</span></div>
-          </div>
-        </div>`;
-      }
-
-      function parseCSV(text) {
-        const lines = text.trim().split('\n');
-        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-        return lines.slice(1).map(line => {
-          const cols = [];
-          let cur = '', inQ = false;
-          for (const ch of line) {
-            if (ch === '"') { inQ = !inQ; }
-            else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
-            else { cur += ch; }
-          }
-          cols.push(cur);
-          return Object.fromEntries(headers.map((h, i) => [h, (cols[i] || '').trim().replace(/^"|"$/g, '')]));
-        });
-      }
-
-      async function fetchSheetsData() {
-        const csvUrl = 'https://docs.google.com/spreadsheets/d/17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA/export?format=csv&gid=0';
-        const res = await fetch(csvUrl);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const text = await res.text();
-        return parseCSV(text);
-      }
-
-      async function initChartsScreen() {
-        const container = document.getElementById('charts-container');
-        if (!container) return;
-
-        container.innerHTML = '<div class="charts-loading"><div class="spinner"></div><span>Зарежда от Sheets…</span></div>';
-
-        let rows;
-        try {
-          rows = await fetchSheetsData();
-        } catch(e) {
-          container.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--red);">
-            Грешка при зареждане от Sheets.<br><small style="color:var(--muted);">${e.message}</small>
-          </div>`;
-          return;
-        }
-
-        /* ── Агрегации ── */
-        const byInspector = {}, byIssue = {}, byLocation = {}, byStatus = { 'Чисто': 0, 'Проблем': 0 };
-        rows.forEach(r => {
-          const insp = r['ПРОВЕРЯВАЩ'] || '?';
-          const loc  = (r['ТИП'] || '?').replace('Кинозала - ', 'Зала ').replace('Тоалетна - ', 'Тоал. ');
-          const stat = r['СТАТУС'] || '';
-          byInspector[insp] = (byInspector[insp] || 0) + 1;
-          byLocation[loc]   = (byLocation[loc]   || 0) + 1;
-          if (stat === 'Чисто' || stat === 'Проблем') byStatus[stat]++;
-          const issues = r['ПРОБЛЕМИ'] || '';
-          if (issues && issues !== '—') {
-            issues.split(',').forEach(iss => {
-              const k = iss.trim();
-              if (k && k !== '—') byIssue[k] = (byIssue[k] || 0) + 1;
-            });
-          }
-        });
-
-        const total = rows.length;
-        const problemCount = byStatus['Проблем'] || 0;
-        const cleanCount   = byStatus['Чисто']   || 0;
-        const problemPct   = total ? Math.round(problemCount / total * 100) : 0;
-
-        /* ── HTML ── */
-        container.innerHTML = `
-          <div class="charts-stat-row">
-            <div class="charts-stat-pill">
-              <strong style="color:var(--gold);">${total}</strong>
-              <span>Проверки</span>
-            </div>
-            <div class="charts-stat-pill">
-              <strong style="color:var(--green);">${cleanCount}</strong>
-              <span>Чисто</span>
-            </div>
-            <div class="charts-stat-pill">
-              <strong style="color:var(--red);">${problemPct}%</strong>
-              <span>Проблеми</span>
-            </div>
-          </div>
-          <div class="charts-grid">
-            <div class="chart-card">
-              <div class="chart-title">Проверки по служител</div>
-              <div class="chart-subtitle">Брой проверки на всеки инспектор</div>
-              <div class="chart-wrap" style="height:260px;"><canvas id="chart-inspector"></canvas></div>
-            </div>
-            <div class="chart-card">
-              <div class="chart-title">Топ проблеми</div>
-              <div class="chart-subtitle">Най-часто срещани нередности</div>
-              <div class="chart-wrap" style="height:260px;" id="chart-issues-wrap"><canvas id="chart-issues"></canvas></div>
-            </div>
-            <div class="chart-card">
-              <div class="chart-title">Проверки по локация</div>
-              <div class="chart-subtitle">Разпределение по зали и тоалетни</div>
-              <div class="chart-wrap" style="height:260px;"><canvas id="chart-location"></canvas></div>
-            </div>
-            <div class="chart-card">
-              <div class="chart-title">Чисто vs Проблем</div>
-              <div class="chart-subtitle">Обща оценка на всички проверки</div>
-              <div class="chart-wrap" style="height:260px;"><canvas id="chart-status"></canvas></div>
-            </div>
-          </div>`;
-
-        /* ── Chart.js конфигурация ── */
-        Chart.defaults.color = '#9ba8b9';
-        Chart.defaults.borderColor = 'rgba(38,49,64,.5)';
-        Chart.defaults.font.family = '"DM Sans","Segoe UI",sans-serif';
-        Chart.defaults.font.size = 12;
-
-        const PALETTE = ['#c87818','#62a9ff','#2dcc70','#ef5b5b','#fbbf24','#a78bfa','#eba030','#34d399','#f472b6','#60a5fa'];
-
-        /* 1. Horizontal bar — инспектори */
-        const inspEntries = Object.entries(byInspector).sort((a,b) => b[1]-a[1]);
-        new Chart(document.getElementById('chart-inspector'), {
-          type: 'bar',
-          data: {
-            labels: inspEntries.map(e => e[0]),
-            datasets: [{
-              data: inspEntries.map(e => e[1]),
-              backgroundColor: inspEntries.map((_,i) => PALETTE[i % PALETTE.length] + 'cc'),
-              borderColor:     inspEntries.map((_,i) => PALETTE[i % PALETTE.length]),
-              borderWidth: 1.5, borderRadius: 6, borderSkipped: false
-            }]
-          },
-          options: {
-            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x} проверки` } } },
-            scales: {
-              x: { grid: { color: 'rgba(38,49,64,.4)' }, ticks: { stepSize: 1 } },
-              y: { grid: { display: false } }
-            }
-          }
-        });
-
-        /* 2. Doughnut — проблеми */
-        const issEntries = Object.entries(byIssue).sort((a,b) => b[1]-a[1]).slice(0,8);
-        if (issEntries.length) {
-          new Chart(document.getElementById('chart-issues'), {
-            type: 'doughnut',
-            data: {
-              labels: issEntries.map(e => e[0]),
-              datasets: [{
-                data: issEntries.map(e => e[1]),
-                backgroundColor: PALETTE.map(c => c + 'cc'),
-                borderColor: PALETTE,
-                borderWidth: 1.5, hoverOffset: 10
-              }]
-            },
-            options: {
-              responsive: true, maintainAspectRatio: false, cutout: '64%',
-              plugins: {
-                legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, usePointStyle: true } },
-                tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } }
-              }
-            }
-          });
-        } else {
-          document.getElementById('chart-issues-wrap').innerHTML =
-            '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);">Няма регистрирани проблеми</div>';
-        }
-
-        /* 3. Vertical bar — локации */
-        const locEntries = Object.entries(byLocation).sort((a,b) => b[1]-a[1]);
-        new Chart(document.getElementById('chart-location'), {
-          type: 'bar',
-          data: {
-            labels: locEntries.map(e => e[0]),
-            datasets: [{
-              data: locEntries.map(e => e[1]),
-              backgroundColor: '#62a9ffcc', borderColor: '#62a9ff',
-              borderWidth: 1.5, borderRadius: 6, borderSkipped: false
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} проверки` } } },
-            scales: {
-              x: { grid: { display: false }, ticks: { maxRotation: 35 } },
-              y: { grid: { color: 'rgba(38,49,64,.4)' }, ticks: { stepSize: 1 } }
-            }
-          }
-        });
-
-        /* 4. Doughnut — статус */
-        new Chart(document.getElementById('chart-status'), {
-          type: 'doughnut',
-          data: {
-            labels: ['Чисто', 'Проблем'],
-            datasets: [{
-              data: [byStatus['Чисто'], byStatus['Проблем']],
-              backgroundColor: ['#2dcc70cc','#ef5b5bcc'],
-              borderColor: ['#2dcc70','#ef5b5b'],
-              borderWidth: 1.5, hoverOffset: 10
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false, cutout: '64%',
-            plugins: {
-              legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true } },
-              tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} (${total ? Math.round(ctx.parsed/total*100) : 0}%)` } }
-            }
-          }
-        });
-      }
-
       function renderInspection() {
         const config = getConfig(state.inspectionType);
         const filledCount = config.items.filter((i) => isFilled(state.itemState[i.id])).length;
@@ -1736,7 +1342,6 @@
           state.screen === "home" ? renderHome() :
           state.screen === "inspection" ? renderInspection() :
           state.screen === "history" ? renderHistory() :
-          state.screen === "charts" ? renderCharts() :
           renderStats();
         app.innerHTML = renderShell(content) + renderModals();
         bindInputs();
@@ -1762,12 +1367,10 @@
         const action = btn.dataset.action;
 
         /* Navigation — blocked for QR-only sessions */
-        if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "go-stats" || action === "go-charts" || action === "open-qr" || action === "start-inspection")) return;
+        if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "go-stats" || action === "open-qr" || action === "start-inspection")) return;
         if (action === "go-home") { state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
         if (action === "go-stats") { state.screen = "stats"; render(); return; }
-        if (action === "go-charts") { state.screen = "charts"; render(); initChartsScreen(); return; }
-        if (action === "refresh-charts") { initChartsScreen(); return; }
 
         /* Inspection item status — targeted update, no full re-render */
         if (action === "set-item") {
