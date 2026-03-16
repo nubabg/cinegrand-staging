@@ -483,6 +483,7 @@
       const SHEETS_SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA/edit?usp=drive_web&ouid=105876940936518374708";
 
       const QR_DEFAULT_URL = "https://cginspection.org/";
+      const QR_REDIRECT_URL = "https://www.google.com/";
 
       /* ── Access Control ── */
       const ACCESS_ALLOWED_IPS = ["62.176.97.58", "130.204.143.95", "149.102.239.74"];
@@ -658,7 +659,6 @@
         notes: "",
         records: [],
         syncHistory: JSON.parse(localStorage.getItem(STORAGE_KEYS.sync) || "{}"),
-        statsRange: "week",
         exportRange: "week",
         historyTypeFilter: "all",
         historyLocationFilter: "all",
@@ -715,31 +715,12 @@
         });
       }
 
-      function filteredRecords() { return recordsForRange(state.statsRange); }
-
       function historyRecords() {
         return recordsForRange(state.exportRange).filter((r) => {
           if (state.historyTypeFilter !== "all" && r.type !== state.historyTypeFilter) return false;
           if (state.historyLocationFilter !== "all" && r.location !== state.historyLocationFilter) return false;
           return true;
         });
-      }
-
-      function computeStats(records) {
-        const byLocation = {}, byItem = {};
-        records.forEach((r) => {
-          if (!byLocation[r.location]) byLocation[r.location] = { total: 0, issues: 0 };
-          r.items.forEach((item) => {
-            byLocation[r.location].total += 1;
-            if (!byItem[item.label]) byItem[item.label] = { total: 0, issues: 0 };
-            byItem[item.label].total += 1;
-            if (item.status === STATUS.DIRTY) {
-              byLocation[r.location].issues += 1;
-              byItem[item.label].issues += 1;
-            }
-          });
-        });
-        return { byLocation, byItem };
       }
 
       /* ── Persistence ── */
@@ -902,7 +883,7 @@
             sessionStorage.removeItem(QR_MODE_KEY);
             sessionStorage.removeItem(QR_TYPE_KEY);
             sessionStorage.removeItem(QR_LOC_KEY);
-            window.location.replace("https://www.google.com/");
+            window.location.replace(QR_REDIRECT_URL);
           }, 1200);
           return;
         }
@@ -910,7 +891,7 @@
         render();
       }
 
-      /* ?? Export ?? */
+      /* ── Export ── */
 
       function exportRows(records) {
         return records.map((r) => {
@@ -1016,7 +997,7 @@
           </div></div>`;
       }
 
-      function renderRangeOptions(selected, id) {
+      function renderRangeOptions(selected) {
         return RANGE_OPTIONS.map(([v, l]) => `<option value="${v}" ${selected === v ? "selected" : ""}>${l}</option>`).join("");
       }
 
@@ -1114,62 +1095,6 @@
             ${renderExportControls()}
           </div>
           ${records.length ? renderRecentTable(records, false) : `<div class="panel" style="text-align:center;color:var(--muted);padding:60px 20px;">\u041d\u044f\u043c\u0430 \u0437\u0430\u043f\u0438\u0441\u0438 \u043f\u043e \u0442\u0435\u043a\u0443\u0449\u0438\u0442\u0435 \u0444\u0438\u043b\u0442\u0440\u0438.</div>`}
-        </div>`;
-      }
-      function barColor(p) { return p > 60 ? "var(--red)" : p > 30 ? "#f59e0b" : "var(--green)"; }
-
-      function renderBars(entries) {
-        return `<div class="bars">${entries.map(([label, data]) => {
-          const p = pct(data.issues, data.total);
-          return `<div>
-            <div class="bar-label"><span>${label}</span><span style="color:${barColor(p)};">${data.issues}/${data.total} - ${p}%</span></div>
-            <div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${barColor(p)};"></div></div>
-          </div>`;
-        }).join("")}</div>`;
-      }
-
-      function renderStats() {
-        const records = filteredRecords();
-        if (!records.length) return `<div class="page"><div class="panel" style="text-align:center;color:var(--muted);padding:60px 20px;">\u041d\u044f\u043c\u0430 \u0434\u0430\u043d\u043d\u0438 \u0437\u0430 \u0438\u0437\u0431\u0440\u0430\u043d\u0438\u044f \u043f\u0435\u0440\u0438\u043e\u0434.</div></div>`;
-        const stats = computeStats(records);
-        const totalDirty = records.reduce((s, r) => s + dirtyItems(r).length, 0);
-        const totalClean = records.reduce((s, r) => s + r.items.filter((i) => i.status === STATUS.CLEAN).length, 0);
-        const overall = pct(totalDirty, totalClean + totalDirty);
-        const topIssue = Object.entries(stats.byItem).sort((a, b) => pct(b[1].issues, b[1].total) - pct(a[1].issues, a[1].total))[0];
-        const topLocation = Object.entries(stats.byLocation).sort((a, b) => pct(b[1].issues, b[1].total) - pct(a[1].issues, a[1].total))[0];
-        const trafficText = overall === 0 ? "\u0417\u0415\u041b\u0415\u041d\u041e - \u041e\u0442\u043b\u0438\u0447\u043d\u043e" : overall <= 20 ? "\u0416\u042a\u041b\u0422\u041e - \u0414\u043e\u0431\u0440\u043e" : overall <= 50 ? "\u041e\u0420\u0410\u041d\u0416\u0415\u0412\u041e - \u041d\u0443\u0436\u043d\u043e \u0432\u043d\u0438\u043c\u0430\u043d\u0438\u0435" : "\u0427\u0415\u0420\u0412\u0415\u041d\u041e - \u041a\u0440\u0438\u0442\u0438\u0447\u043d\u043e";
-
-        return `<div class="page">
-          <div class="panel" style="margin-bottom:16px;">
-            <div class="toolbar"><h3 class="section-title" style="margin:0;">\u041e\u0431\u0449\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043d\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438\u0442\u0435</h3><span class="meta-chip">${rangeLabel(state.statsRange)}</span></div>
-            <div class="muted" style="margin-bottom:14px;">\u0422\u0443\u043a \u0441\u0435 \u043e\u0431\u043e\u0431\u0449\u0430\u0432\u0430\u0442 \u0432\u0441\u0438\u0447\u043a\u0438 \u0437\u0430\u043f\u0438\u0441\u0430\u043d\u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0437\u0430 \u0438\u0437\u0431\u0440\u0430\u043d\u0438\u044f \u043f\u0435\u0440\u0438\u043e\u0434.</div>
-            <div class="toolbar toolbar-controls">
-              <div class="tabs">${RANGE_OPTIONS.map(([v, l]) => `<button class="tab ${state.statsRange === v ? "active" : ""}" data-action="set-range" data-value="${v}">${l}</button>`).join("")}</div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <select id="export-range-select" style="min-width:180px;">${renderRangeOptions(state.exportRange)}</select>
-                <button class="btn btn-outline" data-action="export-pdf">PDF</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid cards-4" style="margin-bottom:16px;">${[
-            ["\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0438", records.length, "var(--gold)"],
-            ["\u041f\u0440\u043e\u0431\u043b\u0435\u043c\u0438", totalDirty, "var(--red)"],
-            ["\u0427\u0438\u0441\u0442\u0438", totalClean, "var(--green)"],
-            ["% \u041f\u0440\u043e\u0431\u043b\u0435\u043c", overall + "%", "var(--text)"],
-          ].map(([l, v, c]) => `<div class="panel stat"><div class="muted">${l}</div><strong style="color:${c};">${v}</strong></div>`).join("")}</div>
-
-          <div class="panel" style="margin-bottom:16px;border-left:4px solid ${barColor(overall)};"><strong>${trafficText}</strong><div class="muted" style="margin-top:6px;">\u041e\u0431\u0449\u0430 \u043e\u0446\u0435\u043d\u043a\u0430 \u0437\u0430 \u043f\u0435\u0440\u0438\u043e\u0434\u0430</div></div>
-
-          <div class="grid cards-2 cg-chart-grid" style="margin-bottom:16px;">
-            ${topIssue ? `<div class="panel"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.12em;">\u041d\u0430\u0439-\u0447\u0435\u0441\u0442 \u043f\u0440\u043e\u0431\u043b\u0435\u043c</div><h3 class="section-title" style="color:var(--red);">${topIssue[0]}</h3><div class="muted">${topIssue[1].issues}/${topIssue[1].total} \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 - ${pct(topIssue[1].issues, topIssue[1].total)}%</div></div>` : ""}
-            ${topLocation ? `<div class="panel"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.12em;">\u041d\u0430\u0439-\u043f\u0440\u043e\u0431\u043b\u0435\u043c\u043d\u0430 \u043b\u043e\u043a\u0430\u0446\u0438\u044f</div><h3 class="section-title" style="color:#fbbf24;">${topLocation[0]}</h3><div class="muted">${topLocation[1].issues} \u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0430</div></div>` : ""}
-          </div>
-
-          <div class="grid cards-2 cg-chart-grid">
-            <div class="panel"><h3 class="section-title">\u041f\u043e \u043b\u043e\u043a\u0430\u0446\u0438\u044f</h3>${renderBars(Object.entries(stats.byLocation))}</div>
-            <div class="panel"><h3 class="section-title">\u041f\u043e \u0435\u043b\u0435\u043c\u0435\u043d\u0442</h3>${renderBars(Object.entries(stats.byItem))}</div>
-          </div>
         </div>`;
       }
       function renderInspection() {
@@ -1341,8 +1266,7 @@
         const content =
           state.screen === "home" ? renderHome() :
           state.screen === "inspection" ? renderInspection() :
-          state.screen === "history" ? renderHistory() :
-          renderStats();
+          renderHistory();
         app.innerHTML = renderShell(content) + renderModals();
         bindInputs();
         if (state.showDeleteModal) setupModalFocusTrap();
@@ -1367,10 +1291,9 @@
         const action = btn.dataset.action;
 
         /* Navigation — blocked for QR-only sessions */
-        if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "go-stats" || action === "open-qr" || action === "start-inspection")) return;
+        if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection")) return;
         if (action === "go-home") { state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
-        if (action === "go-stats") { state.screen = "stats"; render(); return; }
 
         /* Inspection item status — targeted update, no full re-render */
         if (action === "set-item") {
@@ -1395,9 +1318,6 @@
           return;
         }
 
-        /* Stats range */
-        if (action === "set-range") { state.statsRange = btn.dataset.value; render(); return; }
-
         /* Delete modal */
         if (action === "close-delete") { state.showDeleteModal = false; state.deleteErr = ""; state.deletePass = ""; render(); return; }
         if (action === "toggle-pass") { state.showPassword = !state.showPassword; render(); return; }
@@ -1418,22 +1338,6 @@
         /* QR modal */
         if (action === "open-qr") { state.showQRModal = true; render(); return; }
         if (action === "close-qr") { state.showQRModal = false; render(); return; }
-        if (action === "save-qr-url") {
-          const input = document.getElementById("qr-base-url-input");
-          const url = (input && input.value ? input.value : "").trim();
-          if (!url || !url.startsWith("http")) {
-            showToast("Въведи валиден URL (започва с https:// или http://).", "error");
-            return;
-          }
-          try {
-            localStorage.setItem(STORAGE_KEYS.qrBaseUrl, url.replace(/\/$/, ""));
-            showToast("URL запазен. QR кодовете вече сочат към този адрес.");
-            render();
-          } catch (e) {
-            showToast("Грешка при запазване.", "error");
-          }
-          return;
-        }
       });
 
       document.addEventListener("keydown", (e) => {
@@ -1488,7 +1392,7 @@
             sessionStorage.removeItem(QR_MODE_KEY);
             sessionStorage.removeItem(QR_TYPE_KEY);
             sessionStorage.removeItem(QR_LOC_KEY);
-            window.location.replace("https://www.google.com/");
+            window.location.replace(QR_REDIRECT_URL);
           }
         }, 60 * 1000);
         /* Периодична проверка на геолокация за QR сесии (всеки 5 минути) */
@@ -1500,7 +1404,7 @@
             sessionStorage.removeItem(QR_MODE_KEY);
             sessionStorage.removeItem(QR_TYPE_KEY);
             sessionStorage.removeItem(QR_LOC_KEY);
-            window.location.replace("https://www.google.com/");
+            window.location.replace(QR_REDIRECT_URL);
           }
         }, GEO_RECHECK_MS);
       });
