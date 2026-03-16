@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="bg">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cine Grand Hygiene Control</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="shortcut icon" href="favicon.svg" />
+    <script>
+      // ── Security: block DevTools & source inspection ──────────────────────
+
+      // 1. Disable right-click context menu
+      document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+      // 2. Block keyboard shortcuts
+      document.addEventListener('keydown', function(e) {
+        var key = e.key || e.keyCode;
+        // F12
+        if (e.keyCode === 123) { e.preventDefault(); return false; }
+        // Ctrl+Shift+I / Ctrl+Shift+J / Ctrl+Shift+C  (DevTools)
+        if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) { e.preventDefault(); return false; }
+        // Ctrl+U  (View Source)
+        if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
+        // Ctrl+S  (Save page)
+        if (e.ctrlKey && e.keyCode === 83) { e.preventDefault(); return false; }
+        // Ctrl+A  (Select All)
+        if (e.ctrlKey && e.keyCode === 65) { e.preventDefault(); return false; }
+        // Ctrl+P  (Print)
+        if (e.ctrlKey && e.keyCode === 80) { e.preventDefault(); return false; }
+      });
+
+      // 3. Block drag-select of content
+      document.addEventListener('selectstart', function(e) { e.preventDefault(); });
+
+      // 5. Warn before closing / navigating away
+      window.addEventListener('beforeunload', function(e) {
+        e.preventDefault();
+        e.returnValue = 'Сайтът е част от работния процес. Сигурни ли сте, че искате да излезете?';
+        return e.returnValue;
+      });
+
+</script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap");
+
+      :root {
+        --bg: #06080c;
+        --bg-2: #0b1016;
+        --panel: #121821;
+        --panel-2: #18212c;
+        --panel-3: #0f141b;
+        --border: #263140;
+        --gold: #c87818;
+        --gold-2: #eba030;
+        --text: #f5f7fb;
+        --muted: #9ba8b9;
+        --muted-2: #6d7a8c;
+        --green: #2dcc70;
+        --green-dark: #16784a;
+        --red: #ef5b5b;
+        --red-dark: #862a2a;
+        --blue: #62a9ff;
+        --shadow: 0 16px 40px rgba(0,0,0,.32);
+      }
+      * { box-sizing: border-box; }
+      html, body { min-height: 100%; }
+      body {
+        margin: 0;
+        overscroll-behavior: none;
+        background:
+          radial-gradient(circle at top left, rgba(200,120,24,.14), transparent 24%),
+          radial-gradient(circle at top right, rgba(98,169,255,.10), transparent 20%),
+          linear-gradient(180deg, var(--bg) 0%, #05070a 100%);
+        color: var(--text);
+        font-family: "DM Sans", "Segoe UI", sans-serif;
+      }
+
+      button, input, select, textarea { font: inherit; }
+
+      #app { position: relative; z-index: 1; }
+      .app-shell { min-height: 100vh; padding: 24px; }
+      .workspace { width: min(1280px, 100%); margin: 0 auto; }
+
+      .product-strip {
+        position: relative;
+        display: flex; align-items: center; justify-content: center;
+        gap: 16px; margin-bottom: 14px; color: var(--muted);
+        min-height: 48px;
+      }
+      .product-strip-left {
+        display: flex; align-items: center; gap: 12px;
+        margin: 0 auto;
+      }
+      .product-strip-status {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+
+      .brand-badge {
+        width: 42px; height: 42px; border-radius: 14px;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, var(--gold), var(--gold-2));
+        color: #15110b; font-family: "Oswald", sans-serif;
+        font-size: 22px; font-weight: 700; letter-spacing: .08em;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.45);
+      }
+
+      .brand-meta strong {
+        display: block; color: var(--text); font-family: "Oswald", sans-serif;
+        font-size: 18px; letter-spacing: .08em; text-transform: uppercase;
+      }
+      .brand-meta span { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+
+      .topbar-shell { position: sticky; top: 16px; z-index: 20; margin-bottom: 18px; }
+      .topbar {
+        display: flex; justify-content: space-between; align-items: center;
+        gap: 16px; padding: 16px 18px;
+        border: 1px solid rgba(200,120,24,.18); border-radius: 20px;
+        background: linear-gradient(180deg, rgba(19,24,33,.96) 0%, rgba(10,14,20,.96) 100%);
+        box-shadow: var(--shadow); backdrop-filter: blur(14px);
+      }
+      .topbar-nav { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      .topbar-meta { display: flex; gap: 10px; align-items: center; color: var(--muted); white-space: nowrap; }
+
+      .meta-chip {
+        padding: 8px 12px; border-radius: 999px;
+        background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06);
+        font-size: 12px;
+      }
+
+      .btn {
+        border: 1px solid transparent; border-radius: 14px;
+        padding: 10px 14px; cursor: pointer;
+        transition: transform .16s ease, border-color .16s ease, background .16s ease;
+      }
+      .btn:hover, .nav-btn:hover, .status-btn:hover, .tab:hover { transform: translateY(-1px); }
+
+      .btn-gold {
+        background: linear-gradient(135deg, var(--gold), var(--gold-2));
+        color: #15110b; font-weight: 700;
+        border-color: rgba(0,0,0,.15);
+        outline: 2px solid transparent; outline-offset: 2px;
+      }
+      .btn-gold:focus-visible { outline-color: var(--gold-2); }
+      .btn-outline {
+        background: rgba(255,255,255,.03); color: var(--text);
+        border-color: rgba(255,255,255,.1);
+      }
+      .btn-outline:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+      .btn-green {
+        background: rgba(45,204,112,.12); color: var(--green);
+        border-color: rgba(45,204,112,.24);
+      }
+      .btn-green:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+      .btn-red {
+        background: rgba(239,91,91,.12); color: var(--red);
+        border-color: rgba(239,91,91,.24);
+      }
+      .btn-red:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+      .nav-btn {
+        background: transparent; border: 1px solid transparent;
+        color: var(--muted); border-radius: 12px; padding: 10px 12px;
+        font-family: "Oswald", sans-serif; font-size: 14px; font-weight: 500;
+        text-transform: uppercase; letter-spacing: .04em; cursor: pointer;
+      }
+      .nav-btn:hover { color: var(--text); background: rgba(255,255,255,.04); }
+      .nav-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+      .nav-btn.state {
+        color: var(--gold-2); border-color: rgba(200,120,24,.26);
+        background: rgba(200,120,24,.10);
+      }
+
+      .page { padding: 8px 0 24px; }
+      .grid { display: grid; gap: 16px; }
+      .cards-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .cards-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+      .panel {
+        background: linear-gradient(180deg, rgba(24,33,44,.98) 0%, rgba(15,20,27,.98) 100%);
+        border: 1px solid var(--border); border-radius: 20px;
+        padding: 20px; box-shadow: var(--shadow);
+      }
+      .panel-soft {
+        background:
+          linear-gradient(135deg, rgba(200,120,24,.18), rgba(98,169,255,.08)),
+          linear-gradient(180deg, rgba(24,33,44,.98), rgba(15,20,27,.98));
+        border-color: rgba(200,120,24,.24);
+      }
+
+      .hero-title, .section-title {
+        margin: 0 0 8px; font-family: "Oswald", sans-serif;
+        letter-spacing: .04em; text-transform: uppercase;
+      }
+      .hero-title { font-size: 34px; }
+      .section-title { font-size: 24px; }
+      .muted { color: var(--muted); }
+      .muted-2 { color: var(--muted-2); }
+
+      .hero-grid {
+        display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .8fr);
+        gap: 18px; align-items: stretch;
+      }
+      .hero-copy {
+        display: flex; flex-direction: column;
+        justify-content: space-between; min-height: 220px;
+      }
+      .hero-kicker {
+        color: var(--gold-2); font-family: "Oswald", sans-serif;
+        font-size: 13px; letter-spacing: .18em;
+        text-transform: uppercase; margin-bottom: 10px;
+      }
+      .hero-orbit {
+        border-radius: 18px; min-height: 220px;
+        background:
+          radial-gradient(circle at center, rgba(235,203,120,.20), transparent 36%),
+          linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+        display: flex; align-items: center; justify-content: center;
+        position: relative; overflow: hidden;
+      }
+      .hero-orbit::before, .hero-orbit::after {
+        content: ""; position: absolute; border-radius: 50%;
+        border: 1px solid rgba(200,120,24,.28);
+      }
+      .hero-orbit::before { width: 180px; height: 180px; }
+      .hero-orbit::after { width: 240px; height: 240px; opacity: .55; }
+
+      .hero-core {
+        width: 108px; height: 108px; border-radius: 28px;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, var(--gold), var(--gold-2));
+        color: #17120a; font-family: "Oswald", sans-serif;
+        font-size: 46px; font-weight: 700;
+        box-shadow: 0 18px 40px rgba(200,120,24,.18);
+      }
+      .hero-metrics {
+        display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px; margin-top: 18px;
+      }
+      .metric {
+        padding: 14px; border-radius: 16px;
+        background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);
+      }
+      .metric-label {
+        color: var(--muted); font-size: 11px;
+        letter-spacing: .12em; text-transform: uppercase;
+      }
+      .metric-value { font-family: "Oswald", sans-serif; font-size: 26px; margin-top: 6px; }
+
+      .stat {
+        text-align: center;
+        background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      }
+      .stat strong {
+        display: block; font-family: "Oswald", sans-serif;
+        font-size: 36px; margin-top: 8px;
+      }
+
+      .card-pick { cursor: pointer; overflow: hidden; padding: 0; transition: transform .2s ease, box-shadow .2s ease; }
+      .card-pick:hover { transform: translateY(-4px); box-shadow: 0 24px 48px rgba(0,0,0,.4); }
+
+      .card-head {
+        padding: 22px 22px 28px; min-height: 240px; position: relative;
+        display: flex; flex-direction: column; justify-content: flex-end;
+      }
+      .card-text-icon {
+        position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+        font-family: "Oswald", sans-serif; font-weight: 700;
+        font-size: 44px; letter-spacing: .06em; text-transform: uppercase;
+        background: linear-gradient(135deg, var(--gold), var(--gold-2));
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text; opacity: .32; pointer-events: none;
+        line-height: 1.1; text-align: center; max-width: 160px;
+      }
+
+
+      .card-body {
+        padding: 18px 20px 20px;
+        background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+      }
+
+      .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+      .tag {
+        font-size: 11px; padding: 5px 9px; border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.08);
+        color: var(--muted); background: rgba(255,255,255,.03);
+      }
+
+      .field { display: grid; gap: 8px; margin-bottom: 14px; }
+      .field label {
+        font-size: 11px; color: var(--muted); text-transform: uppercase;
+        letter-spacing: .14em; font-family: "Oswald", sans-serif;
+      }
+      .field input, .field select, .field textarea {
+        width: 100%; background: var(--panel-3); color: var(--text);
+        border: 1px solid rgba(255,255,255,.08); border-radius: 14px;
+        padding: 12px 14px;
+      }
+      .field input:focus, .field select:focus, .field textarea:focus {
+        outline: none; border-color: rgba(200,120,24,.45);
+        box-shadow: 0 0 0 3px rgba(200,120,24,.12);
+      }
+
+      .items { display: grid; gap: 10px; }
+      .item-row {
+        display: grid; grid-template-columns: 1fr 240px;
+        gap: 16px; align-items: center;
+        background: rgba(255,255,255,.02); border: 1px solid rgba(255,255,255,.06);
+        border-left: 4px solid rgba(200,120,24,.24); border-radius: 16px;
+        padding: 14px 16px; transition: background .2s ease, border-color .2s ease;
+      }
+      .item-row.clean { border-left-color: var(--green); background: rgba(45,204,112,.08); }
+      .item-row.dirty { border-left-color: var(--red); background: rgba(239,91,91,.08); }
+      .item-row.missing { border-left-color: #f59e0b; }
+      .item-title { font-weight: 700; margin-bottom: 4px; }
+      .status-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .status-btn {
+        border: 1px solid rgba(255,255,255,.08); border-radius: 14px;
+        padding: 12px 8px; cursor: pointer;
+        background: rgba(255,255,255,.03); color: var(--text);
+        font-family: "Oswald", sans-serif; letter-spacing: .05em;
+        transition: background .15s ease, border-color .15s ease, transform .1s ease;
+      }
+      .status-btn:active { transform: scale(.96); }
+      .status-btn.active.clean { background: linear-gradient(135deg, var(--green), var(--green-dark)); border-color: var(--green); }
+      .status-btn.active.dirty { background: linear-gradient(135deg, var(--red), var(--red-dark)); border-color: var(--red); }
+
+      .toolbar {
+        display: flex; flex-wrap: wrap; justify-content: space-between;
+        align-items: center; gap: 10px; margin-bottom: 18px;
+      }
+
+      .table-wrap { overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.06); }
+      th {
+        color: var(--muted); font-size: 11px; text-transform: uppercase;
+        letter-spacing: .16em; font-family: "Oswald", sans-serif;
+      }
+      tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+
+      .pill {
+        display: inline-block; padding: 4px 10px;
+        border-radius: 999px; font-size: 12px; font-weight: 700;
+      }
+      .pill.ok { color: var(--green); background: rgba(45,204,112,.15); }
+      .pill.bad { color: var(--red); background: rgba(239,91,91,.15); }
+
+      .progress { height: 6px; background: rgba(255,255,255,.04); border-radius: 999px; overflow: hidden; }
+      .progress > div { height: 100%; background: linear-gradient(135deg, var(--gold), var(--gold-2)); transition: width .3s ease; }
+
+      .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+      .tab {
+        background: rgba(255,255,255,.03); color: var(--muted);
+        border: 1px solid rgba(255,255,255,.08); border-radius: 999px;
+        padding: 8px 12px; cursor: pointer;
+        transition: background .15s ease, color .15s ease;
+      }
+      .tab.active { color: var(--gold-2); border-color: rgba(200,120,24,.28); background: rgba(200,120,24,.10); }
+
+      .bars { display: grid; gap: 10px; }
+      .bar-label { display: flex; justify-content: space-between; margin-bottom: 6px; gap: 10px; }
+      .bar-track { height: 8px; background: rgba(255,255,255,.04); border-radius: 999px; overflow: hidden; }
+      .bar-fill { height: 100%; border-radius: 999px; transition: width .4s ease; }
+
+      .footer-bar {
+        margin-top: 24px; display: flex; justify-content: space-between;
+        gap: 18px; flex-wrap: wrap; align-items: center;
+        color: var(--muted); padding: 16px 2px 0;
+      }
+      .footer-links, .footer-icons { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; }
+      .footer-icons span, .footer-links span {
+        padding: 8px 10px; border-radius: 999px;
+        background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);
+      }
+
+      .modal-backdrop {
+        position: fixed; inset: 0; background: rgba(0,0,0,.78);
+        display: flex; align-items: center; justify-content: center;
+        padding: 20px; z-index: 40;
+        animation: fadeIn .2s ease;
+      }
+      .modal {
+        width: min(520px, 100%);
+        background: linear-gradient(180deg, rgba(24,33,44,.98) 0%, rgba(15,20,27,.98) 100%);
+        border: 1px solid rgba(255,255,255,.08); border-radius: 20px;
+        padding: 24px; box-shadow: var(--shadow);
+        animation: slideUp .25s ease;
+      }
+      .toast {
+        position: fixed; right: 20px; bottom: 20px; z-index: 50;
+        padding: 14px 16px; border-radius: 16px; color: var(--text);
+        border: 1px solid transparent; box-shadow: var(--shadow);
+        animation: slideIn .3s ease;
+      }
+      .toast.success { background: rgba(22,101,52,.95); border-color: var(--green); }
+      .toast.error { background: rgba(127,29,29,.95); border-color: var(--red); }
+
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes slideIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+      @keyframes liveBlink { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(45,204,112,.6); } 50% { opacity: .6; box-shadow: 0 0 8px 2px rgba(45,204,112,.8); } }
+      .live-dot {
+        display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+        background: var(--green); margin-right: 6px; vertical-align: middle;
+        animation: liveBlink 1.5s ease-in-out infinite;
+      }
+
+      /* Декоративна метла в background – не пречи на кликове */
+      .broom-fun {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        height: 80px; z-index: 0; pointer-events: none;
+        overflow: hidden;
+      }
+      .broom-sweep {
+        position: absolute; bottom: 12px; left: -60px;
+        font-size: 42px; opacity: .35;
+        animation: sweepAcross 18s ease-in-out infinite;
+      }
+      .broom-dust {
+        position: absolute; bottom: 24px; width: 6px; height: 6px;
+        border-radius: 50%; background: rgba(255,255,255,.25);
+        pointer-events: none;
+      }
+      .broom-dust:nth-child(1) { left: 8%; animation: dustFade 18s ease-in-out infinite 0s; }
+      .broom-dust:nth-child(2) { left: 22%; animation: dustFade 18s ease-in-out infinite 1.5s; }
+      .broom-dust:nth-child(3) { left: 38%; animation: dustFade 18s ease-in-out infinite 3s; }
+      .broom-dust:nth-child(4) { left: 55%; animation: dustFade 18s ease-in-out infinite 4.5s; }
+      .broom-dust:nth-child(5) { left: 72%; animation: dustFade 18s ease-in-out infinite 6s; }
+      .broom-dust:nth-child(6) { left: 88%; animation: dustFade 18s ease-in-out infinite 7.5s; }
+      @keyframes sweepAcross {
+        0%, 100% { transform: translateX(0) rotate(-5deg); }
+        25% { transform: translateX(25vw) rotate(2deg); }
+        50% { transform: translateX(50vw) rotate(-3deg); }
+        75% { transform: translateX(75vw) rotate(2deg); }
+        100% { transform: translateX(100vw) translateX(60px) rotate(-5deg); }
+      }
+      @keyframes dustFade {
+        0%, 10%, 90%, 100% { opacity: 0; transform: scale(0.8); }
+        25%, 50%, 75% { opacity: .4; transform: scale(1); }
+      }
+
+      @media (max-width: 980px) {
+        .hero-grid, .cards-2, .cards-4, .cg-chart-grid { grid-template-columns: 1fr; }
+        .topbar { flex-direction: column; align-items: stretch; }
+        .topbar-meta { justify-content: flex-start; flex-wrap: wrap; }
+        .product-strip {
+          flex-direction: column;
+          justify-content: center;
+          text-align: center;
+          gap: 10px;
+        }
+        .product-strip-left { justify-content: center; }
+        .product-strip-status {
+          position: static;
+          transform: none;
+        }
+      }
+      @media (max-width: 900px) {
+        .item-row { grid-template-columns: 1fr; }
+      }
+      @media print {
+        .app-shell, .broom-fun { display: none !important; }
+        #qr-modal-backdrop { position: static !important; background: #fff !important; padding: 20px !important; width: 100% !important; min-height: 100vh !important; }
+        .qr-modal { box-shadow: none !important; border: 1px solid #ddd !important; max-width: 100% !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div class="broom-fun" aria-hidden="true">
+      <span class="broom-dust"></span><span class="broom-dust"></span><span class="broom-dust"></span>
+      <span class="broom-dust"></span><span class="broom-dust"></span><span class="broom-dust"></span>
+      <span class="broom-sweep">🧹</span>
+    </div>
+    <script>
+
+      /* ── Constants ── */
+      const HALLS = ["Зала 1", "Зала 2", "Зала 3", "Зала 4", "Зала 5", "Зала 6"];
+      const BATHROOMS = [
+        "Дамска тоалетна",
+        "Мъжка тоалетна",
+      ];
+
+      const HALL_ITEMS = [
+        { id: "cup_holders", label: "Cup Holders", icon: "☕", desc: "Поставки за чаши" },
+        { id: "seats", label: "Седалки", icon: "💺", desc: "Тапицерия и механизъм" },
+        { id: "carpet", label: "Мокет", icon: "🟫", desc: "Под и пътеки" },
+        { id: "armrests", label: "Подлакътници", icon: "✋", desc: "Повърхности" },
+        { id: "floor", label: "Под (без мокет)", icon: "🧹", desc: "Твърди настилки" },
+        { id: "screen_area", label: "Зона до екрана", icon: "🎬", desc: "Предна зона" },
+      ];
+
+      const BATHROOM_ITEMS = [
+        { id: "trash_bins", label: "Кошчета", icon: "🗑️", desc: "Изпразване и дезинфекция" },
+        { id: "general_clean", label: "Общо почистване", icon: "🧽", desc: "Всички повърхности" },
+        { id: "toilet_paper", label: "Тоалетна хартия", icon: "🧻", desc: "Зареждане" },
+        { id: "soap", label: "Сапун", icon: "🧴", desc: "Дозатори" },
+        { id: "mirrors", label: "Огледала", icon: "🪞", desc: "Без петна" },
+        { id: "floor_bathroom", label: "Под", icon: "🧹", desc: "Мокро почистване" },
+        { id: "sinks", label: "Мивки", icon: "🚿", desc: "Кран и мивка" },
+      ];
+
+      const STATUS = { CLEAN: "clean", DIRTY: "dirty" };
+      const DELETE_PASSWORD = "CineGrand2025";
+      const STORAGE_KEYS = { records: "cg_v4_records", sync: "cg_sync_hist", qrBaseUrl: "cg_qr_base_url" };
+      const LOCAL_RETENTION_DAYS = 7; /* Локални записи се пазят 7 дни */
+
+      /* ══════════════════════════════════════════════════
+         ВАЖНО: Замени URL-то по-долу с твоето Web App URL
+         след като deploy-неш Google Apps Script-а.
+         Виж инструкциите в документа за настройка.
+         ══════════════════════════════════════════════════ */
+      const SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwqOpU1wZ_k8I7aXgDHcsV2_UroQrTg13R0zQnOQUrwso3H6jDd1GUykW75-OViIAUPSQ/exec";
+      const SHEETS_SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA/edit?usp=drive_web&ouid=105876940936518374708";
+
+      const QR_DEFAULT_URL = "https://cginspection.org/";
+
+      /* ── Access Control ── */
+      const ACCESS_ALLOWED_IPS = ["62.176.97.58", "130.204.143.95", "149.102.239.74"];
+      const QR_SESSION_KEY = "cg_qr_access";
+      const QR_MODE_KEY = "cg_qr_mode";       /* маркира сесията като QR-достъп */
+      const QR_TYPE_KEY  = "cg_qr_type";      /* запазва типа (hall/bathroom) */
+      const QR_LOC_KEY   = "cg_qr_loc";       /* запазва локацията */
+      const QR_SESSION_TTL_MS = 45 * 60 * 1000; /* 45 минути */
+      const QR_COOLDOWN_KEY = "cg_qr_cooldown";
+      const QR_COOLDOWN_MS = 10 * 60 * 1000; /* 10 минути */
+
+      function getQRCooldownRemaining(type, loc) {
+        try {
+          const data = JSON.parse(localStorage.getItem(QR_COOLDOWN_KEY) || "{}");
+          const remaining = QR_COOLDOWN_MS - (Date.now() - (data[type + "_" + loc] || 0));
+          return remaining > 0 ? remaining : 0;
+        } catch (_) { return 0; }
+      }
+
+      function setQRCooldown(type, loc) {
+        try {
+          const data = JSON.parse(localStorage.getItem(QR_COOLDOWN_KEY) || "{}");
+          data[type + "_" + loc] = Date.now();
+          localStorage.setItem(QR_COOLDOWN_KEY, JSON.stringify(data));
+        } catch (_) {}
+      }
+
+      /* ── Geolocation Access Control ── */
+      const CINEMA_LAT = 42.678351;
+      const CINEMA_LNG = 23.320035;
+      const CINEMA_RADIUS_M = 500;
+      const GEO_RECHECK_MS = 5 * 60 * 1000; /* Проверка на локация всеки 5 минути */
+
+      function distanceMeters(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
+        const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                  Math.cos(φ1) * Math.cos(φ2) *
+                  Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+
+      function getGeolocation() {
+        return new Promise((resolve) => {
+          if (!navigator.geolocation) { resolve(null); return; }
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+            () => resolve(null),
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          );
+        });
+      }
+
+      function isNearCinema(lat, lng) {
+        return distanceMeters(lat, lng, CINEMA_LAT, CINEMA_LNG) <= CINEMA_RADIUS_M;
+      }
+
+      function showAccessDenied() {
+        document.getElementById("app").innerHTML = `
+          <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+            <div style="text-align:center;max-width:400px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:rgba(239,91,91,.15);border:1px solid rgba(239,91,91,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:32px;">🔒</div>
+              <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;">ДОСТЪПЪТ Е ОТКАЗАН</div>
+              <div style="color:var(--muted);font-size:14px;line-height:1.6;">Сканирайте QR кода на Вашата локация, за да влезете в системата.</div>
+            </div>
+          </div>`;
+      }
+
+      function showAccessLoading() {
+        document.getElementById("app").innerHTML = `
+          <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;">
+            <div style="text-align:center;">
+              <div style="width:42px;height:42px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--gold);animation:spin .8s linear infinite;margin:0 auto 16px;"></div>
+              <div id="loading-text" style="color:var(--muted);font-size:13px;">Проверка на достъп…</div>
+            </div>
+          </div>`;
+      }
+
+      function updateLoadingText(text) {
+        const el = document.getElementById("loading-text");
+        if (el) el.textContent = text;
+      }
+
+      function showOutsideCinema() {
+        document.getElementById("app").innerHTML = `
+          <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+            <div style="text-align:center;max-width:400px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:rgba(239,91,91,.15);border:1px solid rgba(239,91,91,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:32px;">📍</div>
+              <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;">ИЗВЪН ЛОКАЦИЯТА</div>
+              <div style="color:var(--muted);font-size:14px;line-height:1.6;">Трябва да се намирате в <strong style="color:var(--text);">Cine Grand Park Center</strong>, за да използвате системата.</div>
+            </div>
+          </div>`;
+      }
+
+      async function checkAccess() {
+        const params = new URLSearchParams(window.location.search || (window.location.hash.startsWith("#") ? window.location.hash.slice(1) : ""));
+        /* QR достъп — URL съдържа QR параметри */
+        if (params.get("open") === "inspection") {
+          const type = params.get("type") || "";
+          const loc = params.get("location") || "";
+          if (getQRCooldownRemaining(type, loc) > 0) return false;
+          /* Геолокация — трябва да е в киното */
+          updateLoadingText("Проверка на локация…");
+          const pos = await getGeolocation();
+          if (!pos || !isNearCinema(pos.lat, pos.lng)) return "outside";
+          sessionStorage.setItem(QR_SESSION_KEY, String(Date.now()));
+          sessionStorage.setItem(QR_MODE_KEY, "1");
+          sessionStorage.setItem(QR_TYPE_KEY, type);
+          sessionStorage.setItem(QR_LOC_KEY, loc);
+          return true;
+        }
+        /* Сесия — вече е влязъл чрез QR в тази сесия, проверка за изтичане */
+        const sessionTs = parseInt(sessionStorage.getItem(QR_SESSION_KEY) || "0", 10);
+        if (sessionTs) {
+          if (Date.now() - sessionTs < QR_SESSION_TTL_MS) {
+            /* Геолокация при reload на QR сесия */
+            updateLoadingText("Проверка на локация…");
+            const pos = await getGeolocation();
+            if (!pos || !isNearCinema(pos.lat, pos.lng)) return "outside";
+            return true;
+          }
+          sessionStorage.removeItem(QR_SESSION_KEY);
+          sessionStorage.removeItem(QR_MODE_KEY);
+          sessionStorage.removeItem(QR_TYPE_KEY);
+          sessionStorage.removeItem(QR_LOC_KEY);
+        }
+        /* IP проверка — офис компютри (без геолокация) */
+        try {
+          const res = await fetch("https://api.ipify.org?format=json");
+          const { ip } = await res.json();
+          if (ACCESS_ALLOWED_IPS.includes(ip)) return true;
+        } catch (_) {}
+        return false;
+      }
+
+      /* Само тези локации се показват в QR модала */
+      const QR_LOCATIONS = [
+        ...HALLS.map((loc) => ({ type: "hall", location: loc, icon: "🎬" })),
+        { type: "bathroom", location: "Дамска тоалетна", icon: "🚿" },
+        { type: "bathroom", location: "Мъжка тоалетна", icon: "🚿" },
+      ];
+
+      const CONFIGS = {
+        hall: {
+          title: "Проверка на Кинозала",
+          shortTitle: "Кинозала",
+          sectionTitle: "Елементи на Кинозалата",
+          accent: "var(--gold)",
+          locations: HALLS,
+          items: HALL_ITEMS,
+          tags: ["Cup Holders", "Седалки", "Мокет", "Под", "Екран", "Подлакътници"],
+        },
+        bathroom: {
+          title: "Проверка на Санитарен Възел",
+          shortTitle: "Санитарен Възел",
+          sectionTitle: "Елементи на Санитарния Възел",
+          accent: "var(--blue)",
+          locations: BATHROOMS,
+          items: BATHROOM_ITEMS,
+          tags: ["Кошчета", "Почистване", "Хартия", "Сапун", "Мивки", "Огледала"],
+        },
+      };
+
+      /* ── State ── */
+      const state = {
+        screen: "home",
+        inspectionType: "hall",
+        location: HALLS[0],
+        inspector: "",
+        itemState: {},
+        notes: "",
+        records: [],
+        syncHistory: JSON.parse(localStorage.getItem(STORAGE_KEYS.sync) || "{}"),
+        statsRange: "week",
+        exportRange: "week",
+        historyTypeFilter: "all",
+        historyLocationFilter: "all",
+        showValidation: false,
+        showDeleteModal: false,
+        showQRModal: false,
+        deletePass: "",
+        deleteErr: "",
+        showPassword: false,
+        toast: null,
+        openedFromQR: false,
+      };
+
+      try { state.records = JSON.parse(localStorage.getItem(STORAGE_KEYS.records) || "[]"); }
+      catch { state.records = []; }
+
+      /* ── Toast timer (clean, no property on function) ── */
+      let toastTimer = null;
+
+      /* ── Helpers ── */
+      const app = document.getElementById("app");
+
+      function isMobile() {
+        if (typeof navigator === "undefined") return false;
+        const ua = navigator.userAgent || "";
+        return /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
+      }
+
+      function getConfig(type) { return CONFIGS[type] || CONFIGS.hall; }
+
+      function fmt(iso) {
+        return new Date(iso).toLocaleString("bg-BG", {
+          day: "2-digit", month: "2-digit", year: "numeric",
+          hour: "2-digit", minute: "2-digit",
+        });
+      }
+
+      function pct(issues, total) { return total > 0 ? Math.round((issues / total) * 100) : 0; }
+      function isFilled(v) { return v === STATUS.CLEAN || v === STATUS.DIRTY; }
+      function dirtyItems(record) { return record.items.filter((i) => i.status === STATUS.DIRTY); }
+
+      function escapeHtml(v) {
+        return String(v || "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      }
+
+      function csvEscape(v) { return '"' + String(v ?? "").replace(/"/g, '""') + '"'; }
+
+      const RANGE_OPTIONS = [["today", "\u0414\u043d\u0435\u0441"], ["week", "\u0421\u0435\u0434\u043c\u0438\u0446\u0430"]];
+
+      function rangeLabel(range) {
+        const found = RANGE_OPTIONS.find(([v]) => v === range);
+        return found ? found[1] : "\u0421\u0435\u0434\u043c\u0438\u0446\u0430";
+      }
+
+      function recordsForRange(range) {
+        const now = new Date();
+        return state.records.filter((r) => {
+          const d = new Date(r.timestamp);
+          if (range === "today") return d.toDateString() === now.toDateString();
+          if (range === "week") return now - d < 7 * 86400000;
+          return now - d < 7 * 86400000;
+        });
+      }
+
+      function filteredRecords() { return recordsForRange(state.statsRange); }
+
+      function historyRecords() {
+        return recordsForRange(state.exportRange).filter((r) => {
+          if (state.historyTypeFilter !== "all" && r.type !== state.historyTypeFilter) return false;
+          if (state.historyLocationFilter !== "all" && r.location !== state.historyLocationFilter) return false;
+          return true;
+        });
+      }
+
+      function computeStats(records) {
+        const byLocation = {}, byItem = {};
+        records.forEach((r) => {
+          if (!byLocation[r.location]) byLocation[r.location] = { total: 0, issues: 0 };
+          r.items.forEach((item) => {
+            byLocation[r.location].total += 1;
+            if (!byItem[item.label]) byItem[item.label] = { total: 0, issues: 0 };
+            byItem[item.label].total += 1;
+            if (item.status === STATUS.DIRTY) {
+              byLocation[r.location].issues += 1;
+              byItem[item.label].issues += 1;
+            }
+          });
+        });
+        return { byLocation, byItem };
+      }
+
+      function latestIssues(limit = 6) {
+        return state.records
+          .flatMap((r) => dirtyItems(r).map((i) => ({
+            ...i, location: r.location, inspector: r.inspector, timestamp: r.timestamp,
+          })))
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+          .slice(0, limit);
+      }
+
+      /* ── Persistence ── */
+      function persist() {
+        localStorage.setItem(STORAGE_KEYS.records, JSON.stringify(state.records));
+        localStorage.setItem(STORAGE_KEYS.sync, JSON.stringify(state.syncHistory));
+      }
+
+      /* ── Auto-cleanup: изтрива локални записи по-стари от 7 дни ── */
+      function cleanupOldRecords() {
+        const cutoff = Date.now() - LOCAL_RETENTION_DAYS * 86400000;
+        const before = state.records.length;
+        state.records = state.records.filter((r) => new Date(r.timestamp).getTime() > cutoff);
+        if (state.records.length < before) {
+          persist();
+          console.log(`[Cleanup] Изтрити ${before - state.records.length} стари записа (>7 дни)`);
+        }
+      }
+
+      function showToast(msg, type = "success") {
+        state.toast = { msg, type };
+        render();
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { state.toast = null; render(); }, 4000);
+      }
+
+      /* ── Google Sheets Sync ── */
+      function isSheetsConfigured() {
+        return SHEETS_WEB_APP_URL && SHEETS_WEB_APP_URL !== "???????_????_WEB_APP_URL_???" && SHEETS_WEB_APP_URL.startsWith("https://");
+      }
+
+      function buildSheetsPayload(record) {
+        const issues = dirtyItems(record);
+        const config = getConfig(record.type);
+        const status = issues.length ? "\u041c\u0420\u042a\u0421\u041d\u0410" : "\u0427\u0418\u0421\u0422\u0410";
+        const typeLabel = config.shortTitle + " - " + record.location;
+        const issueLabel = issues.length ? issues.map((item) => item.label).join(", ") : "";
+        const notes = record.notes || "";
+
+        return {
+          entry_id: String(record.id),
+          inspected_at: fmt(record.timestamp),
+          inspection_type: typeLabel,
+          inspector: record.inspector,
+          status,
+          issues: issueLabel,
+          notes,
+          row_values: JSON.stringify([
+            record.id,
+            fmt(record.timestamp),
+            typeLabel,
+            record.inspector,
+            status,
+            issueLabel,
+            notes,
+          ]),
+          record_json: JSON.stringify(record),
+        };
+      }
+
+      async function sendToSheets(record) {
+        if (!isSheetsConfigured()) return { success: false, error: "Sheets URL \u043d\u0435 \u0435 \u043a\u043e\u043d\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043d" };
+        const payload = JSON.stringify({ record });
+
+        try {
+          const response = await fetch(SHEETS_WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            body: payload,
+          });
+          if (!response.ok) return { success: false, error: "HTTP " + response.status };
+          return { success: true, verified: true };
+        } catch (err) {
+          try {
+            await fetch(SHEETS_WEB_APP_URL, {
+              method: "POST",
+              mode: "no-cors",
+              body: payload,
+            });
+            return { success: true, verified: false };
+          } catch (fallbackErr) {
+            return { success: false, error: fallbackErr.message || err.message };
+          }
+        }
+      }
+
+      async function syncRecord(record) {
+        if (!isSheetsConfigured()) return { success: false, error: "Sheets URL \u043d\u0435 \u0435 \u043a\u043e\u043d\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043d" };
+        state.syncHistory[record.id] = "syncing";
+        persist(); render();
+        const result = await sendToSheets(record);
+        state.syncHistory[record.id] = result.success ? (result.verified ? "synced" : "sent") : "error";
+        persist(); render();
+        return result;
+      }
+
+      function getQRBaseUrl() {
+        const saved = (localStorage.getItem(STORAGE_KEYS.qrBaseUrl) || "").trim();
+        if (saved && saved.startsWith("http") && saved.length > 40) return saved.replace(/\/$/, "");
+        if (typeof window !== "undefined" && window.location && window.location.href) {
+          const href = window.location.href;
+          if (href.startsWith("http") && (href.includes("github.io") || href.includes("vercel.app") || href.includes("netlify.app"))) {
+            return href.split("?")[0].split("#")[0].replace(/\/$/, "");
+          }
+        }
+        return QR_DEFAULT_URL;
+      }
+
+      function startInspection(type, locationOverride) {
+        const config = getConfig(type);
+        const loc = locationOverride && config.locations.includes(locationOverride) ? locationOverride : config.locations[0];
+        Object.assign(state, {
+          inspectionType: type,
+          location: loc,
+          inspector: "",
+          itemState: {},
+          notes: "",
+          showValidation: false,
+          screen: "inspection",
+        });
+        render();
+      }
+
+      async function submitInspection() {
+        const config = getConfig(state.inspectionType);
+        state.showValidation = true;
+        const allFilled = config.items.every((i) => isFilled(state.itemState[i.id]));
+        if (!state.inspector.trim()) { showToast("Моля въведи своето пълно име.", "error"); return; }
+        if (!/^[\u0400-\u04FF ]+$/.test(state.inspector.trim())) { showToast("Името трябва да е само на кирилица, без специални символи.", "error"); return; }
+        if (!allFilled) { showToast("Всички точки трябва да бъдат попълнени.", "error"); render(); return; }
+
+        const record = {
+          id: Date.now(),
+          type: state.inspectionType,
+          location: state.location,
+          inspector: state.inspector.trim(),
+          timestamp: new Date().toISOString(),
+          items: config.items.map((i) => ({ id: i.id, label: i.label, icon: i.icon, status: state.itemState[i.id] })),
+          notes: state.notes,
+        };
+        state.records = [record, ...state.records];
+        cleanupOldRecords(); /* Изчистване на стари записи >7 дни */
+        persist();
+        showToast(`Проверката на „${state.location}" е записана.`);
+        if (isSheetsConfigured()) {
+          const syncResult = await syncRecord(record);
+          if (syncResult.success && syncResult.verified) {
+            showToast("\u2713 \u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0438\u0440\u0430\u043d\u043e \u0441 Google Sheets.");
+          } else if (syncResult.success) {
+            showToast("\u2713 \u0417\u0430\u044f\u0432\u043a\u0430\u0442\u0430 \u0435 \u0438\u0437\u043f\u0440\u0430\u0442\u0435\u043d\u0430 \u043a\u044a\u043c Google Sheets. \u0410\u043a\u043e \u0440\u0435\u0434\u044a\u0442 \u043d\u0435 \u0441\u0435 \u043f\u043e\u044f\u0432\u0438, \u043f\u0440\u043e\u0432\u0435\u0440\u0438 Apps Script \u043b\u043e\u0433\u043e\u0432\u0435\u0442\u0435.");
+          } else {
+            showToast("\u26a0 \u0417\u0430\u043f\u0438\u0441\u044c\u0442 \u0435 \u0437\u0430\u043f\u0430\u0437\u0435\u043d \u043b\u043e\u043a\u0430\u043b\u043d\u043e. Sheets sync \u043d\u0435\u0443\u0441\u043f\u0435\u0448\u0435\u043d: " + (syncResult.error || "\u043d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u0430 \u0433\u0440\u0435\u0448\u043a\u0430"), "error");
+          }
+        }
+        if (sessionStorage.getItem(QR_MODE_KEY) === "1") {
+          setQRCooldown(state.inspectionType, state.location);
+          state.openedFromQR = false;
+          setTimeout(() => {
+            sessionStorage.removeItem(QR_SESSION_KEY);
+            sessionStorage.removeItem(QR_MODE_KEY);
+            sessionStorage.removeItem(QR_TYPE_KEY);
+            sessionStorage.removeItem(QR_LOC_KEY);
+            window.location.replace("https://www.google.com/");
+          }, 1200);
+          return;
+        }
+        state.screen = "home";
+        render();
+      }
+
+      /* ?? Export ?? */
+
+      function exportRows(records) {
+        return records.map((r) => {
+          const issues = dirtyItems(r);
+          return {
+            date: fmt(r.timestamp), type: getConfig(r.type).shortTitle,
+            location: r.location, inspector: r.inspector,
+            status: issues.length ? "Проблем" : "Чисто",
+            issues: issues.length ? issues.map((i) => i.label).join(", ") : "—",
+            notes: r.notes || "", sheets: state.syncHistory[r.id] || "—",
+          };
+        });
+      }
+
+      function downloadFile(filename, content, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement("a"), { href: url, download: filename });
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      function exportCsv() {
+        const records = historyRecords();
+        if (!records.length) { showToast("Няма записи за експорт.", "error"); return; }
+        const header = ["Дата/Час", "Тип", "Локация", "Проверяващ", "Статус", "Проблеми", "Бележки", "Sheets"];
+        const rows = exportRows(records).map((r) =>
+          [r.date, r.type, r.location, r.inspector, r.status, r.issues, r.notes, r.sheets].map(csvEscape).join(";")
+        );
+        downloadFile(
+          "cinegrand-report-" + state.exportRange + ".csv",
+          "\uFEFF" + [header.join(";"), ...rows].join("\n"),
+          "text/csv;charset=utf-8;"
+        );
+        showToast("Excel файлът за " + rangeLabel(state.exportRange).toLowerCase() + " е готов.");
+      }
+
+      function exportPdf() {
+        const records = historyRecords();
+        if (!records.length) { showToast("\u041d\u044f\u043c\u0430 \u0437\u0430\u043f\u0438\u0441\u0438 \u0437\u0430 PDF \u043e\u0442\u0447\u0435\u0442.", "error"); return; }
+        const rows = exportRows(records);
+        const issueCount = records.reduce((s, r) => s + dirtyItems(r).length, 0);
+        const filterType = state.historyTypeFilter === "all" ? "\u0412\u0441\u0438\u0447\u043a\u0438 \u0442\u0438\u043f\u043e\u0432\u0435" : getConfig(state.historyTypeFilter).shortTitle;
+        const filterLocation = state.historyLocationFilter === "all" ? "\u0412\u0441\u0438\u0447\u043a\u0438 \u043b\u043e\u043a\u0430\u0446\u0438\u0438" : state.historyLocationFilter;
+        const w = window.open("", "_blank", "width=1280,height=920");
+        if (!w) { showToast("\u0411\u0440\u0430\u0443\u0437\u044a\u0440\u044a\u0442 \u0431\u043b\u043e\u043a\u0438\u0440\u0430 PDF \u043f\u0440\u043e\u0437\u043e\u0440\u0435\u0446\u0430.", "error"); return; }
+        const html = [
+          '<!DOCTYPE html>',
+          '<html lang="bg">',
+          '<head>',
+          '<meta charset="UTF-8"/>',
+          '<meta name="viewport" content="width=device-width, initial-scale=1.0"/>',
+          '<title>Cine Grand PDF Report</title>',
+          '<style>',
+          'body{font-family:Arial,sans-serif;padding:24px;color:#111827;background:#eef2f7}',
+          '.page{max-width:1180px;margin:0 auto;background:#fff;padding:28px;border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.08)}',
+          'h1{margin:0 0 8px}',
+          '.meta{margin-bottom:20px;color:#4b5563}',
+          '.summary{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}',
+          '.box{border:1px solid #d1d5db;border-radius:10px;padding:12px 14px;min-width:160px}',
+          '.actions{position:sticky;top:0;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin:-4px 0 20px;padding:12px 0;background:rgba(255,255,255,.92);backdrop-filter:blur(6px)}',
+          '.btn{border:1px solid #d1d5db;border-radius:999px;padding:10px 16px;background:#111827;color:#fff;cursor:pointer;font-size:14px}',
+          '.btn.secondary{background:#fff;color:#111827}',
+          'table{width:100%;border-collapse:collapse;font-size:12px}',
+          'th,td{border:1px solid #d1d5db;padding:8px;text-align:left;vertical-align:top}',
+          'th{background:#f3f4f6}',
+          '@media print {.actions{display:none} body{background:#fff;padding:0} .page{box-shadow:none;border-radius:0;max-width:none;padding:0}}',
+          '</style>',
+          '</head>',
+          '<body>',
+          '<div class="page">',
+          '<div class="actions"><button class="btn" onclick="window.print()">\u0417\u0430\u043f\u0430\u0437\u0438 / \u0418\u0437\u0442\u0435\u0433\u043b\u0438 PDF</button><button class="btn secondary" onclick="window.close()">\u0417\u0430\u0442\u0432\u043e\u0440\u0438</button></div>',
+          '<h1>Cine Grand PDF Report</h1>',
+          '<div class="meta">\u041f\u0435\u0440\u0438\u043e\u0434: ' + escapeHtml(rangeLabel(state.exportRange)) + ' | \u0413\u0435\u043d\u0435\u0440\u0438\u0440\u0430\u043d: ' + escapeHtml(fmt(new Date().toISOString())) + '</div>',
+          '<div class="summary">',
+          '<div class="box"><strong>\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0438</strong><div>' + rows.length + '</div></div>',
+          '<div class="box"><strong>\u041f\u0440\u043e\u0431\u043b\u0435\u043c\u0438</strong><div>' + issueCount + '</div></div>',
+          '<div class="box"><strong>\u0422\u0438\u043f</strong><div>' + escapeHtml(filterType) + '</div></div>',
+          '<div class="box"><strong>\u041b\u043e\u043a\u0430\u0446\u0438\u044f</strong><div>' + escapeHtml(filterLocation) + '</div></div>',
+          '</div>',
+          '<table><thead><tr><th>\u0414\u0430\u0442\u0430/\u0427\u0430\u0441</th><th>\u0422\u0438\u043f</th><th>\u041b\u043e\u043a\u0430\u0446\u0438\u044f</th><th>\u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0432\u0430\u0449</th><th>\u0421\u0442\u0430\u0442\u0443\u0441</th><th>\u041f\u0440\u043e\u0431\u043b\u0435\u043c\u0438</th><th>\u0411\u0435\u043b\u0435\u0436\u043a\u0438</th></tr></thead><tbody>',
+          rows.map((r) => '<tr><td>' + escapeHtml(r.date) + '</td><td>' + escapeHtml(r.type) + '</td><td>' + escapeHtml(r.location) + '</td><td>' + escapeHtml(r.inspector) + '</td><td>' + escapeHtml(r.status) + '</td><td>' + escapeHtml(r.issues) + '</td><td>' + escapeHtml(r.notes) + '</td></tr>').join(''),
+          '</tbody></table>',
+          '</div>',
+          '</body>',
+          '</html>'
+        ].join('');
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+        w.focus();
+        showToast("PDF \u043f\u0440\u0435\u0433\u043b\u0435\u0434\u044a\u0442 \u0437\u0430 " + rangeLabel(state.exportRange).toLowerCase() + " \u0435 \u043e\u0442\u0432\u043e\u0440\u0435\u043d.");
+      }
+      function isQROnlySession() { return sessionStorage.getItem(QR_MODE_KEY) === "1"; }
+
+      function renderTopbar() {
+        const navItems = isQROnlySession() ? "" : [
+          state.screen !== "home" ? `<button class="nav-btn" data-action="go-home" aria-label="Начална страница">Начало</button>` : "",
+          `<button class="nav-btn" data-action="open-qr" aria-label="QR кодове за печат">QR кодове</button>`,
+          `<a class="nav-btn${isSheetsConfigured() ? ' state' : ''}" href="${SHEETS_SPREADSHEET_URL}" target="_blank" rel="noopener" aria-label="Отвори Sheets таблица">${isSheetsConfigured() ? "Sheets ✓" : "Sheets ✗"}</a>`,
+        ].filter(Boolean).join("");
+
+        return `
+          <div class="product-strip">
+            <div class="product-strip-left">
+              <span class="brand-badge" aria-hidden="true">CG</span>
+              <div class="brand-meta"><strong>Cine Grand</strong><span>Hygiene Control Platform</span></div>
+            </div>
+          </div>
+          <div class="topbar-shell">
+            <div class="topbar" role="navigation" aria-label="Главна навигация">
+              <div class="topbar-nav">${navItems}</div>
+              <div class="topbar-meta">
+                <span class="meta-chip">Парк Център София</span>
+                <span class="meta-chip">Контрол на хигиена</span>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function renderShell(content) {
+        return `
+          <div class="app-shell"><div class="workspace">
+            ${renderTopbar()}
+            ${content}
+          </div></div>`;
+      }
+
+      function renderRangeOptions(selected, id) {
+        return RANGE_OPTIONS.map(([v, l]) => `<option value="${v}" ${selected === v ? "selected" : ""}>${l}</option>`).join("");
+      }
+
+      function renderExportControls() {
+        return `
+          <div class="toolbar toolbar-controls">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <span class="muted">\u0050\u0044\u0046 \u043e\u0442\u0447\u0435\u0442:</span>
+              <select id="export-range-select" style="min-width:180px;">${renderRangeOptions(state.exportRange)}</select>
+              <span class="meta-chip">${rangeLabel(state.exportRange)}</span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-outline" data-action="export-pdf">PDF</button>
+            </div>
+          </div>`;
+      }
+      function renderHome() {
+        const today = state.records.filter((r) => new Date(r.timestamp).toDateString() === new Date().toDateString());
+        const issuesLastWeek = recordsForRange("week").reduce((s, r) => s + dirtyItems(r).length, 0);
+        const pendingSync = state.records.filter((r) => !state.syncHistory[r.id] || state.syncHistory[r.id] === "error").length;
+        const recentIssues = latestIssues(6);
+        const latestRecord = state.records[0];
+
+        return `<div class="page">
+          <div class="panel panel-soft" style="margin-bottom:18px;">
+            <div class="hero-grid">
+              <div class="hero-copy">
+                <div>
+                  <div class="hero-kicker">Operations Dashboard</div>
+                  <h1 class="hero-title">\u041a\u043e\u043d\u0442\u0440\u043e\u043b \u043d\u0430 \u0425\u0438\u0433\u0438\u0435\u043d\u0430\u0442\u0430</h1>
+                  <div class="muted" style="max-width:60ch;">\u0427\u0438\u0441\u0442\u0430\u0442\u0430 \u0441\u0440\u0435\u0434\u0430 \u043d\u0435 \u0435 \u0434\u0435\u0442\u0430\u0439\u043b, \u0430 \u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442. \u041f\u043e\u0441\u0442\u043e\u044f\u043d\u043d\u0438\u044f\u0442 \u043a\u043e\u043d\u0442\u0440\u043e\u043b \u043d\u0430 \u0445\u0438\u0433\u0438\u0435\u043d\u0430\u0442\u0430 \u0433\u0430\u0440\u0430\u043d\u0442\u0438\u0440\u0430 \u043a\u0430\u0447\u0435\u0441\u0442\u0432\u0435\u043d\u0430 \u0443\u0441\u043b\u0443\u0433\u0430 \u0438 \u0443\u0432\u0430\u0436\u0435\u043d\u0438\u0435 \u043a\u044a\u043c \u0432\u0441\u0435\u043a\u0438 \u043a\u043b\u0438\u0435\u043d\u0442.</div>
+                </div>
+              </div>
+              <div class="hero-orbit"><div class="hero-core">CG</div></div>
+            </div>
+          </div>
+
+
+          <div style="margin-bottom:24px;">
+            <div class="panel">
+              <div class="toolbar"><h3 class="section-title" style="margin:0;">Нова Проверка</h3><span class="meta-chip">Quick Start</span></div>
+              <div class="muted" style="margin-bottom:16px;">Избери типа на проверката и започни въвеждането.</div>
+              <div class="grid cards-2 cg-action-grid">${Object.entries(CONFIGS).map(([key, cfg]) => `
+                <div class="panel card-pick" data-action="start-inspection" data-type="${key}">
+                  <div class="card-head" style="background:linear-gradient(160deg, rgba(255,255,255,.03), rgba(0,0,0,.1)), radial-gradient(circle at top right, ${key === "hall" ? "rgba(201,162,39,.22)" : "rgba(96,165,250,.20)"}, transparent 40%);">
+                    <span class="card-text-icon">${key === "hall" ? "КИНО ЗАЛА" : "WC"}</span>
+                    <div style="font-size:28px;font-weight:700;position:relative;z-index:1;">${cfg.shortTitle}</div>
+                    <div class="muted" style="position:relative;z-index:1;">${key === "hall" ? "Зали 1–6" : "Тоалетни"}</div>
+                  </div>
+                  <div class="card-body">
+                    <div class="tag-list">${cfg.tags.map((t) => `<span class="tag">${t}</span>`).join("")}</div>
+                    <div class="btn btn-gold" style="text-align:center;">Започни проверка</div>
+                  </div>
+                </div>`).join("")}</div>
+            </div>
+          </div>
+
+        </div>`;
+      }
+
+      function renderRecentTable(records, compact) {
+        return `<div class="panel">
+          <div class="toolbar">
+            <h3 class="section-title" style="margin:0;">${compact ? "\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438" : "\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u043d\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438"}</h3>
+            ${compact ? `<div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-outline" data-action="go-history">\u0412\u0438\u0436 \u0438\u0441\u0442\u043e\u0440\u0438\u044f</button></div>` : ""}
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>\u0414\u0430\u0442\u0430/\u0427\u0430\u0441</th><th>\u041b\u043e\u043a\u0430\u0446\u0438\u044f</th><th>\u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0432\u0430\u0449</th><th>\u0421\u0442\u0430\u0442\u0443\u0441</th><th>\u041f\u0440\u043e\u0431\u043b\u0435\u043c\u0438</th><th>Sheets</th></tr></thead>
+            <tbody>${records.map((r) => {
+              const issues = dirtyItems(r);
+              const sync = state.syncHistory[r.id];
+              return `<tr>
+                <td>${fmt(r.timestamp)}</td>
+                <td style="display:flex;align-items:center;gap:6px;">
+                  <span style="font-size:14px;">${r.type === "hall" ? "🎬" : "🚿"}</span>
+                  ${r.location}
+                </td>
+                <td class="muted">${r.inspector}</td>
+                <td><span class="pill ${issues.length ? "bad" : "ok"}">${issues.length ? `✗ ${issues.length} \u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0430` : "✓ \u0427\u0438\u0441\u0442\u043e"}</span></td>
+                <td class="muted">${issues.length ? issues.map((i) => i.label).join(", ") : "—"}</td>
+                <td><div style="display:flex;gap:8px;align-items:center;">
+                  <span>${sync === "synced" ? "✓" : sync === "sent" ? "↑" : sync === "syncing" ? "⟳" : sync === "error" ? "✗" : "—"}</span>
+                  ${(sync === "error" || (!sync && isSheetsConfigured())) ? `<button class="btn btn-outline" data-action="retry-sync" data-id="${r.id}" style="padding:4px 8px;">retry</button>` : ""}
+                </div></td>
+              </tr>`;
+            }).join("")}</tbody>
+          </table></div>
+        </div>`;
+      }
+      function renderHistory() {
+        const records = historyRecords();
+        const locations = [...new Set(state.records.map((r) => r.location))];
+        return `<div class="page">
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="toolbar"><h3 class="section-title" style="margin:0;">\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0438 PDF \u043e\u0442\u0447\u0435\u0442</h3><span class="meta-chip">${records.length} \u0437\u0430\u043f\u0438\u0441\u0430</span></div>
+            <div class="grid cards-2" style="grid-template-columns: 1.2fr 1.2fr; margin-bottom:16px;">
+              <div class="field" style="margin:0;"><label>\u0422\u0438\u043f</label><select id="history-type-filter"><option value="all">\u0412\u0441\u0438\u0447\u043a\u0438</option><option value="hall" ${state.historyTypeFilter === "hall" ? "selected" : ""}>\u041a\u0438\u043d\u043e\u0437\u0430\u043b\u0430</option><option value="bathroom" ${state.historyTypeFilter === "bathroom" ? "selected" : ""}>\u0421\u0430\u043d\u0438\u0442\u0430\u0440\u0435\u043d \u0432\u044a\u0437\u0435\u043b</option></select></div>
+              <div class="field" style="margin:0;"><label>\u041b\u043e\u043a\u0430\u0446\u0438\u044f</label><select id="history-location-filter"><option value="all">\u0412\u0441\u0438\u0447\u043a\u0438</option>${locations.map((l) => `<option value="${l}" ${state.historyLocationFilter === l ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+            </div>
+            ${renderExportControls()}
+          </div>
+          ${records.length ? renderRecentTable(records, false) : `<div class="panel" style="text-align:center;color:var(--muted);padding:60px 20px;">\u041d\u044f\u043c\u0430 \u0437\u0430\u043f\u0438\u0441\u0438 \u043f\u043e \u0442\u0435\u043a\u0443\u0449\u0438\u0442\u0435 \u0444\u0438\u043b\u0442\u0440\u0438.</div>`}
+        </div>`;
+      }
+      function barColor(p) { return p > 60 ? "var(--red)" : p > 30 ? "#f59e0b" : "var(--green)"; }
+
+      function renderBars(entries) {
+        return `<div class="bars">${entries.map(([label, data]) => {
+          const p = pct(data.issues, data.total);
+          return `<div>
+            <div class="bar-label"><span>${label}</span><span style="color:${barColor(p)};">${data.issues}/${data.total} - ${p}%</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${barColor(p)};"></div></div>
+          </div>`;
+        }).join("")}</div>`;
+      }
+
+      function renderStats() {
+        const records = filteredRecords();
+        if (!records.length) return `<div class="page"><div class="panel" style="text-align:center;color:var(--muted);padding:60px 20px;">\u041d\u044f\u043c\u0430 \u0434\u0430\u043d\u043d\u0438 \u0437\u0430 \u0438\u0437\u0431\u0440\u0430\u043d\u0438\u044f \u043f\u0435\u0440\u0438\u043e\u0434.</div></div>`;
+        const stats = computeStats(records);
+        const totalDirty = records.reduce((s, r) => s + dirtyItems(r).length, 0);
+        const totalClean = records.reduce((s, r) => s + r.items.filter((i) => i.status === STATUS.CLEAN).length, 0);
+        const overall = pct(totalDirty, totalClean + totalDirty);
+        const topIssue = Object.entries(stats.byItem).sort((a, b) => pct(b[1].issues, b[1].total) - pct(a[1].issues, a[1].total))[0];
+        const topLocation = Object.entries(stats.byLocation).sort((a, b) => pct(b[1].issues, b[1].total) - pct(a[1].issues, a[1].total))[0];
+        const trafficText = overall === 0 ? "\u0417\u0415\u041b\u0415\u041d\u041e - \u041e\u0442\u043b\u0438\u0447\u043d\u043e" : overall <= 20 ? "\u0416\u042a\u041b\u0422\u041e - \u0414\u043e\u0431\u0440\u043e" : overall <= 50 ? "\u041e\u0420\u0410\u041d\u0416\u0415\u0412\u041e - \u041d\u0443\u0436\u043d\u043e \u0432\u043d\u0438\u043c\u0430\u043d\u0438\u0435" : "\u0427\u0415\u0420\u0412\u0415\u041d\u041e - \u041a\u0440\u0438\u0442\u0438\u0447\u043d\u043e";
+
+        return `<div class="page">
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="toolbar"><h3 class="section-title" style="margin:0;">\u041e\u0431\u0449\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043d\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438\u0442\u0435</h3><span class="meta-chip">${rangeLabel(state.statsRange)}</span></div>
+            <div class="muted" style="margin-bottom:14px;">\u0422\u0443\u043a \u0441\u0435 \u043e\u0431\u043e\u0431\u0449\u0430\u0432\u0430\u0442 \u0432\u0441\u0438\u0447\u043a\u0438 \u0437\u0430\u043f\u0438\u0441\u0430\u043d\u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0437\u0430 \u0438\u0437\u0431\u0440\u0430\u043d\u0438\u044f \u043f\u0435\u0440\u0438\u043e\u0434.</div>
+            <div class="toolbar toolbar-controls">
+              <div class="tabs">${RANGE_OPTIONS.map(([v, l]) => `<button class="tab ${state.statsRange === v ? "active" : ""}" data-action="set-range" data-value="${v}">${l}</button>`).join("")}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <select id="export-range-select" style="min-width:180px;">${renderRangeOptions(state.exportRange)}</select>
+                <button class="btn btn-outline" data-action="export-pdf">PDF</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid cards-4" style="margin-bottom:16px;">${[
+            ["\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0438", records.length, "var(--gold)"],
+            ["\u041f\u0440\u043e\u0431\u043b\u0435\u043c\u0438", totalDirty, "var(--red)"],
+            ["\u0427\u0438\u0441\u0442\u0438", totalClean, "var(--green)"],
+            ["% \u041f\u0440\u043e\u0431\u043b\u0435\u043c", overall + "%", "var(--text)"],
+          ].map(([l, v, c]) => `<div class="panel stat"><div class="muted">${l}</div><strong style="color:${c};">${v}</strong></div>`).join("")}</div>
+
+          <div class="panel" style="margin-bottom:16px;border-left:4px solid ${barColor(overall)};"><strong>${trafficText}</strong><div class="muted" style="margin-top:6px;">\u041e\u0431\u0449\u0430 \u043e\u0446\u0435\u043d\u043a\u0430 \u0437\u0430 \u043f\u0435\u0440\u0438\u043e\u0434\u0430</div></div>
+
+          <div class="grid cards-2 cg-chart-grid" style="margin-bottom:16px;">
+            ${topIssue ? `<div class="panel"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.12em;">\u041d\u0430\u0439-\u0447\u0435\u0441\u0442 \u043f\u0440\u043e\u0431\u043b\u0435\u043c</div><h3 class="section-title" style="color:var(--red);">${topIssue[0]}</h3><div class="muted">${topIssue[1].issues}/${topIssue[1].total} \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 - ${pct(topIssue[1].issues, topIssue[1].total)}%</div></div>` : ""}
+            ${topLocation ? `<div class="panel"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.12em;">\u041d\u0430\u0439-\u043f\u0440\u043e\u0431\u043b\u0435\u043c\u043d\u0430 \u043b\u043e\u043a\u0430\u0446\u0438\u044f</div><h3 class="section-title" style="color:#fbbf24;">${topLocation[0]}</h3><div class="muted">${topLocation[1].issues} \u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0430</div></div>` : ""}
+          </div>
+
+          <div class="grid cards-2 cg-chart-grid">
+            <div class="panel"><h3 class="section-title">\u041f\u043e \u043b\u043e\u043a\u0430\u0446\u0438\u044f</h3>${renderBars(Object.entries(stats.byLocation))}</div>
+            <div class="panel"><h3 class="section-title">\u041f\u043e \u0435\u043b\u0435\u043c\u0435\u043d\u0442</h3>${renderBars(Object.entries(stats.byItem))}</div>
+          </div>
+        </div>`;
+      }
+      function renderInspection() {
+        const config = getConfig(state.inspectionType);
+        const filledCount = config.items.filter((i) => isFilled(state.itemState[i.id])).length;
+        const allFilled = filledCount === config.items.length;
+        const progress = Math.round((filledCount / config.items.length) * 100);
+        const dirtyCount = Object.values(state.itemState).filter((v) => v === STATUS.DIRTY).length;
+
+        return `<div class="page">
+          <div class="progress" style="margin:-24px -24px 24px;"><div style="width:${progress}%;"></div></div>
+          <div class="toolbar">
+            <div>
+              <h1 class="hero-title" style="display:flex;align-items:center;gap:12px;">
+                <span style="font-size:32px;">${state.inspectionType === "hall" ? "🎬" : "🚿"}</span>
+                ${config.title}
+              </h1>
+              <div class="muted">${isSheetsConfigured() ? "Данните ще се изпратят автоматично към Google Sheets след запис." : "Локален запис в браузъра."}</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <span class="muted"><strong style="color:var(--green);">${filledCount}</strong>/${config.items.length} попълнени</span>
+              ${dirtyCount ? `<span class="pill bad">⚠ ${dirtyCount} проблема</span>` : ""}
+            </div>
+          </div>
+
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="grid cards-2">
+              <div class="field"><label>Локация *</label><select id="location-select">${config.locations.map((l) => `<option value="${l}" ${l === state.location ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+              <div class="field"><label>Проверяващ *</label><input id="inspector-input" value="${escapeHtml(state.inspector)}" placeholder="Пълно име…" />${state.showValidation && !state.inspector.trim() ? `<div style="color:var(--red);font-size:12px;">Задължително поле</div>` : state.showValidation && !/^[\u0400-\u04FF ]+$/.test(state.inspector.trim()) ? `<div style="color:var(--red);font-size:12px;">Само кирилица, без специални символи</div>` : ""}</div>
+            </div>
+            <div class="muted" style="font-size:13px;">Дата и час: ${fmt(new Date().toISOString())}</div>
+          </div>
+
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="toolbar">
+              <h3 class="section-title" style="margin:0;">${config.sectionTitle}</h3>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-green" data-action="fill-all" data-value="clean">Всичко чисто</button>
+                <button class="btn btn-red" data-action="fill-all" data-value="dirty">Всичко нечисто</button>
+              </div>
+            </div>
+            <div class="items" id="items-container">
+              ${config.items.map((item) => renderItemRow(item)).join("")}
+            </div>
+            ${state.showValidation && !allFilled ? `<div style="margin-top:12px;padding:12px 14px;border:1px solid rgba(239,68,68,.35);border-radius:12px;background:rgba(239,68,68,.12);color:#fca5a5;">Маркирай всяка точка като Чисто или Нечисто преди да запишеш.</div>` : ""}
+          </div>
+
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="field" style="margin:0;"><label>Бележки</label><textarea id="notes-input" rows="4" placeholder="Допълнителни коментари…">${escapeHtml(state.notes)}</textarea></div>
+          </div>
+
+          <button class="btn btn-gold" data-action="submit-inspection" style="width:100%;padding:16px;font-size:16px;">
+            ${allFilled && state.inspector.trim() ? `Запази${isSheetsConfigured() ? " и изпрати" : ""}` : `Попълни всички полета (${filledCount}/${config.items.length})`}
+          </button>
+        </div>`;
+      }
+
+      function renderItemRow(item) {
+        const value = state.itemState[item.id];
+        const cls = value === STATUS.CLEAN ? "clean" : value === STATUS.DIRTY ? "dirty" : state.showValidation ? "missing" : "";
+        return `
+          <div class="item-row ${cls}" data-item-id="${item.id}">
+            <div>
+              <div class="item-title">${item.icon} ${item.label}</div>
+              <div class="muted">${item.desc}</div>
+              ${state.showValidation && !value ? `<div style="color:#f59e0b;font-size:12px;margin-top:4px;">Задължително поле</div>` : ""}
+            </div>
+            <div class="status-buttons">
+              <button class="status-btn ${value === STATUS.CLEAN ? "active clean" : ""}" data-action="set-item" data-id="${item.id}" data-value="clean">✓ Чисто</button>
+              <button class="status-btn ${value === STATUS.DIRTY ? "active dirty" : ""}" data-action="set-item" data-id="${item.id}" data-value="dirty">✗ Нечисто</button>
+            </div>
+          </div>`;
+      }
+
+      /* ── Targeted DOM update for item status (avoids full re-render) ── */
+      function updateItemRow(itemId) {
+        const config = getConfig(state.inspectionType);
+        const item = config.items.find((i) => i.id === itemId);
+        if (!item) return;
+        const row = document.querySelector(`.item-row[data-item-id="${itemId}"]`);
+        if (!row) return;
+        row.outerHTML = renderItemRow(item);
+
+        /* Update progress bar & counters */
+        const filledCount = config.items.filter((i) => isFilled(state.itemState[i.id])).length;
+        const progress = Math.round((filledCount / config.items.length) * 100);
+        const progressBar = document.querySelector(".progress > div");
+        if (progressBar) progressBar.style.width = progress + "%";
+      }
+
+      function renderModals() {
+        let html = "";
+        if (state.showDeleteModal) {
+          html += `<div class="modal-backdrop" data-action="close-delete" role="presentation">
+            <div class="modal" id="modal-delete" role="dialog" aria-modal="true" aria-labelledby="modal-delete-title" aria-describedby="modal-delete-desc" onclick="event.stopPropagation()">
+              <h2 id="modal-delete-title" class="section-title" style="color:var(--red);">Изтриване на Данни</h2>
+              <p id="modal-delete-desc" class="muted">Ще бъдат изтрити <strong style="color:var(--text);">${state.records.length} записа</strong> от локалното хранилище.</p>
+              <div class="field"><label for="delete-pass-input">Администраторска парола</label><input id="delete-pass-input" type="${state.showPassword ? "text" : "password"}" value="${escapeHtml(state.deletePass)}" placeholder="Въведи парола..." autocomplete="off" /></div>
+              ${state.deleteErr ? `<div id="modal-delete-err" style="color:var(--red);margin-bottom:12px;" role="alert">${state.deleteErr}</div>` : ""}
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-outline" data-action="toggle-pass">${state.showPassword ? "Скрий" : "Покажи"}</button>
+                <button type="button" class="btn btn-red" data-action="confirm-delete">Изтрий</button>
+                <button type="button" class="btn btn-outline" data-action="close-delete">Отказ</button>
+              </div>
+            </div>
+          </div>`;
+        }
+        if (state.showQRModal) html += renderQRModal();
+        if (state.toast) html += `<div class="toast ${state.toast.type}" role="status" aria-live="polite">${state.toast.msg}</div>`;
+        return html;
+      }
+
+      function renderQRModal() {
+        const base = getQRBaseUrl();
+        const items = QR_LOCATIONS;
+        const qrUrl = (type, loc) => {
+          const b = base.replace(/\/?$/, "");
+          const sep = b.includes("?") ? "&" : "?";
+          return b + sep + "open=inspection&type=" + encodeURIComponent(type) + "&location=" + encodeURIComponent(loc);
+        };
+        const imgSrc = (url) => "https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=2&data=" + encodeURIComponent(url);
+        return `
+          <div class="modal-backdrop" id="qr-modal-backdrop" data-action="close-qr" role="presentation">
+            <div class="modal qr-modal" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title" onclick="if(!event.target.closest('[data-action]'))event.stopPropagation()" style="max-width:720px;">
+              <h2 id="qr-modal-title" class="section-title" style="margin:0 0 20px;">QR кодове по локация</h2>
+              <div class="grid cards-2" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:16px; max-height:60vh; overflow-y:auto;">
+                ${items.map(({ type, location, icon }) => {
+                  const url = qrUrl(type, location);
+                  return `<div class="panel" style="text-align:center; padding:16px;">
+                    <div style="font-size:24px; margin-bottom:8px;">${icon}</div>
+                    <div style="font-weight:700; font-size:14px; margin-bottom:12px;">${escapeHtml(location)}</div>
+                    <img src="${imgSrc(url)}" width="160" height="160" alt="QR код: ${escapeHtml(location)}" style="display:block; margin:0 auto; border-radius:12px;" />
+                  </div>`;
+                }).join("")}
+              </div>
+              <div style="margin-top:20px;">
+                <button type="button" class="btn btn-outline" data-action="close-qr">Затвори</button>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function setupModalFocusTrap() {
+        const modal = document.getElementById("modal-delete");
+        if (!modal) return;
+        const focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const prevActive = document.activeElement;
+        if (first) first.focus();
+        function onKeyDown(e) {
+          if (e.key === "Escape") {
+            state.showDeleteModal = false; state.deleteErr = ""; state.deletePass = ""; render();
+            document.removeEventListener("keydown", onKeyDown);
+            if (prevActive && prevActive.focus) prevActive.focus();
+            return;
+          }
+          if (e.key !== "Tab") return;
+          if (e.shiftKey) {
+            if (document.activeElement === first) { e.preventDefault(); if (last) last.focus(); }
+          } else {
+            if (document.activeElement === last) { e.preventDefault(); if (first) first.focus(); }
+          }
+        }
+        document.addEventListener("keydown", onKeyDown);
+      }
+
+      function render() {
+        const content =
+          state.screen === "home" ? renderHome() :
+          state.screen === "inspection" ? renderInspection() :
+          state.screen === "history" ? renderHistory() :
+          renderStats();
+        app.innerHTML = renderShell(content) + renderModals();
+        bindInputs();
+        if (state.showDeleteModal) setupModalFocusTrap();
+      }
+
+      function bindInputs() {
+        const el = (id) => document.getElementById(id);
+        const bind = (id, event, fn) => { const e = el(id); if (e) e["on" + event] = fn; };
+        bind("location-select", "change", (e) => { state.location = e.target.value; });
+        bind("inspector-input", "input", (e) => { const filtered = e.target.value.replace(/[^\u0400-\u04FF ]/g, ""); e.target.value = filtered; state.inspector = filtered; });
+        bind("notes-input", "input", (e) => { state.notes = e.target.value; });
+        bind("delete-pass-input", "input", (e) => { state.deletePass = e.target.value; state.deleteErr = ""; });
+        bind("export-range-select", "change", (e) => { state.exportRange = e.target.value; render(); });
+        bind("history-type-filter", "change", (e) => { state.historyTypeFilter = e.target.value; render(); });
+        bind("history-location-filter", "change", (e) => { state.historyLocationFilter = e.target.value; render(); });
+}
+
+      /* ── Event Delegation ── */
+      document.addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-action]");
+        if (!btn) return;
+        const action = btn.dataset.action;
+
+        /* Navigation — blocked for QR-only sessions */
+        if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "go-stats" || action === "open-qr" || action === "start-inspection")) return;
+        if (action === "go-home") { state.screen = "home"; render(); return; }
+        if (action === "go-history") { state.screen = "history"; render(); return; }
+        if (action === "go-stats") { state.screen = "stats"; render(); return; }
+
+        /* Inspection item status — targeted update, no full re-render */
+        if (action === "set-item") {
+          state.itemState[btn.dataset.id] = btn.dataset.value;
+          updateItemRow(btn.dataset.id);
+          return;
+        }
+
+        /* Fill all items */
+        if (action === "fill-all") {
+          getConfig(state.inspectionType).items.forEach((i) => { state.itemState[i.id] = btn.dataset.value; });
+          render(); return;
+        }
+
+        if (action === "submit-inspection") { await submitInspection(); return; }
+        if (action === "start-inspection") { startInspection(btn.dataset.type); return; }
+
+        /* Sync */
+        if (action === "retry-sync") {
+          const rec = state.records.find((r) => String(r.id) === btn.dataset.id);
+          if (rec) await syncRecord(rec);
+          return;
+        }
+
+        /* Stats range */
+        if (action === "set-range") { state.statsRange = btn.dataset.value; render(); return; }
+
+        /* Delete modal */
+        if (action === "close-delete") { state.showDeleteModal = false; state.deleteErr = ""; state.deletePass = ""; render(); return; }
+        if (action === "toggle-pass") { state.showPassword = !state.showPassword; render(); return; }
+        if (action === "confirm-delete") {
+          if (state.deletePass !== DELETE_PASSWORD) { state.deleteErr = "Грешна парола. Опитай отново."; render(); return; }
+          state.records = []; state.syncHistory = {};
+          localStorage.removeItem(STORAGE_KEYS.records);
+          localStorage.removeItem(STORAGE_KEYS.sync);
+          Object.assign(state, { showDeleteModal: false, deletePass: "", deleteErr: "", screen: "home" });
+          showToast("Всички локални записи са изтрити.");
+          render();
+          return;
+        }
+
+        /* Export */
+        if (action === "export-pdf") { exportPdf(); return; }
+
+        /* QR modal */
+        if (action === "open-qr") { state.showQRModal = true; render(); return; }
+        if (action === "close-qr") { state.showQRModal = false; render(); return; }
+        if (action === "save-qr-url") {
+          const input = document.getElementById("qr-base-url-input");
+          const url = (input && input.value ? input.value : "").trim();
+          if (!url || !url.startsWith("http")) {
+            showToast("Въведи валиден URL (започва с https:// или http://).", "error");
+            return;
+          }
+          try {
+            localStorage.setItem(STORAGE_KEYS.qrBaseUrl, url.replace(/\/$/, ""));
+            showToast("URL запазен. QR кодовете вече сочат към този адрес.");
+            render();
+          } catch (e) {
+            showToast("Грешка при запазване.", "error");
+          }
+          return;
+        }
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        if (state.showDeleteModal) {
+          state.showDeleteModal = false; state.deleteErr = ""; state.deletePass = "";
+          render();
+        } else if (state.showQRModal) {
+          state.showQRModal = false;
+          render();
+        }
+      });
+
+      /* ── Initial Render ── */
+      cleanupOldRecords();
+      showAccessLoading();
+      checkAccess().then((allowed) => {
+        if (allowed === "outside") { showOutsideCinema(); return; }
+        if (!allowed) { showAccessDenied(); return; }
+        /* Обработи URL параметри от QR сканиране */
+        const search = window.location.search || "";
+        const hash = window.location.hash || "";
+        const params = new URLSearchParams(search || (hash.startsWith("#") ? hash.slice(1) : ""));
+        if (params.get("open") === "inspection") {
+          const type = params.get("type");
+          const loc = params.get("location");
+          if ((type === "hall" || type === "bathroom") && loc) {
+            state.openedFromQR = true;
+            const decodedLoc = decodeURIComponent(loc.replace(/\+/g, "%20"));
+            const config = getConfig(type);
+            const resolvedLoc = config.locations.includes(decodedLoc) ? decodedLoc : config.locations[0];
+            Object.assign(state, { inspectionType: type, location: resolvedLoc, inspector: "", itemState: {}, notes: "", showValidation: false, screen: "inspection" });
+            try { history.replaceState({}, "", window.location.origin + window.location.pathname); } catch (_) {}
+          }
+        } else if (sessionStorage.getItem(QR_MODE_KEY) === "1") {
+          /* QR сесия след reload (pull-to-refresh) — възстанови inspection екрана */
+          const savedType = sessionStorage.getItem(QR_TYPE_KEY) || "hall";
+          const savedLoc  = sessionStorage.getItem(QR_LOC_KEY)  || "";
+          const config = getConfig(savedType);
+          const decodedLoc = decodeURIComponent(savedLoc.replace(/\+/g, "%20"));
+          const resolvedLoc = config.locations.includes(decodedLoc) ? decodedLoc : config.locations[0];
+          state.openedFromQR = true;
+          Object.assign(state, { inspectionType: savedType, location: resolvedLoc, inspector: "", itemState: {}, notes: "", showValidation: false, screen: "inspection" });
+        }
+        render();
+        /* Периодична проверка за изтекла QR сесия (всяка минута) */
+        setInterval(function() {
+          if (sessionStorage.getItem(QR_MODE_KEY) !== "1") return;
+          const sessionTs = parseInt(sessionStorage.getItem(QR_SESSION_KEY) || "0", 10);
+          if (!sessionTs || Date.now() - sessionTs >= QR_SESSION_TTL_MS) {
+            sessionStorage.removeItem(QR_SESSION_KEY);
+            sessionStorage.removeItem(QR_MODE_KEY);
+            sessionStorage.removeItem(QR_TYPE_KEY);
+            sessionStorage.removeItem(QR_LOC_KEY);
+            window.location.replace("https://www.google.com/");
+          }
+        }, 60 * 1000);
+        /* Периодична проверка на геолокация за QR сесии (всеки 5 минути) */
+        setInterval(async function() {
+          if (sessionStorage.getItem(QR_MODE_KEY) !== "1") return;
+          const pos = await getGeolocation();
+          if (!pos || !isNearCinema(pos.lat, pos.lng)) {
+            sessionStorage.removeItem(QR_SESSION_KEY);
+            sessionStorage.removeItem(QR_MODE_KEY);
+            sessionStorage.removeItem(QR_TYPE_KEY);
+            sessionStorage.removeItem(QR_LOC_KEY);
+            window.location.replace("https://www.google.com/");
+          }
+        }, GEO_RECHECK_MS);
+      });
+    </script>
+  </body>
+</html>
