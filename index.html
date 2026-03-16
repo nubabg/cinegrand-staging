@@ -466,9 +466,64 @@
         #qr-modal-backdrop { position: static !important; background: #fff !important; padding: 20px !important; width: 100% !important; min-height: 100vh !important; }
         .qr-modal { box-shadow: none !important; border: 1px solid #ddd !important; max-width: 100% !important; }
       }
+
+      /* ── Bloom ефект ──────────────────────────────────── */
+      .bloom-layer {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        overflow: hidden;
+      }
+      .bloom-orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(90px);
+        animation: bloomPulse 8s ease-in-out infinite;
+        will-change: opacity, transform;
+      }
+      .bloom-orb--gold {
+        width: 55vw; height: 55vw;
+        top: -15%; left: -10%;
+        background: radial-gradient(circle, rgba(200,120,24,.28), transparent 70%);
+        animation-duration: 9s;
+        animation-delay: 0s;
+      }
+      .bloom-orb--blue {
+        width: 45vw; height: 45vw;
+        top: 10%; right: -10%;
+        background: radial-gradient(circle, rgba(98,169,255,.18), transparent 70%);
+        animation-duration: 11s;
+        animation-delay: -3s;
+      }
+      .bloom-orb--red {
+        width: 40vw; height: 40vw;
+        bottom: 5%; left: 20%;
+        background: radial-gradient(circle, rgba(239,91,91,.12), transparent 70%);
+        animation-duration: 13s;
+        animation-delay: -6s;
+      }
+      .bloom-orb--gold2 {
+        width: 30vw; height: 30vw;
+        bottom: 15%; right: 5%;
+        background: radial-gradient(circle, rgba(200,120,24,.14), transparent 70%);
+        animation-duration: 10s;
+        animation-delay: -2s;
+      }
+      @keyframes bloomPulse {
+        0%   { opacity: 0.5; transform: scale(1); }
+        50%  { opacity: 1;   transform: scale(1.12); }
+        100% { opacity: 0.5; transform: scale(1); }
+      }
     </style>
   </head>
   <body>
+    <div class="bloom-layer" aria-hidden="true">
+      <span class="bloom-orb bloom-orb--gold"></span>
+      <span class="bloom-orb bloom-orb--blue"></span>
+      <span class="bloom-orb bloom-orb--red"></span>
+      <span class="bloom-orb bloom-orb--gold2"></span>
+    </div>
     <div id="app"></div>
     <div class="broom-fun" aria-hidden="true">
       <span class="broom-dust"></span><span class="broom-dust"></span><span class="broom-dust"></span>
