@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CG Analytics — Cine Grand</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="shortcut icon" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:      #06080c;
+      --bg-2:    #0b1016;
+      --panel:   #121821;
+      --panel-2: #18212c;
+      --border:  #263140;
+      --gold:    #c87818;
+      --gold-2:  #eba030;
+      --text:    #f5f7fb;
+      --muted:   #9ba8b9;
+      --muted-2: #6d7a8c;
+      --green:   #2dcc70;
+      --red:     #ef5b5b;
+      --blue:    #62a9ff;
+      --shadow:  0 16px 40px rgba(0,0,0,.35);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      background:
+        radial-gradient(circle at top left,  rgba(200,120,24,.13), transparent 26%),
+        radial-gradient(circle at top right, rgba(98,169,255,.09), transparent 22%),
+        linear-gradient(180deg, var(--bg) 0%, #04060a 100%);
+      color: var(--text);
+      font-family: "DM Sans", "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Layout ── */
+    .page { width: min(1320px, 100%); margin: 0 auto; padding: 28px 20px 60px; }
+
+    /* ── Header ── */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; flex-wrap: wrap;
+      padding: 18px 22px;
+      background: linear-gradient(180deg, rgba(19,24,33,.97) 0%, rgba(10,14,20,.97) 100%);
+      border: 1px solid rgba(200,120,24,.20);
+      border-radius: 20px;
+      backdrop-filter: blur(14px);
+      box-shadow: var(--shadow);
+      margin-bottom: 28px;
+      position: sticky; top: 16px; z-index: 20;
+    }
+    .header-brand { display: flex; align-items: center; gap: 14px; }
+    .brand-badge {
+      width: 44px; height: 44px; border-radius: 14px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, var(--gold), var(--gold-2));
+      color: #15110b; font-family: "Oswald", sans-serif;
+      font-size: 20px; font-weight: 700; letter-spacing: .06em;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.4);
+      flex-shrink: 0;
+    }
+    .brand-title {
+      font-family: "Oswald", sans-serif; font-size: 19px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+    }
+    .brand-sub { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .last-updated { font-size: 12px; color: var(--muted-2); }
+    .btn-refresh {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--panel-2); color: var(--text);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .btn-refresh:hover { border-color: var(--gold); background: rgba(200,120,24,.12); }
+    .btn-back {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border);
+      background: transparent; color: var(--muted); font-size: 13px; cursor: pointer;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-back:hover { border-color: var(--blue); color: var(--blue); }
+
+    /* ── Demo badge ── */
+    .demo-banner {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 18px; margin-bottom: 22px;
+      background: rgba(200,120,24,.10); border: 1px solid rgba(200,120,24,.30);
+      border-radius: 12px; color: var(--gold-2); font-size: 13px;
+    }
+    .demo-banner strong { font-weight: 700; }
+    .demo-banner a { color: var(--gold-2); font-weight: 600; }
+
+    /* ── KPI cards ── */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    @media (max-width: 900px)  { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px)  { .kpi-grid { grid-template-columns: 1fr; } }
+    .kpi-card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px 22px;
+      transition: border-color .2s;
+      position: relative; overflow: hidden;
+    }
+    .kpi-card::before {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(circle at top right, var(--kpi-accent, rgba(200,120,24,.08)), transparent 60%);
+      pointer-events: none;
+    }
+    .kpi-card:hover { border-color: rgba(200,120,24,.35); }
+    .kpi-label { font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    .kpi-value { font-family: "Oswald", sans-serif; font-size: 36px; font-weight: 700; line-height: 1; color: var(--kpi-color, var(--gold-2)); margin-bottom: 6px; }
+    .kpi-sub { font-size: 12px; color: var(--muted-2); }
+
+    /* ── Chart grid ── */
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 860px) { .charts-grid { grid-template-columns: 1fr; } }
+    .chart-card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 16px; padding: 22px 22px 18px;
+    }
+    .chart-card-wide { grid-column: 1 / -1; }
+    .chart-title { font-family: "Oswald", sans-serif; font-size: 14px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+    .chart-wrap { position: relative; width: 100%; }
+    .chart-wrap canvas { display: block; width: 100% !important; }
+
+    /* ── Loading state ── */
+    .loading-overlay {
+      display: flex; align-items: center; justify-content: center;
+      padding: 60px 0; color: var(--muted); flex-direction: column; gap: 16px;
+    }
+    .spinner {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 3px solid var(--border); border-top-color: var(--gold);
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="brand-badge">CG</div>
+      <div>
+        <div class="brand-title">Analytics</div>
+        <div class="brand-sub">Cine Grand · Хигиена</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="last-updated" id="last-updated">Зарежда…</span>
+      <button class="btn-refresh" id="btn-refresh" onclick="loadData()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Обнови
+      </button>
+      <a href="index.html"><button class="btn-back">← Назад към приложението</button></a>
+    </div>
+  </header>
+
+  <!-- Demo banner (hidden by default) -->
+  <div class="demo-banner" id="demo-banner" style="display:none;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span><strong>Demo режим</strong> — Данните по-долу са примерни. За реална информация <a href="#" id="demo-help-link">публикувай spreadsheet-а</a>.</span>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid" id="kpi-grid">
+    <div class="loading-overlay" style="grid-column:1/-1;"><div class="spinner"></div><span>Зарежда данни…</span></div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid" id="charts-grid" style="display:none;">
+    <div class="chart-card chart-card-wide">
+      <div class="chart-title">Инспекции по дни — последните 14 дни</div>
+      <div class="chart-wrap" style="height:220px;"><canvas id="chart-line"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Проблеми по локация</div>
+      <div class="chart-wrap" style="height:260px;"><canvas id="chart-bar"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Чисти vs Мръсни</div>
+      <div class="chart-wrap" style="height:260px;"><canvas id="chart-donut"></canvas></div>
+    </div>
+    <div class="chart-card chart-card-wide">
+      <div class="chart-title">Най-проблемни елементи</div>
+      <div class="chart-wrap" style="height:200px;"><canvas id="chart-hbar"></canvas></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── Config ── */
+const SPREADSHEET_ID = "17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA";
+const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&headers=1`;
+
+const LOCATIONS = ["Зала 1","Зала 2","Зала 3","Зала 4","Зала 5","Зала 6","Дамска тоалетна","Мъжка тоалетна"];
+const ITEMS     = ["Cup Holders","Седалки","Мокет","Подлакътници","Под","Зона до екрана","Кошчета","Тоалетни чинии","Мивки"];
+
+let charts = {};
+
+/* ── Chart.js global defaults ── */
+Chart.defaults.color            = "#9ba8b9";
+Chart.defaults.borderColor      = "#1e2a38";
+Chart.defaults.font.family      = "'DM Sans', 'Segoe UI', sans-serif";
+Chart.defaults.plugins.legend.labels.boxWidth  = 12;
+Chart.defaults.plugins.legend.labels.padding   = 16;
+Chart.defaults.plugins.tooltip.backgroundColor = "#18212c";
+Chart.defaults.plugins.tooltip.borderColor     = "#263140";
+Chart.defaults.plugins.tooltip.borderWidth     = 1;
+Chart.defaults.plugins.tooltip.titleColor      = "#f5f7fb";
+Chart.defaults.plugins.tooltip.bodyColor       = "#9ba8b9";
+Chart.defaults.plugins.tooltip.padding         = 10;
+Chart.defaults.plugins.tooltip.cornerRadius    = 10;
+
+/* ── CSV parsing ── */
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = splitCSVRow(lines[0]);
+  return lines.slice(1).map(line => {
+    const vals = splitCSVRow(line);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h.trim()] = (vals[i] || "").trim(); });
+    return obj;
+  }).filter(r => r["entry_id"] || r[headers[0]]);
+}
+function splitCSVRow(line) {
+  const result = [];
+  let cur = "", inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { result.push(cur); cur = ""; }
+    else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
+}
+
+function parseLocation(typeLabel) {
+  if (!typeLabel) return "Неизвестна";
+  const dash = typeLabel.indexOf(" - ");
+  return dash >= 0 ? typeLabel.slice(dash + 3).trim() : typeLabel.trim();
+}
+
+function parseDate(str) {
+  if (!str) return null;
+  // "16.03.2026, 14:35" or ISO
+  const m = str.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+  if (m) return new Date(`${m[3]}-${m[2]}-${m[1]}`);
+  const d = new Date(str);
+  return isNaN(d) ? null : d;
+}
+
+function fmtDate(d) {
+  return d.toLocaleDateString("bg-BG", { day: "2-digit", month: "short" });
+}
+
+function timeAgo(d) {
+  const diff = Date.now() - d.getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 2)  return "преди момент";
+  if (min < 60) return `преди ${min} мин`;
+  const h = Math.floor(min / 60);
+  if (h < 24)   return `преди ${h} ч`;
+  const days = Math.floor(h / 24);
+  return `преди ${days} д`;
+}
+
+/* ── Demo data generator ── */
+function generateDemoData() {
+  const rows = [];
+  const now   = new Date();
+  const items = ["Cup Holders","Седалки","Мокет","Подлакътници"];
+  for (let day = 13; day >= 0; day--) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - day);
+    const ddmmyyyy = `${String(date.getDate()).padStart(2,"0")}.${String(date.getMonth()+1).padStart(2,"0")}.${date.getFullYear()}`;
+    const count = 2 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < count; i++) {
+      const loc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
+      const isDirty = Math.random() < 0.22;
+      const issueItem = isDirty ? items[Math.floor(Math.random() * items.length)] : "";
+      const type = loc.startsWith("Зала") ? "Кинозала" : "Санитарен Възел";
+      rows.push({
+        inspected_at:   `${ddmmyyyy}, ${String(8 + Math.floor(Math.random()*10)).padStart(2,"0")}:00`,
+        inspection_type: `${type} - ${loc}`,
+        status:  isDirty ? "МРЪСНА" : "ЧИСТА",
+        issues:  issueItem,
+        entry_id: `demo-${day}-${i}`,
+      });
+    }
+  }
+  return rows;
+}
+
+/* ── Aggregation ── */
+function aggregate(rows) {
+  const now = new Date();
+  const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
+  const days = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    days.push(d);
+  }
+  const dayLabels = days.map(fmtDate);
+  const cleanByDay = new Array(14).fill(0);
+  const dirtyByDay = new Array(14).fill(0);
+
+  const byLoc  = {}; LOCATIONS.forEach(l => { byLoc[l]  = { total: 0, issues: 0 }; });
+  const byItem = {}; ITEMS.forEach(i    => { byItem[i] = 0; });
+
+  let totalWeek = 0, cleanTotal = 0, dirtyTotal = 0, lastDate = null;
+
+  rows.forEach(row => {
+    const d = parseDate(row.inspected_at);
+    if (!d) return;
+    const loc    = parseLocation(row.inspection_type || "");
+    const dirty  = (row.status || "").includes("МРЪСНА");
+    const issues = (row.issues || "").split(",").map(s => s.trim()).filter(Boolean);
+
+    // 14-day chart
+    const dayIdx = days.findIndex(dd => dd.toDateString() === d.toDateString());
+    if (dayIdx >= 0) { dirty ? dirtyByDay[dayIdx]++ : cleanByDay[dayIdx]++; }
+
+    // Week totals
+    if (d >= weekAgo) {
+      totalWeek++;
+      dirty ? dirtyTotal++ : cleanTotal++;
+      if (!lastDate || d > lastDate) lastDate = d;
+    }
+
+    // By location
+    if (byLoc[loc]) { byLoc[loc].total++; if (dirty) byLoc[loc].issues++; }
+
+    // By item
+    issues.forEach(it => { if (byItem[it] !== undefined) byItem[it]++; });
+  });
+
+  return { dayLabels, cleanByDay, dirtyByDay, byLoc, byItem, totalWeek, cleanTotal, dirtyTotal, lastDate };
+}
+
+/* ── Render KPI cards ── */
+function renderKPI(data) {
+  const { totalWeek, cleanTotal, dirtyTotal, lastDate } = data;
+  const total = cleanTotal + dirtyTotal;
+  const cleanPct = total > 0 ? Math.round((cleanTotal / total) * 100) : 0;
+  const cards = [
+    { label: "Проверки тази седмица", value: totalWeek, sub: "последните 7 дни",          color: "var(--gold-2)",  accent: "rgba(200,120,24,.10)" },
+    { label: "% Чисти",               value: cleanPct + "%", sub: `${cleanTotal} от ${total}`, color: "var(--green)", accent: "rgba(45,204,112,.08)"  },
+    { label: "Открити проблема",       value: dirtyTotal,    sub: "мръсни инспекции",       color: "var(--red)",   accent: "rgba(239,91,91,.08)"   },
+    { label: "Последна проверка",      value: lastDate ? timeAgo(lastDate) : "—", sub: lastDate ? lastDate.toLocaleDateString("bg-BG",{day:"2-digit",month:"long"}) : "Няма данни", color: "var(--blue)", accent: "rgba(98,169,255,.07)" },
+  ];
+  document.getElementById("kpi-grid").innerHTML = cards.map(c => `
+    <div class="kpi-card" style="--kpi-color:${c.color};--kpi-accent:${c.accent};">
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value">${c.value}</div>
+      <div class="kpi-sub">${c.sub}</div>
+    </div>`).join("");
+}
+
+/* ── Build / update charts ── */
+function buildCharts(data) {
+  const { dayLabels, cleanByDay, dirtyByDay, byLoc, byItem, cleanTotal, dirtyTotal } = data;
+
+  document.getElementById("charts-grid").style.display = "";
+
+  // ── Line chart
+  const ctxLine = document.getElementById("chart-line").getContext("2d");
+  if (charts.line) charts.line.destroy();
+  charts.line = new Chart(ctxLine, {
+    type: "line",
+    data: {
+      labels: dayLabels,
+      datasets: [
+        { label: "Чисти",  data: cleanByDay, borderColor: "#2dcc70", backgroundColor: "rgba(45,204,112,.07)",  fill: true, tension: .38, pointRadius: 3, pointHoverRadius: 5 },
+        { label: "Мръсни", data: dirtyByDay, borderColor: "#ef5b5b", backgroundColor: "rgba(239,91,91,.07)",   fill: true, tension: .38, pointRadius: 3, pointHoverRadius: 5 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { grid: { color: "#1a2535" }, ticks: { maxTicksLimit: 7 } },
+        y: { grid: { color: "#1a2535" }, beginAtZero: true, ticks: { stepSize: 1, precision: 0 } }
+      },
+      plugins: { legend: { position: "top" } }
+    }
+  });
+
+  // ── Bar chart (by location)
+  const locLabels  = LOCATIONS;
+  const locTotal   = locLabels.map(l => byLoc[l]?.total  || 0);
+  const locIssues  = locLabels.map(l => byLoc[l]?.issues || 0);
+  const ctxBar = document.getElementById("chart-bar").getContext("2d");
+  if (charts.bar) charts.bar.destroy();
+  charts.bar = new Chart(ctxBar, {
+    type: "bar",
+    data: {
+      labels: locLabels,
+      datasets: [
+        { label: "Проверки", data: locTotal,  backgroundColor: "rgba(98,169,255,.55)",   borderRadius: 6, borderSkipped: false },
+        { label: "Проблеми", data: locIssues, backgroundColor: "rgba(239,91,91,.70)",    borderRadius: 6, borderSkipped: false },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { grid: { color: "#1a2535" }, beginAtZero: true, ticks: { stepSize: 1, precision: 0 } }
+      },
+      plugins: { legend: { position: "top" } }
+    }
+  });
+
+  // ── Doughnut
+  const ctxDnt = document.getElementById("chart-donut").getContext("2d");
+  if (charts.donut) charts.donut.destroy();
+  charts.donut = new Chart(ctxDnt, {
+    type: "doughnut",
+    data: {
+      labels: ["Чисти", "Мръсни"],
+      datasets: [{ data: [cleanTotal || 1, dirtyTotal], backgroundColor: ["#2dcc70","#ef5b5b"], borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: "68%",
+      plugins: {
+        legend: { position: "bottom" },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed / (cleanTotal + dirtyTotal) * 100)}%)` } }
+      }
+    }
+  });
+
+  // ── Horizontal bar (by item)
+  const itemKeys   = Object.keys(byItem).filter(k => byItem[k] > 0).sort((a, b) => byItem[b] - byItem[a]);
+  const showItems  = itemKeys.length > 0 ? itemKeys : ITEMS.slice(0, 6);
+  const itemCounts = showItems.map(k => byItem[k] || 0);
+  const maxItem    = Math.max(...itemCounts, 1);
+
+  const palette = showItems.map((_, i) => {
+    const hues = [35, 25, 200, 140, 355, 270, 50, 175, 310];
+    const h = hues[i % hues.length];
+    return `hsla(${h},75%,58%,.75)`;
+  });
+
+  const ctxHBar = document.getElementById("chart-hbar").getContext("2d");
+  if (charts.hbar) charts.hbar.destroy();
+  charts.hbar = new Chart(ctxHBar, {
+    type: "bar",
+    data: {
+      labels: showItems,
+      datasets: [{ label: "Броя проблема", data: itemCounts, backgroundColor: palette, borderRadius: 6, borderSkipped: false }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { grid: { color: "#1a2535" }, beginAtZero: true, max: maxItem + 1, ticks: { precision: 0 } },
+        y: { grid: { display: false }, ticks: { font: { size: 12 } } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+/* ── Main load function ── */
+async function loadData() {
+  document.getElementById("last-updated").textContent = "Зарежда…";
+  document.getElementById("btn-refresh").disabled = true;
+  document.getElementById("demo-banner").style.display = "none";
+  document.getElementById("kpi-grid").innerHTML = `<div class="loading-overlay" style="grid-column:1/-1;"><div class="spinner"></div><span>Зарежда данни…</span></div>`;
+  document.getElementById("charts-grid").style.display = "none";
+
+  let rows = null;
+  let isDemo = false;
+
+  try {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(GVIZ_URL, { signal: controller.signal });
+    clearTimeout(tid);
+    if (res.ok) {
+      const text = await res.text();
+      const parsed = parseCSV(text);
+      if (parsed.length > 0) rows = parsed;
+    }
+  } catch (_) { /* network error or CORS */ }
+
+  if (!rows || rows.length === 0) {
+    rows = generateDemoData();
+    isDemo = true;
+  }
+
+  const data = aggregate(rows);
+  renderKPI(data);
+  buildCharts(data);
+
+  if (isDemo) {
+    document.getElementById("demo-banner").style.display = "flex";
+    document.getElementById("demo-help-link").onclick = e => {
+      e.preventDefault();
+      alert("За да видиш реални данни:\n\n1. Отвори spreadsheet-а в Google Sheets\n2. Файл → Споделяне → Публикуване в уеб\n3. Избери „Целият документ" → Публикувай\n4. Натисни Обнови тук");
+    };
+  }
+
+  document.getElementById("last-updated").textContent = isDemo ? "Demo данни" : "Обновено " + new Date().toLocaleTimeString("bg-BG", { hour: "2-digit", minute: "2-digit" });
+  document.getElementById("btn-refresh").disabled = false;
+}
+
+/* ── Init ── */
+loadData();
+</script>
+</body>
+</html>
