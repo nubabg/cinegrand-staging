@@ -1,526 +1,751 @@
 <!DOCTYPE html>
 <html lang="bg">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CG Analytics — Cine Grand</title>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-  <link rel="shortcut icon" href="favicon.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>CG Analytics — Статистики и Анализи</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    :root {
-      --bg:      #06080c;
-      --bg-2:    #0b1016;
-      --panel:   #121821;
-      --panel-2: #18212c;
-      --border:  #263140;
-      --gold:    #c87818;
-      --gold-2:  #eba030;
-      --text:    #f5f7fb;
-      --muted:   #9ba8b9;
-      --muted-2: #6d7a8c;
+    /* ── Reset & tokens ── */
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:      #05070e;
+      --bg2:     #080c16;
+      --panel:   #0d1220;
+      --panel2:  #111827;
+      --border:  rgba(200,160,50,.13);
+      --border2: rgba(255,255,255,.06);
+      --gold:    #c8961e;
+      --gold2:   #e8b030;
+      --goldfx:  rgba(200,150,30,.14);
+      --text:    #eeeae0;
+      --muted:   #8a9ab5;
+      --muted2:  #5a6880;
       --green:   #2dcc70;
-      --red:     #ef5b5b;
-      --blue:    #62a9ff;
-      --shadow:  0 16px 40px rgba(0,0,0,.35);
+      --red:     #e84848;
+      --blue:    #4f9eff;
+      --purple:  #9f7aea;
+      --shadow:  0 24px 64px rgba(0,0,0,.55);
+      --radius:  18px;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { min-height: 100%; }
-    body {
+    html,body{min-height:100%;scroll-behavior:smooth}
+    body{
       background:
-        radial-gradient(circle at top left,  rgba(200,120,24,.13), transparent 26%),
-        radial-gradient(circle at top right, rgba(98,169,255,.09), transparent 22%),
-        linear-gradient(180deg, var(--bg) 0%, #04060a 100%);
-      color: var(--text);
-      font-family: "DM Sans", "Segoe UI", sans-serif;
-      font-size: 14px;
-      line-height: 1.5;
+        radial-gradient(ellipse 70% 40% at 10% 0%,  rgba(200,140,30,.10) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 30% at 90% 5%,  rgba(80,120,255,.07) 0%, transparent 50%),
+        radial-gradient(ellipse 80% 60% at 50% 100%,rgba(0,0,0,.4) 0%,    transparent 70%),
+        linear-gradient(180deg, var(--bg) 0%, #030508 100%);
+      color:var(--text);
+      font-family:"DM Sans","Segoe UI",sans-serif;
+      font-size:14px;
+      line-height:1.6;
+      min-height:100vh;
     }
-    a { color: var(--blue); text-decoration: none; }
-    a:hover { text-decoration: underline; }
 
-    /* ── Layout ── */
-    .page { width: min(1320px, 100%); margin: 0 auto; padding: 28px 20px 60px; }
+    /* ── Container ── */
+    .wrap{width:min(1360px,100%);margin:0 auto;padding:28px 22px 72px}
 
-    /* ── Header ── */
-    .header {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 16px; flex-wrap: wrap;
-      padding: 18px 22px;
-      background: linear-gradient(180deg, rgba(19,24,33,.97) 0%, rgba(10,14,20,.97) 100%);
-      border: 1px solid rgba(200,120,24,.20);
-      border-radius: 20px;
-      backdrop-filter: blur(14px);
-      box-shadow: var(--shadow);
-      margin-bottom: 28px;
-      position: sticky; top: 16px; z-index: 20;
+    /* ── HEADER ── */
+    .header{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:18px;flex-wrap:wrap;
+      padding:16px 22px;
+      background:linear-gradient(160deg,rgba(14,20,34,.97),rgba(8,12,22,.97));
+      border:1px solid var(--border);
+      border-radius:22px;
+      backdrop-filter:blur(18px);
+      box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.04);
+      margin-bottom:26px;
+      position:sticky;top:14px;z-index:30;
     }
-    .header-brand { display: flex; align-items: center; gap: 14px; }
-    .brand-badge {
-      width: 44px; height: 44px; border-radius: 14px;
-      display: inline-flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, var(--gold), var(--gold-2));
-      color: #15110b; font-family: "Oswald", sans-serif;
-      font-size: 20px; font-weight: 700; letter-spacing: .06em;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.4);
-      flex-shrink: 0;
+    .header-left{display:flex;align-items:center;gap:14px}
+    .brand-badge{
+      width:46px;height:46px;border-radius:14px;flex-shrink:0;
+      display:flex;align-items:center;justify-content:center;
+      background:linear-gradient(135deg,var(--gold),var(--gold2));
+      font-family:"Oswald",sans-serif;font-size:21px;font-weight:700;
+      color:#12100a;letter-spacing:.07em;
+      box-shadow:0 4px 18px rgba(200,150,30,.35),inset 0 1px 0 rgba(255,255,255,.4);
     }
-    .brand-title {
-      font-family: "Oswald", sans-serif; font-size: 19px; font-weight: 700;
-      letter-spacing: .08em; text-transform: uppercase;
+    .brand-name{
+      font-family:"Oswald",sans-serif;font-size:20px;font-weight:600;
+      letter-spacing:.1em;text-transform:uppercase;
+      background:linear-gradient(135deg,var(--gold2),var(--text));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
     }
-    .brand-sub { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-    .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .last-updated { font-size: 12px; color: var(--muted-2); }
-    .btn-refresh {
-      display: inline-flex; align-items: center; gap: 7px;
-      padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border);
-      background: var(--panel-2); color: var(--text);
-      font-size: 13px; font-weight: 600; cursor: pointer;
-      transition: border-color .2s, background .2s;
+    .brand-sub{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted2);margin-top:1px}
+    .header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .filter-group{display:flex;align-items:center;gap:8px}
+    .filter-label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2)}
+    select.filter-select{
+      padding:7px 28px 7px 12px;border-radius:10px;
+      border:1px solid var(--border2);
+      background:var(--panel2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a9ab5' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+      color:var(--text);font:inherit;font-size:13px;
+      appearance:none;cursor:pointer;transition:border-color .2s;
     }
-    .btn-refresh:hover { border-color: var(--gold); background: rgba(200,120,24,.12); }
-    .btn-back {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border);
-      background: transparent; color: var(--muted); font-size: 13px; cursor: pointer;
-      transition: border-color .2s, color .2s;
+    select.filter-select:focus{outline:none;border-color:var(--gold)}
+    .btn-refresh,.btn-back{
+      display:inline-flex;align-items:center;gap:7px;
+      padding:8px 16px;border-radius:10px;font:inherit;font-size:13px;font-weight:600;
+      cursor:pointer;transition:all .2s;border:1px solid var(--border2);
     }
-    .btn-back:hover { border-color: var(--blue); color: var(--blue); }
+    .btn-refresh{background:var(--goldfx);color:var(--gold2);border-color:rgba(200,150,30,.3)}
+    .btn-refresh:hover{background:rgba(200,150,30,.22);border-color:var(--gold)}
+    .btn-back{background:transparent;color:var(--muted);text-decoration:none}
+    .btn-back:hover{border-color:var(--blue);color:var(--blue)}
+    .last-upd{font-size:11px;color:var(--muted2);white-space:nowrap}
 
-    /* ── Demo badge ── */
-    .demo-banner {
-      display: flex; align-items: center; gap: 10px;
-      padding: 12px 18px; margin-bottom: 22px;
-      background: rgba(200,120,24,.10); border: 1px solid rgba(200,120,24,.30);
-      border-radius: 12px; color: var(--gold-2); font-size: 13px;
+    /* ── Demo banner ── */
+    .demo-banner{
+      display:flex;align-items:center;gap:12px;
+      padding:13px 20px;margin-bottom:22px;
+      background:rgba(200,150,30,.08);border:1px solid rgba(200,150,30,.25);
+      border-radius:13px;font-size:13px;color:var(--gold2);
     }
-    .demo-banner strong { font-weight: 700; }
-    .demo-banner a { color: var(--gold-2); font-weight: 600; }
+    .demo-banner a{color:var(--gold2);font-weight:600;cursor:pointer;text-decoration:underline}
+    .demo-badge{
+      font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+      padding:3px 8px;border-radius:6px;background:var(--gold);color:#12100a;flex-shrink:0;
+    }
 
-    /* ── KPI cards ── */
-    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-    @media (max-width: 900px)  { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 480px)  { .kpi-grid { grid-template-columns: 1fr; } }
-    .kpi-card {
-      background: var(--panel); border: 1px solid var(--border);
-      border-radius: 16px; padding: 20px 22px;
-      transition: border-color .2s;
-      position: relative; overflow: hidden;
+    /* ── State screens ── */
+    .state-screen{
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      min-height:340px;gap:18px;color:var(--muted);text-align:center;padding:40px;
     }
-    .kpi-card::before {
-      content: ""; position: absolute; inset: 0;
-      background: radial-gradient(circle at top right, var(--kpi-accent, rgba(200,120,24,.08)), transparent 60%);
-      pointer-events: none;
+    .state-icon{font-size:44px;opacity:.5}
+    .state-title{font-family:"Oswald",sans-serif;font-size:20px;font-weight:500;letter-spacing:.06em;color:var(--muted)}
+    .state-sub{font-size:13px;color:var(--muted2);max-width:36ch}
+    .spinner{
+      width:42px;height:42px;border-radius:50%;
+      border:3px solid var(--border2);border-top-color:var(--gold);
+      animation:spin .85s linear infinite;
     }
-    .kpi-card:hover { border-color: rgba(200,120,24,.35); }
-    .kpi-label { font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
-    .kpi-value { font-family: "Oswald", sans-serif; font-size: 36px; font-weight: 700; line-height: 1; color: var(--kpi-color, var(--gold-2)); margin-bottom: 6px; }
-    .kpi-sub { font-size: 12px; color: var(--muted-2); }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .btn-retry{
+      padding:9px 22px;border-radius:11px;border:1px solid var(--border);
+      background:var(--panel2);color:var(--text);font:inherit;font-size:13px;
+      cursor:pointer;transition:border-color .2s;
+    }
+    .btn-retry:hover{border-color:var(--gold);color:var(--gold2)}
+
+    /* ── KPI grid ── */
+    .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:22px}
+    @media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:480px){.kpi-grid{grid-template-columns:1fr}}
+    .kpi-card{
+      background:var(--panel);border:1px solid var(--border);
+      border-radius:var(--radius);padding:22px 22px 20px;
+      position:relative;overflow:hidden;
+      transition:border-color .25s,transform .25s,box-shadow .25s;
+    }
+    .kpi-card::before{
+      content:"";position:absolute;inset:0;
+      background:radial-gradient(circle at 110% -20%,var(--kpi-glow,rgba(200,150,30,.10)),transparent 55%);
+      pointer-events:none;
+    }
+    .kpi-card:hover{border-color:rgba(200,150,30,.35);transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,0,0,.35)}
+    .kpi-icon{font-size:24px;margin-bottom:12px;display:block}
+    .kpi-label{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted2);margin-bottom:6px}
+    .kpi-value{font-family:"Oswald",sans-serif;font-size:38px;font-weight:700;line-height:1;color:var(--kpi-color,var(--gold2));letter-spacing:-.01em}
+    .kpi-sub{font-size:12px;color:var(--muted2);margin-top:7px}
+    .kpi-trend{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;margin-top:4px}
+    .kpi-trend.up{color:var(--green)}
+    .kpi-trend.down{color:var(--red)}
 
     /* ── Chart grid ── */
-    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 860px) { .charts-grid { grid-template-columns: 1fr; } }
-    .chart-card {
-      background: var(--panel); border: 1px solid var(--border);
-      border-radius: 16px; padding: 22px 22px 18px;
-    }
-    .chart-card-wide { grid-column: 1 / -1; }
-    .chart-title { font-family: "Oswald", sans-serif; font-size: 14px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
-    .chart-wrap { position: relative; width: 100%; }
-    .chart-wrap canvas { display: block; width: 100% !important; }
+    .charts-row{display:grid;gap:18px;margin-bottom:18px}
+    .charts-row.two{grid-template-columns:3fr 2fr}
+    .charts-row.two-eq{grid-template-columns:1fr 1fr}
+    .charts-row.one{grid-template-columns:1fr}
+    @media(max-width:860px){.charts-row.two,.charts-row.two-eq{grid-template-columns:1fr}}
 
-    /* ── Loading state ── */
-    .loading-overlay {
-      display: flex; align-items: center; justify-content: center;
-      padding: 60px 0; color: var(--muted); flex-direction: column; gap: 16px;
+    .chart-card{
+      background:var(--panel);border:1px solid var(--border);
+      border-radius:var(--radius);padding:24px 22px 20px;
+      position:relative;overflow:hidden;
     }
-    .spinner {
-      width: 36px; height: 36px; border-radius: 50%;
-      border: 3px solid var(--border); border-top-color: var(--gold);
-      animation: spin .8s linear infinite;
+    .chart-card::after{
+      content:"";position:absolute;top:0;left:0;right:0;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(200,150,30,.25),transparent);
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .chart-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px}
+    .chart-title{
+      font-family:"Oswald",sans-serif;font-size:13px;font-weight:500;
+      letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+    }
+    .chart-title span{display:block;font-family:"DM Sans",sans-serif;font-size:18px;font-weight:700;letter-spacing:0;text-transform:none;color:var(--text);margin-top:3px}
+    .chart-meta{font-size:11px;color:var(--muted2);text-align:right;flex-shrink:0}
+    .chart-wrap{position:relative}
+    .chart-wrap canvas{display:block;width:100%!important}
+
+    /* ── Thin gold rule ── */
+    .gold-rule{height:1px;background:linear-gradient(90deg,transparent,rgba(200,150,30,.3),transparent);margin:6px 0 22px}
+
+    /* ── Footer ── */
+    footer{text-align:center;padding-top:32px;font-size:12px;color:var(--muted2);letter-spacing:.04em}
+    footer a{color:var(--muted);text-underline-offset:3px}
   </style>
 </head>
 <body>
-<div class="page">
+<div class="wrap">
 
-  <!-- Header -->
+  <!-- ── Header ── -->
   <header class="header">
-    <div class="header-brand">
+    <div class="header-left">
       <div class="brand-badge">CG</div>
       <div>
-        <div class="brand-title">Analytics</div>
-        <div class="brand-sub">Cine Grand · Хигиена</div>
+        <div class="brand-name">Analytics</div>
+        <div class="brand-sub">Cine Grand · Hygiene Control</div>
       </div>
     </div>
     <div class="header-right">
-      <span class="last-updated" id="last-updated">Зарежда…</span>
-      <button class="btn-refresh" id="btn-refresh" onclick="loadData()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      <div class="filter-group">
+        <span class="filter-label">Период</span>
+        <select class="filter-select" id="f-period">
+          <option value="14">Последните 14 дни</option>
+          <option value="7">Последните 7 дни</option>
+          <option value="30">Последните 30 дни</option>
+          <option value="0">Всичко</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Зала</span>
+        <select class="filter-select" id="f-location"><option value="">Всички</option></select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Служител</span>
+        <select class="filter-select" id="f-inspector"><option value="">Всички</option></select>
+      </div>
+      <span class="last-upd" id="last-upd">—</span>
+      <button class="btn-refresh" id="btn-refresh" onclick="loadAndRender()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         Обнови
       </button>
-      <a href="index.html"><button class="btn-back">← Назад към приложението</button></a>
+      <a href="index.html" class="btn-back">← Назад</a>
     </div>
   </header>
 
-  <!-- Demo banner (hidden by default) -->
-  <div class="demo-banner" id="demo-banner" style="display:none;">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    <span><strong>Demo режим</strong> — Данните по-долу са примерни. За реална информация <a href="#" id="demo-help-link">публикувай spreadsheet-а</a>.</span>
+  <!-- ── Demo banner ── -->
+  <div id="demo-banner" class="demo-banner" style="display:none">
+    <span class="demo-badge">Demo</span>
+    <span>Показват се примерни данни. За реална информация
+      <a onclick="showHowTo()">публикувай таблицата в Google Sheets</a> и презареди страницата.</span>
   </div>
 
-  <!-- KPI Cards -->
-  <div class="kpi-grid" id="kpi-grid">
-    <div class="loading-overlay" style="grid-column:1/-1;"><div class="spinner"></div><span>Зарежда данни…</span></div>
-  </div>
-
-  <!-- Charts -->
-  <div class="charts-grid" id="charts-grid" style="display:none;">
-    <div class="chart-card chart-card-wide">
-      <div class="chart-title">Инспекции по дни — последните 14 дни</div>
-      <div class="chart-wrap" style="height:220px;"><canvas id="chart-line"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Проблеми по локация</div>
-      <div class="chart-wrap" style="height:260px;"><canvas id="chart-bar"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Чисти vs Мръсни</div>
-      <div class="chart-wrap" style="height:260px;"><canvas id="chart-donut"></canvas></div>
-    </div>
-    <div class="chart-card chart-card-wide">
-      <div class="chart-title">Най-проблемни елементи</div>
-      <div class="chart-wrap" style="height:200px;"><canvas id="chart-hbar"></canvas></div>
-    </div>
-  </div>
+  <!-- ── Main content ── -->
+  <div id="main-content"></div>
 
 </div>
 
 <script>
-/* ── Config ── */
-const SPREADSHEET_ID = "17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA";
-const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&headers=1`;
+/* ═══════════════════════════════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════════════════════════════ */
+const SHEET_ID  = "17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA";
+const GVIZ_CSV  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=1`;
 
-const LOCATIONS = ["Зала 1","Зала 2","Зала 3","Зала 4","Зала 5","Зала 6","Дамска тоалетна","Мъжка тоалетна"];
-const ITEMS     = ["Cup Holders","Седалки","Мокет","Подлакътници","Под","Зона до екрана","Кошчета","Тоалетни чинии","Мивки"];
+const HALLS     = ["Зала 1","Зала 2","Зала 3","Зала 4","Зала 5","Зала 6"];
+const WCS       = ["Дамска тоалетна","Мъжка тоалетна"];
+const ALL_LOCS  = [...HALLS, ...WCS];
+const HALL_ITEMS= ["Cup Holders","Седалки","Мокет","Подлакътници","Под","Зона до екрана"];
+const WC_ITEMS  = ["Кошчета","Тоалетни чинии","Мивки","Хартия","Сапун","Огледала"];
+const INSPECTORS= ["Иван Петров","Мария Иванова","Стефан Георгиев","Надежда Тодорова","Бойко Стоянов"];
 
-let charts = {};
+/* global state */
+let ALL_DATA = [];
+let charts   = {};
 
-/* ── Chart.js global defaults ── */
-Chart.defaults.color            = "#9ba8b9";
-Chart.defaults.borderColor      = "#1e2a38";
-Chart.defaults.font.family      = "'DM Sans', 'Segoe UI', sans-serif";
-Chart.defaults.plugins.legend.labels.boxWidth  = 12;
-Chart.defaults.plugins.legend.labels.padding   = 16;
-Chart.defaults.plugins.tooltip.backgroundColor = "#18212c";
-Chart.defaults.plugins.tooltip.borderColor     = "#263140";
+/* ═══════════════════════════════════════════════════════════════════
+   CHART.JS GLOBALS
+═══════════════════════════════════════════════════════════════════ */
+Chart.defaults.color       = "#8a9ab5";
+Chart.defaults.borderColor = "#151f2e";
+Chart.defaults.font.family = "'DM Sans','Segoe UI',sans-serif";
+Chart.defaults.font.size   = 12;
+Chart.defaults.plugins.tooltip.backgroundColor = "#0d1424";
+Chart.defaults.plugins.tooltip.borderColor     = "rgba(200,150,30,.3)";
 Chart.defaults.plugins.tooltip.borderWidth     = 1;
-Chart.defaults.plugins.tooltip.titleColor      = "#f5f7fb";
-Chart.defaults.plugins.tooltip.bodyColor       = "#9ba8b9";
-Chart.defaults.plugins.tooltip.padding         = 10;
-Chart.defaults.plugins.tooltip.cornerRadius    = 10;
+Chart.defaults.plugins.tooltip.titleColor      = "#eeeae0";
+Chart.defaults.plugins.tooltip.bodyColor       = "#8a9ab5";
+Chart.defaults.plugins.tooltip.padding         = 11;
+Chart.defaults.plugins.tooltip.cornerRadius    = 11;
+Chart.defaults.plugins.legend.labels.boxWidth  = 11;
+Chart.defaults.plugins.legend.labels.padding   = 16;
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
 
-/* ── CSV parsing ── */
-function parseCSV(text) {
-  const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
-  const headers = splitCSVRow(lines[0]);
-  return lines.slice(1).map(line => {
-    const vals = splitCSVRow(line);
-    const obj = {};
-    headers.forEach((h, i) => { obj[h.trim()] = (vals[i] || "").trim(); });
-    return obj;
-  }).filter(r => r["entry_id"] || r[headers[0]]);
-}
-function splitCSVRow(line) {
-  const result = [];
-  let cur = "", inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') { inQ = !inQ; }
-    else if (ch === ',' && !inQ) { result.push(cur); cur = ""; }
-    else { cur += ch; }
-  }
-  result.push(cur);
-  return result;
-}
+/* ═══════════════════════════════════════════════════════════════════
+   DEMO DATA GENERATOR
+═══════════════════════════════════════════════════════════════════ */
+function generateDemo() {
+  /* Seeded random for consistent visuals */
+  let seed = 42;
+  const rand = () => { seed = (seed * 1664525 + 1013904223) & 0x7fffffff; return seed / 0x7fffffff; };
 
-function parseLocation(typeLabel) {
-  if (!typeLabel) return "Неизвестна";
-  const dash = typeLabel.indexOf(" - ");
-  return dash >= 0 ? typeLabel.slice(dash + 3).trim() : typeLabel.trim();
-}
-
-function parseDate(str) {
-  if (!str) return null;
-  // "16.03.2026, 14:35" or ISO
-  const m = str.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-  if (m) return new Date(`${m[3]}-${m[2]}-${m[1]}`);
-  const d = new Date(str);
-  return isNaN(d) ? null : d;
-}
-
-function fmtDate(d) {
-  return d.toLocaleDateString("bg-BG", { day: "2-digit", month: "short" });
-}
-
-function timeAgo(d) {
-  const diff = Date.now() - d.getTime();
-  const min = Math.floor(diff / 60000);
-  if (min < 2)  return "преди момент";
-  if (min < 60) return `преди ${min} мин`;
-  const h = Math.floor(min / 60);
-  if (h < 24)   return `преди ${h} ч`;
-  const days = Math.floor(h / 24);
-  return `преди ${days} д`;
-}
-
-/* ── Demo data generator ── */
-function generateDemoData() {
   const rows = [];
-  const now   = new Date();
-  const items = ["Cup Holders","Седалки","Мокет","Подлакътници"];
-  for (let day = 13; day >= 0; day--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - day);
-    const ddmmyyyy = `${String(date.getDate()).padStart(2,"0")}.${String(date.getMonth()+1).padStart(2,"0")}.${date.getFullYear()}`;
-    const count = 2 + Math.floor(Math.random() * 5);
+  const now  = new Date();
+  const wave = (day) => 0.7 + 0.5 * Math.sin((day / 14) * Math.PI * 1.5); /* simulate growth trend */
+
+  for (let d = 29; d >= 0; d--) {
+    const date = new Date(now); date.setDate(date.getDate() - d);
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+    const factor    = (isWeekend ? 1.6 : 1.0) * wave(30 - d);
+    const count     = Math.max(2, Math.round((3 + rand() * 5) * factor));
+
     for (let i = 0; i < count; i++) {
-      const loc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
-      const isDirty = Math.random() < 0.22;
-      const issueItem = isDirty ? items[Math.floor(Math.random() * items.length)] : "";
-      const type = loc.startsWith("Зала") ? "Кинозала" : "Санитарен Възел";
+      const loc      = ALL_LOCS[Math.floor(rand() * ALL_LOCS.length)];
+      const isHall   = HALLS.includes(loc);
+      const items    = isHall ? HALL_ITEMS : WC_ITEMS;
+      const dirty    = rand() < 0.21;
+      const issArr   = dirty ? [items[Math.floor(rand() * items.length)]] : [];
+      if (dirty && rand() < 0.35) issArr.push(items[Math.floor(rand() * items.length)]);
+      const insp     = INSPECTORS[Math.floor(rand() * INSPECTORS.length)];
+      const hh       = 7 + Math.floor(rand() * 13);
+      const mm       = Math.floor(rand() * 60);
+      const type     = isHall ? "Кинозала" : "Санитарен Възел";
+
       rows.push({
-        inspected_at:   `${ddmmyyyy}, ${String(8 + Math.floor(Math.random()*10)).padStart(2,"0")}:00`,
+        inspected_at   : `${pad(date.getDate())}.${pad(date.getMonth()+1)}.${date.getFullYear()}, ${pad(hh)}:${pad(mm)}`,
         inspection_type: `${type} - ${loc}`,
-        status:  isDirty ? "МРЪСНА" : "ЧИСТА",
-        issues:  issueItem,
-        entry_id: `demo-${day}-${i}`,
+        inspector      : insp,
+        status         : dirty ? "МРЪСНА" : "ЧИСТА",
+        issues         : [...new Set(issArr)].join(", "),
+        _date          : new Date(date.getFullYear(), date.getMonth(), date.getDate()),
       });
     }
   }
   return rows;
 }
+function pad(n){ return String(n).padStart(2,"0"); }
 
-/* ── Aggregation ── */
-function aggregate(rows) {
-  const now = new Date();
-  const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
-  const days = [];
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date(now); d.setDate(d.getDate() - i);
-    days.push(d);
-  }
-  const dayLabels = days.map(fmtDate);
-  const cleanByDay = new Array(14).fill(0);
-  const dirtyByDay = new Array(14).fill(0);
-
-  const byLoc  = {}; LOCATIONS.forEach(l => { byLoc[l]  = { total: 0, issues: 0 }; });
-  const byItem = {}; ITEMS.forEach(i    => { byItem[i] = 0; });
-
-  let totalWeek = 0, cleanTotal = 0, dirtyTotal = 0, lastDate = null;
-
-  rows.forEach(row => {
-    const d = parseDate(row.inspected_at);
-    if (!d) return;
-    const loc    = parseLocation(row.inspection_type || "");
-    const dirty  = (row.status || "").includes("МРЪСНА");
-    const issues = (row.issues || "").split(",").map(s => s.trim()).filter(Boolean);
-
-    // 14-day chart
-    const dayIdx = days.findIndex(dd => dd.toDateString() === d.toDateString());
-    if (dayIdx >= 0) { dirty ? dirtyByDay[dayIdx]++ : cleanByDay[dayIdx]++; }
-
-    // Week totals
-    if (d >= weekAgo) {
-      totalWeek++;
-      dirty ? dirtyTotal++ : cleanTotal++;
-      if (!lastDate || d > lastDate) lastDate = d;
-    }
-
-    // By location
-    if (byLoc[loc]) { byLoc[loc].total++; if (dirty) byLoc[loc].issues++; }
-
-    // By item
-    issues.forEach(it => { if (byItem[it] !== undefined) byItem[it]++; });
-  });
-
-  return { dayLabels, cleanByDay, dirtyByDay, byLoc, byItem, totalWeek, cleanTotal, dirtyTotal, lastDate };
+/* ═══════════════════════════════════════════════════════════════════
+   FETCH & PARSE
+═══════════════════════════════════════════════════════════════════ */
+async function fetchSheet() {
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const res = await fetch(GVIZ_CSV, { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (!res.ok) return null;
+    const text = await res.text();
+    const rows  = parseCSV(text);
+    return rows.length ? rows : null;
+  } catch { clearTimeout(tid); return null; }
 }
 
-/* ── Render KPI cards ── */
-function renderKPI(data) {
-  const { totalWeek, cleanTotal, dirtyTotal, lastDate } = data;
-  const total = cleanTotal + dirtyTotal;
-  const cleanPct = total > 0 ? Math.round((cleanTotal / total) * 100) : 0;
-  const cards = [
-    { label: "Проверки тази седмица", value: totalWeek, sub: "последните 7 дни",          color: "var(--gold-2)",  accent: "rgba(200,120,24,.10)" },
-    { label: "% Чисти",               value: cleanPct + "%", sub: `${cleanTotal} от ${total}`, color: "var(--green)", accent: "rgba(45,204,112,.08)"  },
-    { label: "Открити проблема",       value: dirtyTotal,    sub: "мръсни инспекции",       color: "var(--red)",   accent: "rgba(239,91,91,.08)"   },
-    { label: "Последна проверка",      value: lastDate ? timeAgo(lastDate) : "—", sub: lastDate ? lastDate.toLocaleDateString("bg-BG",{day:"2-digit",month:"long"}) : "Няма данни", color: "var(--blue)", accent: "rgba(98,169,255,.07)" },
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = splitRow(lines[0]);
+  return lines.slice(1).map(line => {
+    const vals = splitRow(line);
+    const obj  = {};
+    headers.forEach((h,i) => { obj[h.trim().replace(/^"|"$/g,"")] = (vals[i]||"").trim().replace(/^"|"$/g,""); });
+    obj._date = parseDateStr(obj.inspected_at || "");
+    return obj;
+  }).filter(r => r._date);
+}
+
+function splitRow(line) {
+  const res = []; let cur = "", inQ = false;
+  for (const ch of line) {
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { res.push(cur); cur = ""; }
+    else { cur += ch; }
+  }
+  res.push(cur); return res;
+}
+
+function parseDateStr(s) {
+  if (!s) return null;
+  const m = s.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+  if (m) return new Date(+m[3], +m[2]-1, +m[1]);
+  const d = new Date(s); return isNaN(d) ? null : d;
+}
+
+function locFromType(typeLabel) {
+  const i = typeLabel.indexOf(" - ");
+  return i >= 0 ? typeLabel.slice(i+3).trim() : typeLabel.trim();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FILTER
+═══════════════════════════════════════════════════════════════════ */
+function applyFilters(data) {
+  const days  = parseInt(document.getElementById("f-period").value, 10);
+  const loc   = document.getElementById("f-location").value;
+  const insp  = document.getElementById("f-inspector").value;
+  const cutoff = days > 0 ? new Date(Date.now() - days*864e5) : null;
+  return data.filter(r => {
+    if (cutoff && r._date < cutoff) return false;
+    if (loc  && locFromType(r.inspection_type||"") !== loc)  return false;
+    if (insp && (r.inspector||"").trim() !== insp) return false;
+    return true;
+  });
+}
+
+function populateFilters(data) {
+  const locs  = [...new Set(data.map(r => locFromType(r.inspection_type||"")).filter(Boolean))].sort();
+  const insps = [...new Set(data.map(r => (r.inspector||"").trim()).filter(Boolean))].sort();
+  const fLoc  = document.getElementById("f-location");
+  const fInsp = document.getElementById("f-inspector");
+  locs.forEach(l  => { const o=document.createElement("option");o.value=l;o.textContent=l;fLoc.appendChild(o);  });
+  insps.forEach(p => { const o=document.createElement("option");o.value=p;o.textContent=p;fInsp.appendChild(o); });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   AGGREGATION
+═══════════════════════════════════════════════════════════════════ */
+function agg(data) {
+  const now   = new Date();
+  const days14 = [];
+  for (let i=13;i>=0;i--){ const d=new Date(now); d.setDate(d.getDate()-i); d.setHours(0,0,0,0); days14.push(d); }
+
+  const byInsp   = {}, byLoc = {}, byDay = {}, byIssue = {};
+  let clean=0, dirty=0, lastDate=null;
+
+  data.forEach(r => {
+    const loc  = locFromType(r.inspection_type||"");
+    const insp = (r.inspector||"").trim();
+    const isDirty = (r.status||"").includes("МРЪСНА");
+    isDirty ? dirty++ : clean++;
+
+    if (!lastDate || r._date > lastDate) lastDate = r._date;
+
+    /* by inspector */
+    if (!byInsp[insp]) byInsp[insp]={clean:0,dirty:0};
+    isDirty ? byInsp[insp].dirty++ : byInsp[insp].clean++;
+
+    /* by location */
+    if (!byLoc[loc]) byLoc[loc]={total:0,issues:0};
+    byLoc[loc].total++; if(isDirty) byLoc[loc].issues++;
+
+    /* by day */
+    const dk = r._date?.toDateString();
+    if (dk) { if(!byDay[dk]) byDay[dk]={clean:0,dirty:0,date:r._date}; isDirty?byDay[dk].dirty++:byDay[dk].clean++; }
+
+    /* by issue */
+    (r.issues||"").split(",").map(s=>s.trim()).filter(Boolean).forEach(it => { byIssue[it]=(byIssue[it]||0)+1; });
+  });
+
+  /* 14-day arrays */
+  const dayLabels   = days14.map(d => d.toLocaleDateString("bg-BG",{day:"2-digit",month:"short"}));
+  const cleanByDay  = days14.map(d => { const v=byDay[d.toDateString()]; return v?v.clean:0; });
+  const dirtyByDay  = days14.map(d => { const v=byDay[d.toDateString()]; return v?v.dirty:0; });
+
+  return { clean, dirty, total:clean+dirty, lastDate,
+           byInsp, byLoc, byIssue, dayLabels, cleanByDay, dirtyByDay };
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RENDER KPIs
+═══════════════════════════════════════════════════════════════════ */
+function kpiHTML({clean,dirty,total,lastDate}) {
+  const pct    = total ? Math.round(clean/total*100) : 0;
+  const issRate= total ? Math.round(dirty/total*100) : 0;
+  const ago    = lastDate ? timeAgo(lastDate) : "Няма данни";
+  const cards  = [
+    { icon:"📋", label:"Общо проверки",  value:total,   sub:"за избрания период",    color:"var(--gold2)",  glow:"rgba(200,150,30,.12)" },
+    { icon:"✅", label:"% Чисти",        value:pct+"%", sub:`${clean} от ${total}`,  color:"var(--green)",  glow:"rgba(45,204,112,.10)" },
+    { icon:"⚠️", label:"Открити проблема",value:dirty,  sub:`${issRate}% от всички`, color:"var(--red)",    glow:"rgba(232,72,72,.09)"  },
+    { icon:"🕐", label:"Последна проверка",value:ago,   sub:lastDate?lastDate.toLocaleDateString("bg-BG",{day:"2-digit",month:"long",year:"numeric"}):"—", color:"var(--blue)", glow:"rgba(79,158,255,.09)" },
   ];
-  document.getElementById("kpi-grid").innerHTML = cards.map(c => `
-    <div class="kpi-card" style="--kpi-color:${c.color};--kpi-accent:${c.accent};">
+  return `<div class="kpi-grid">${cards.map(c=>`
+    <div class="kpi-card" style="--kpi-color:${c.color};--kpi-glow:${c.glow};">
+      <span class="kpi-icon">${c.icon}</span>
       <div class="kpi-label">${c.label}</div>
       <div class="kpi-value">${c.value}</div>
       <div class="kpi-sub">${c.sub}</div>
-    </div>`).join("");
+    </div>`).join("")}</div>
+  <div class="gold-rule"></div>`;
 }
 
-/* ── Build / update charts ── */
-function buildCharts(data) {
-  const { dayLabels, cleanByDay, dirtyByDay, byLoc, byItem, cleanTotal, dirtyTotal } = data;
+/* ═══════════════════════════════════════════════════════════════════
+   BUILD CHARTS
+═══════════════════════════════════════════════════════════════════ */
+function destroyAll() { Object.values(charts).forEach(c=>c.destroy()); charts={}; }
 
-  document.getElementById("charts-grid").style.display = "";
-
-  // ── Line chart
-  const ctxLine = document.getElementById("chart-line").getContext("2d");
-  if (charts.line) charts.line.destroy();
-  charts.line = new Chart(ctxLine, {
-    type: "line",
-    data: {
-      labels: dayLabels,
-      datasets: [
-        { label: "Чисти",  data: cleanByDay, borderColor: "#2dcc70", backgroundColor: "rgba(45,204,112,.07)",  fill: true, tension: .38, pointRadius: 3, pointHoverRadius: 5 },
-        { label: "Мръсни", data: dirtyByDay, borderColor: "#ef5b5b", backgroundColor: "rgba(239,91,91,.07)",   fill: true, tension: .38, pointRadius: 3, pointHoverRadius: 5 },
+function buildBarInspector(data, canvasId) {
+  const {byInsp} = data;
+  const labels = Object.keys(byInsp).sort((a,b)=>(byInsp[b].clean+byInsp[b].dirty)-(byInsp[a].clean+byInsp[a].dirty));
+  const ctx = document.getElementById(canvasId).getContext("2d");
+  charts[canvasId] = new Chart(ctx, {
+    type:"bar",
+    data:{
+      labels: labels.map(l => l.split(" ")[0]+" "+l.split(" ").slice(-1)[0].charAt(0)+"."),
+      datasets:[
+        { label:"Чисти",  data:labels.map(l=>byInsp[l].clean), backgroundColor:"rgba(45,204,112,.70)", borderRadius:6, borderSkipped:false },
+        { label:"Мръсни", data:labels.map(l=>byInsp[l].dirty), backgroundColor:"rgba(232,72,72,.70)",  borderRadius:6, borderSkipped:false },
       ]
     },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      scales: {
-        x: { grid: { color: "#1a2535" }, ticks: { maxTicksLimit: 7 } },
-        y: { grid: { color: "#1a2535" }, beginAtZero: true, ticks: { stepSize: 1, precision: 0 } }
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:12}}},
+        y:{grid:{color:"#111d2c"},beginAtZero:true,ticks:{precision:0,stepSize:1}},
       },
-      plugins: { legend: { position: "top" } }
+      plugins:{legend:{position:"top"},tooltip:{callbacks:{title:ctx=>labels[ctx[0].dataIndex]}}},
     }
   });
+}
 
-  // ── Bar chart (by location)
-  const locLabels  = LOCATIONS;
-  const locTotal   = locLabels.map(l => byLoc[l]?.total  || 0);
-  const locIssues  = locLabels.map(l => byLoc[l]?.issues || 0);
-  const ctxBar = document.getElementById("chart-bar").getContext("2d");
-  if (charts.bar) charts.bar.destroy();
-  charts.bar = new Chart(ctxBar, {
-    type: "bar",
-    data: {
-      labels: locLabels,
-      datasets: [
-        { label: "Проверки", data: locTotal,  backgroundColor: "rgba(98,169,255,.55)",   borderRadius: 6, borderSkipped: false },
-        { label: "Проблеми", data: locIssues, backgroundColor: "rgba(239,91,91,.70)",    borderRadius: 6, borderSkipped: false },
-      ]
+function buildDoughnutLocation(data, canvasId) {
+  const {byLoc} = data;
+  const locs  = Object.keys(byLoc).sort((a,b)=>byLoc[b].total-byLoc[a].total).slice(0,8);
+  const palette = ["#c8961e","#4f9eff","#2dcc70","#9f7aea","#e84848","#f6ad3c","#38bdf8","#f472b6"];
+  const ctx = document.getElementById(canvasId).getContext("2d");
+  charts[canvasId] = new Chart(ctx, {
+    type:"doughnut",
+    data:{
+      labels:locs,
+      datasets:[{ data:locs.map(l=>byLoc[l].total), backgroundColor:palette, borderWidth:0, hoverOffset:8 }]
     },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-        y: { grid: { color: "#1a2535" }, beginAtZero: true, ticks: { stepSize: 1, precision: 0 } }
-      },
-      plugins: { legend: { position: "top" } }
-    }
-  });
-
-  // ── Doughnut
-  const ctxDnt = document.getElementById("chart-donut").getContext("2d");
-  if (charts.donut) charts.donut.destroy();
-  charts.donut = new Chart(ctxDnt, {
-    type: "doughnut",
-    data: {
-      labels: ["Чисти", "Мръсни"],
-      datasets: [{ data: [cleanTotal || 1, dirtyTotal], backgroundColor: ["#2dcc70","#ef5b5b"], borderWidth: 0, hoverOffset: 6 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      cutout: "68%",
-      plugins: {
-        legend: { position: "bottom" },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed / (cleanTotal + dirtyTotal) * 100)}%)` } }
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:"65%",
+      plugins:{
+        legend:{position:"right",labels:{font:{size:11},padding:12}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed/data.total*100)}%)`}},
       }
     }
   });
+}
 
-  // ── Horizontal bar (by item)
-  const itemKeys   = Object.keys(byItem).filter(k => byItem[k] > 0).sort((a, b) => byItem[b] - byItem[a]);
-  const showItems  = itemKeys.length > 0 ? itemKeys : ITEMS.slice(0, 6);
-  const itemCounts = showItems.map(k => byItem[k] || 0);
-  const maxItem    = Math.max(...itemCounts, 1);
-
-  const palette = showItems.map((_, i) => {
-    const hues = [35, 25, 200, 140, 355, 270, 50, 175, 310];
-    const h = hues[i % hues.length];
-    return `hsla(${h},75%,58%,.75)`;
-  });
-
-  const ctxHBar = document.getElementById("chart-hbar").getContext("2d");
-  if (charts.hbar) charts.hbar.destroy();
-  charts.hbar = new Chart(ctxHBar, {
-    type: "bar",
-    data: {
-      labels: showItems,
-      datasets: [{ label: "Броя проблема", data: itemCounts, backgroundColor: palette, borderRadius: 6, borderSkipped: false }]
+function buildLineDay(data, canvasId) {
+  const {dayLabels, cleanByDay, dirtyByDay} = data;
+  const ctx = document.getElementById(canvasId).getContext("2d");
+  const gClean = ctx.createLinearGradient(0,0,0,220);
+  gClean.addColorStop(0,"rgba(45,204,112,.30)"); gClean.addColorStop(1,"rgba(45,204,112,.01)");
+  const gDirty = ctx.createLinearGradient(0,0,0,220);
+  gDirty.addColorStop(0,"rgba(232,72,72,.25)");  gDirty.addColorStop(1,"rgba(232,72,72,.01)");
+  charts[canvasId] = new Chart(ctx, {
+    type:"line",
+    data:{
+      labels:dayLabels,
+      datasets:[
+        { label:"Чисти",  data:cleanByDay, borderColor:"#2dcc70", backgroundColor:gClean, fill:true, tension:.40, pointRadius:3, pointHoverRadius:6, pointBackgroundColor:"#2dcc70" },
+        { label:"Мръсни", data:dirtyByDay, borderColor:"#e84848", backgroundColor:gDirty, fill:true, tension:.40, pointRadius:3, pointHoverRadius:6, pointBackgroundColor:"#e84848" },
+      ]
     },
-    options: {
-      indexAxis: "y",
-      responsive: true, maintainAspectRatio: false,
-      scales: {
-        x: { grid: { color: "#1a2535" }, beginAtZero: true, max: maxItem + 1, ticks: { precision: 0 } },
-        y: { grid: { display: false }, ticks: { font: { size: 12 } } }
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      scales:{
+        x:{grid:{color:"#111d2c"},ticks:{maxTicksLimit:7}},
+        y:{grid:{color:"#111d2c"},beginAtZero:true,ticks:{precision:0}},
       },
-      plugins: { legend: { display: false } }
+      plugins:{legend:{position:"top"}},
+      interaction:{mode:"index",intersect:false},
     }
   });
 }
 
-/* ── Main load function ── */
-async function loadData() {
-  document.getElementById("last-updated").textContent = "Зарежда…";
-  document.getElementById("btn-refresh").disabled = true;
-  document.getElementById("demo-banner").style.display = "none";
-  document.getElementById("kpi-grid").innerHTML = `<div class="loading-overlay" style="grid-column:1/-1;"><div class="spinner"></div><span>Зарежда данни…</span></div>`;
-  document.getElementById("charts-grid").style.display = "none";
-
-  let rows = null;
-  let isDemo = false;
-
-  try {
-    const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(GVIZ_URL, { signal: controller.signal });
-    clearTimeout(tid);
-    if (res.ok) {
-      const text = await res.text();
-      const parsed = parseCSV(text);
-      if (parsed.length > 0) rows = parsed;
+function buildPieStatus(data, canvasId) {
+  const {clean, dirty} = data;
+  const ctx = document.getElementById(canvasId).getContext("2d");
+  charts[canvasId] = new Chart(ctx, {
+    type:"pie",
+    data:{
+      labels:["Чисти","Мръсни"],
+      datasets:[{ data:[clean, dirty], backgroundColor:["#2dcc70","#e84848"], borderWidth:0, hoverOffset:8 }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:"bottom",labels:{padding:18}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed/(clean+dirty)*100)}%)`}},
+      }
     }
-  } catch (_) { /* network error or CORS */ }
+  });
+}
 
-  if (!rows || rows.length === 0) {
-    rows = generateDemoData();
-    isDemo = true;
+function buildHBarIssues(data, canvasId) {
+  const {byIssue} = data;
+  const sorted = Object.entries(byIssue).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  if (!sorted.length) return;
+  const palette = sorted.map((_,i)=>{
+    const hues=[35,200,140,270,355,50,175,310];
+    return `hsla(${hues[i%hues.length]},75%,56%,.80)`;
+  });
+  const ctx = document.getElementById(canvasId).getContext("2d");
+  charts[canvasId] = new Chart(ctx, {
+    type:"bar",
+    data:{
+      labels:sorted.map(e=>e[0]),
+      datasets:[{ label:"Брой проблема", data:sorted.map(e=>e[1]), backgroundColor:palette, borderRadius:6, borderSkipped:false }]
+    },
+    options:{
+      indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      scales:{
+        x:{grid:{color:"#111d2c"},beginAtZero:true,ticks:{precision:0}},
+        y:{grid:{display:false},ticks:{font:{size:12}}},
+      },
+      plugins:{legend:{display:false}},
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RENDER DASHBOARD
+═══════════════════════════════════════════════════════════════════ */
+function renderDashboard(filtered) {
+  destroyAll();
+  const d = agg(filtered);
+
+  document.getElementById("main-content").innerHTML = kpiHTML(d) + `
+    <div class="charts-row two">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Проверки по служител<span>Активност на екипа</span></div>
+          <div class="chart-meta">${filtered.length} записа</div>
+        </div>
+        <div class="chart-wrap" style="height:240px"><canvas id="c-insp"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Разпределение по зали<span>Покритие на локациите</span></div>
+        </div>
+        <div class="chart-wrap" style="height:240px"><canvas id="c-loc"></canvas></div>
+      </div>
+    </div>
+    <div class="charts-row two-eq">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Тренд по дни<span>Последните 14 дни</span></div>
+        </div>
+        <div class="chart-wrap" style="height:220px"><canvas id="c-line"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Статус<span>Чисти срещу Мръсни</span></div>
+        </div>
+        <div class="chart-wrap" style="height:220px"><canvas id="c-pie"></canvas></div>
+      </div>
+    </div>
+    <div class="charts-row one">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Най-чести проблеми<span>Топ елементи с нарушения</span></div>
+          <div class="chart-meta">${Object.keys(d.byIssue).length} вида проблема</div>
+        </div>
+        <div class="chart-wrap" style="height:${Math.min(8,Object.keys(d.byIssue).length||1)*38+40}px"><canvas id="c-hbar"></canvas></div>
+      </div>
+    </div>`;
+
+  /* slight delay so canvases are in DOM */
+  requestAnimationFrame(() => {
+    buildBarInspector(d, "c-insp");
+    buildDoughnutLocation(d, "c-loc");
+    buildLineDay(d, "c-line");
+    buildPieStatus(d, "c-pie");
+    buildHBarIssues(d, "c-hbar");
+  });
+}
+
+function renderEmpty() {
+  destroyAll();
+  document.getElementById("main-content").innerHTML = `
+    <div class="state-screen">
+      <div class="state-icon">📊</div>
+      <div class="state-title">Няма данни</div>
+      <div class="state-sub">Няма проверки за избрания период или комбинация от филтри. Промени критериите и опитай отново.</div>
+    </div>`;
+}
+
+function renderError(msg) {
+  document.getElementById("main-content").innerHTML = `
+    <div class="state-screen">
+      <div class="state-icon">⚠️</div>
+      <div class="state-title">Грешка при зареждане</div>
+      <div class="state-sub">${msg||"Неуспешна връзка с Google Sheets. Проверете интернет връзката и опитайте отново."}</div>
+      <button class="btn-retry" onclick="loadAndRender()">↻ Опитай отново</button>
+    </div>`;
+}
+
+function renderLoading() {
+  document.getElementById("main-content").innerHTML = `
+    <div class="state-screen"><div class="spinner"></div>
+      <div class="state-title" style="font-size:15px;color:var(--muted)">Зарежда данни…</div>
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MAIN LOAD
+═══════════════════════════════════════════════════════════════════ */
+let filtersPopulated = false;
+
+async function loadAndRender() {
+  document.getElementById("btn-refresh").disabled = true;
+  document.getElementById("last-upd").textContent = "Зарежда…";
+  document.getElementById("demo-banner").style.display = "none";
+  renderLoading();
+
+  let raw  = await fetchSheet();
+  let demo = false;
+
+  if (!raw) {
+    raw  = generateDemo();
+    demo = true;
   }
 
-  const data = aggregate(rows);
-  renderKPI(data);
-  buildCharts(data);
+  ALL_DATA = raw;
 
-  if (isDemo) {
-    document.getElementById("demo-banner").style.display = "flex";
-    document.getElementById("demo-help-link").onclick = e => {
-      e.preventDefault();
-      alert("За да видиш реални данни:\n\n1. Отвори spreadsheet-а в Google Sheets\n2. Файл → Споделяне → Публикуване в уеб\n3. Избери „Целият документ" → Публикувай\n4. Натисни Обнови тук");
-    };
+  if (!filtersPopulated) { populateFilters(raw); filtersPopulated = true; }
+
+  const filtered = applyFilters(raw);
+
+  if (filtered.length === 0) {
+    renderEmpty();
+  } else {
+    renderDashboard(filtered);
   }
 
-  document.getElementById("last-updated").textContent = isDemo ? "Demo данни" : "Обновено " + new Date().toLocaleTimeString("bg-BG", { hour: "2-digit", minute: "2-digit" });
+  if (demo) document.getElementById("demo-banner").style.display = "flex";
+  document.getElementById("last-upd").textContent = demo
+    ? "Demo данни"
+    : "Обновено " + new Date().toLocaleTimeString("bg-BG",{hour:"2-digit",minute:"2-digit"});
   document.getElementById("btn-refresh").disabled = false;
 }
 
-/* ── Init ── */
-loadData();
+function rerender() {
+  const filtered = applyFilters(ALL_DATA);
+  if (filtered.length === 0) renderEmpty();
+  else renderDashboard(filtered);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════════════════ */
+function timeAgo(d) {
+  const m = Math.floor((Date.now() - d)/60000);
+  if (m < 2)   return "преди момент";
+  if (m < 60)  return `преди ${m} мин`;
+  const h = Math.floor(m/60);
+  if (h < 24)  return `преди ${h} ч`;
+  return `преди ${Math.floor(h/24)} д`;
+}
+
+function showHowTo() {
+  alert(
+    "За да зареждат реални данни:\n\n" +
+    "1. Отвори Google Sheets таблицата с проверките\n" +
+    "2. Файл → Споделяне → Публикуване в уеб\n" +
+    "3. Избери \"Целият документ\" → Публикувай\n" +
+    "4. Натисни бутона 'Обнови' в горния десен ъгъл\n\n" +
+    "Страницата ще прочете данните автоматично."
+  );
+}
+
+/* ── Filter listeners ── */
+["f-period","f-location","f-inspector"].forEach(id =>
+  document.getElementById(id).addEventListener("change", rerender)
+);
+
+/* ── Boot ── */
+loadAndRender();
 </script>
 </body>
 </html>
