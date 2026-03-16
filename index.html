@@ -1379,16 +1379,33 @@
       }
 
       async function fetchSheetsData() {
-        const csvUrl = 'https://docs.google.com/spreadsheets/d/17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA/export?format=csv&gid=0';
-        const res = await fetch(csvUrl);
+        // Google Visualization API — работи без CORS проблеми за публични таблици
+        const url = 'https://docs.google.com/spreadsheets/d/17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA/gviz/tq?tqx=out:json&gid=0';
+        const res = await fetch(url);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const text = await res.text();
-        return parseCSV(text);
+        // Отстраняване на JSONP обвивката: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
+        const json = JSON.parse(text.replace(/^[^{]*/, '').replace(/\);?\s*$/, ''));
+        if (!json.table) throw new Error('Невалиден отговор от Sheets');
+        const cols = json.table.cols.map(c => c.label);
+        return (json.table.rows || []).map(row => {
+          const obj = {};
+          cols.forEach((col, i) => {
+            const cell = row.c && row.c[i];
+            obj[col] = cell ? (cell.f != null ? String(cell.f) : cell.v != null ? String(cell.v) : '') : '';
+          });
+          return obj;
+        });
       }
 
       async function initChartsScreen() {
         const container = document.getElementById('charts-container');
         if (!container) return;
+
+        if (typeof Chart === 'undefined') {
+          container.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--red);">Chart.js не е заредена. Проверете интернет връзката.</div>`;
+          return;
+        }
 
         container.innerHTML = '<div class="charts-loading"><div class="spinner"></div><span>Зарежда от Sheets…</span></div>';
 
