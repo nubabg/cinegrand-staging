@@ -427,6 +427,43 @@
       @media (max-width: 900px) {
         .item-row { grid-template-columns: 1fr; }
       }
+      /* ── Bloom Background Effect ── */
+      .bloom-layer {
+        position: fixed; inset: 0;
+        pointer-events: none; z-index: 0; overflow: hidden;
+      }
+      .bloom-orb {
+        position: absolute; border-radius: 50%;
+        filter: blur(100px);
+        animation: bloomPulse 10s ease-in-out infinite;
+        will-change: opacity, transform;
+      }
+      .bloom-orb--gold {
+        width: 50vw; height: 50vw; top: -10%; left: -8%;
+        background: radial-gradient(circle, rgba(200,120,24,.18), transparent 70%);
+        animation-duration: 11s; animation-delay: 0s;
+      }
+      .bloom-orb--blue {
+        width: 40vw; height: 40vw; top: 15%; right: -8%;
+        background: radial-gradient(circle, rgba(98,169,255,.12), transparent 70%);
+        animation-duration: 13s; animation-delay: -4s;
+      }
+      .bloom-orb--red {
+        width: 35vw; height: 35vw; bottom: 10%; left: 25%;
+        background: radial-gradient(circle, rgba(239,91,91,.08), transparent 70%);
+        animation-duration: 15s; animation-delay: -7s;
+      }
+      .bloom-orb--gold2 {
+        width: 28vw; height: 28vw; bottom: 20%; right: 5%;
+        background: radial-gradient(circle, rgba(200,120,24,.10), transparent 70%);
+        animation-duration: 12s; animation-delay: -2s;
+      }
+      @keyframes bloomPulse {
+        0%   { opacity: 0.4; transform: scale(1); }
+        50%  { opacity: 0.85; transform: scale(1.1); }
+        100% { opacity: 0.4; transform: scale(1); }
+      }
+
       @media print {
         .app-shell, .broom-fun { display: none !important; }
         #qr-modal-backdrop { position: static !important; background: #fff !important; padding: 20px !important; width: 100% !important; min-height: 100vh !important; }
@@ -436,6 +473,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   </head>
   <body>
+    <div class="bloom-layer" aria-hidden="true">
+      <span class="bloom-orb bloom-orb--gold"></span>
+      <span class="bloom-orb bloom-orb--blue"></span>
+      <span class="bloom-orb bloom-orb--red"></span>
+      <span class="bloom-orb bloom-orb--gold2"></span>
+    </div>
     <div id="app"></div>
     <div class="broom-fun" aria-hidden="true">
       <span class="broom-dust"></span><span class="broom-dust"></span><span class="broom-dust"></span>
@@ -968,7 +1011,7 @@
       function renderTopbar() {
         const navItems = isQROnlySession() ? "" : [
           state.screen !== "home" ? `<button class="nav-btn" data-action="go-home" aria-label="Начална страница">Начало</button>` : "",
-          `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''}" data-action="go-charts" aria-label="Диаграми от Sheets">📊 Диаграми</button>`,
+          `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''}" data-action="go-charts" aria-label="Данни от Sheets">📊 Данни</button>`,
           `<button class="nav-btn" data-action="open-qr" aria-label="QR кодове за печат">QR кодове</button>`,
           `<a class="nav-btn${isSheetsConfigured() ? ' state' : ''}" href="${SHEETS_SPREADSHEET_URL}" target="_blank" rel="noopener" aria-label="Отвори Sheets таблица">${isSheetsConfigured() ? "Sheets ✓" : "Sheets ✗"}</a>`,
         ].filter(Boolean).join("");
@@ -1162,7 +1205,7 @@
           <div class="panel" style="margin-bottom:16px;">
             <div class="toolbar">
               <div>
-                <h3 class="section-title" style="margin:0;">Диаграми</h3>
+                <h3 class="section-title" style="margin:0;">Данни</h3>
                 <div class="muted" style="font-size:13px;margin-top:4px;">Данни от Google Sheets — актуални</div>
               </div>
               <button class="charts-refresh" data-action="refresh-charts">⟳ Обнови</button>
@@ -1273,7 +1316,7 @@
           <div class="charts-grid">
             <div class="chart-card">
               <div class="chart-title">Проверки по служител</div>
-              <div class="chart-subtitle">Брой проверки на всеки инспектор</div>
+              <div class="chart-subtitle">Брой проверки на всеки служител</div>
               <div class="chart-wrap" style="height:260px;"><canvas id="chart-inspector"></canvas></div>
             </div>
             <div class="chart-card">
