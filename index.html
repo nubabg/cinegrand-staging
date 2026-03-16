@@ -1097,6 +1097,302 @@
           ${records.length ? renderRecentTable(records, false) : `<div class="panel" style="text-align:center;color:var(--muted);padding:60px 20px;">\u041d\u044f\u043c\u0430 \u0437\u0430\u043f\u0438\u0441\u0438 \u043f\u043e \u0442\u0435\u043a\u0443\u0449\u0438\u0442\u0435 \u0444\u0438\u043b\u0442\u0440\u0438.</div>`}
         </div>`;
       }
+      function barColor(p) { return p > 60 ? "var(--red)" : p > 30 ? "#f59e0b" : "var(--green)"; }
+
+      function renderBars(entries) {
+        return `<div class="bars">${entries.map(([label, data]) => {
+          const p = pct(data.issues, data.total);
+          return `<div>
+            <div class="bar-label"><span>${label}</span><span style="color:${barColor(p)};">${data.issues}/${data.total} - ${p}%</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${barColor(p)};"></div></div>
+          </div>`;
+        }).join("")}</div>`;
+      }
+
+      function renderStats() {
+        const records = filteredRecords();
+        if (!records.length) return `<div class="page"><div class="panel" style="text-align:center;color:var(--muted);padding:60px 20px;">\u041d\u044f\u043c\u0430 \u0434\u0430\u043d\u043d\u0438 \u0437\u0430 \u0438\u0437\u0431\u0440\u0430\u043d\u0438\u044f \u043f\u0435\u0440\u0438\u043e\u0434.</div></div>`;
+        const stats = computeStats(records);
+        const totalDirty = records.reduce((s, r) => s + dirtyItems(r).length, 0);
+        const totalClean = records.reduce((s, r) => s + r.items.filter((i) => i.status === STATUS.CLEAN).length, 0);
+        const overall = pct(totalDirty, totalClean + totalDirty);
+        const topIssue = Object.entries(stats.byItem).sort((a, b) => pct(b[1].issues, b[1].total) - pct(a[1].issues, a[1].total))[0];
+        const topLocation = Object.entries(stats.byLocation).sort((a, b) => pct(b[1].issues, b[1].total) - pct(a[1].issues, a[1].total))[0];
+        const trafficText = overall === 0 ? "\u0417\u0415\u041b\u0415\u041d\u041e - \u041e\u0442\u043b\u0438\u0447\u043d\u043e" : overall <= 20 ? "\u0416\u042a\u041b\u0422\u041e - \u0414\u043e\u0431\u0440\u043e" : overall <= 50 ? "\u041e\u0420\u0410\u041d\u0416\u0415\u0412\u041e - \u041d\u0443\u0436\u043d\u043e \u0432\u043d\u0438\u043c\u0430\u043d\u0438\u0435" : "\u0427\u0415\u0420\u0412\u0415\u041d\u041e - \u041a\u0440\u0438\u0442\u0438\u0447\u043d\u043e";
+
+        return `<div class="page">
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="toolbar"><h3 class="section-title" style="margin:0;">\u041e\u0431\u0449\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043d\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438\u0442\u0435</h3><span class="meta-chip">${rangeLabel(state.statsRange)}</span></div>
+            <div class="muted" style="margin-bottom:14px;">\u0422\u0443\u043a \u0441\u0435 \u043e\u0431\u043e\u0431\u0449\u0430\u0432\u0430\u0442 \u0432\u0441\u0438\u0447\u043a\u0438 \u0437\u0430\u043f\u0438\u0441\u0430\u043d\u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0437\u0430 \u0438\u0437\u0431\u0440\u0430\u043d\u0438\u044f \u043f\u0435\u0440\u0438\u043e\u0434.</div>
+            <div class="toolbar toolbar-controls">
+              <div class="tabs">${RANGE_OPTIONS.map(([v, l]) => `<button class="tab ${state.statsRange === v ? "active" : ""}" data-action="set-range" data-value="${v}">${l}</button>`).join("")}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <select id="export-range-select" style="min-width:180px;">${renderRangeOptions(state.exportRange)}</select>
+                <button class="btn btn-outline" data-action="export-pdf">PDF</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid cards-4" style="margin-bottom:16px;">${[
+            ["\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0438", records.length, "var(--gold)"],
+            ["\u041f\u0440\u043e\u0431\u043b\u0435\u043c\u0438", totalDirty, "var(--red)"],
+            ["\u0427\u0438\u0441\u0442\u0438", totalClean, "var(--green)"],
+            ["% \u041f\u0440\u043e\u0431\u043b\u0435\u043c", overall + "%", "var(--text)"],
+          ].map(([l, v, c]) => `<div class="panel stat"><div class="muted">${l}</div><strong style="color:${c};">${v}</strong></div>`).join("")}</div>
+
+          <div class="panel" style="margin-bottom:16px;border-left:4px solid ${barColor(overall)};"><strong>${trafficText}</strong><div class="muted" style="margin-top:6px;">\u041e\u0431\u0449\u0430 \u043e\u0446\u0435\u043d\u043a\u0430 \u0437\u0430 \u043f\u0435\u0440\u0438\u043e\u0434\u0430</div></div>
+
+          <div class="grid cards-2 cg-chart-grid" style="margin-bottom:16px;">
+            ${topIssue ? `<div class="panel"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.12em;">\u041d\u0430\u0439-\u0447\u0435\u0441\u0442 \u043f\u0440\u043e\u0431\u043b\u0435\u043c</div><h3 class="section-title" style="color:var(--red);">${topIssue[0]}</h3><div class="muted">${topIssue[1].issues}/${topIssue[1].total} \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 - ${pct(topIssue[1].issues, topIssue[1].total)}%</div></div>` : ""}
+            ${topLocation ? `<div class="panel"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.12em;">\u041d\u0430\u0439-\u043f\u0440\u043e\u0431\u043b\u0435\u043c\u043d\u0430 \u043b\u043e\u043a\u0430\u0446\u0438\u044f</div><h3 class="section-title" style="color:#fbbf24;">${topLocation[0]}</h3><div class="muted">${topLocation[1].issues} \u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0430</div></div>` : ""}
+          </div>
+
+          <div class="grid cards-2 cg-chart-grid">
+            <div class="panel"><h3 class="section-title">\u041f\u043e \u043b\u043e\u043a\u0430\u0446\u0438\u044f</h3>${renderBars(Object.entries(stats.byLocation))}</div>
+            <div class="panel"><h3 class="section-title">\u041f\u043e \u0435\u043b\u0435\u043c\u0435\u043d\u0442</h3>${renderBars(Object.entries(stats.byItem))}</div>
+          </div>
+        </div>`;
+      }
+
+      /* ── Charts Screen ──────────────────────────────────────────────────── */
+      function renderCharts() {
+        return `<div class="page">
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="toolbar">
+              <div>
+                <h3 class="section-title" style="margin:0;">Диаграми</h3>
+                <div class="muted" style="font-size:13px;margin-top:4px;">Данни от Google Sheets — актуални</div>
+              </div>
+              <button class="charts-refresh" data-action="refresh-charts">⟳ Обнови</button>
+            </div>
+          </div>
+          <div id="charts-container">
+            <div class="charts-loading"><div class="spinner"></div><span>Зарежда от Sheets…</span></div>
+          </div>
+        </div>`;
+      }
+
+      function parseCSV(text) {
+        const lines = text.trim().split('\n');
+        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+        return lines.slice(1).map(line => {
+          const cols = [];
+          let cur = '', inQ = false;
+          for (const ch of line) {
+            if (ch === '"') { inQ = !inQ; }
+            else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
+            else { cur += ch; }
+          }
+          cols.push(cur);
+          return Object.fromEntries(headers.map((h, i) => [h, (cols[i] || '').trim().replace(/^"|"$/g, '')]));
+        });
+      }
+
+      async function fetchSheetsData() {
+        // Google Visualization API — работи без CORS проблеми за публични таблици
+        const url = 'https://docs.google.com/spreadsheets/d/17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA/gviz/tq?tqx=out:json&gid=0';
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const text = await res.text();
+        // Отстраняване на JSONP обвивката: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
+        const json = JSON.parse(text.replace(/^[^{]*/, '').replace(/\);?\s*$/, ''));
+        if (!json.table) throw new Error('Невалиден отговор от Sheets');
+        const cols = json.table.cols.map(c => c.label);
+        return (json.table.rows || []).map(row => {
+          const obj = {};
+          cols.forEach((col, i) => {
+            const cell = row.c && row.c[i];
+            obj[col] = cell ? (cell.f != null ? String(cell.f) : cell.v != null ? String(cell.v) : '') : '';
+          });
+          return obj;
+        });
+      }
+
+      async function initChartsScreen() {
+        const container = document.getElementById('charts-container');
+        if (!container) return;
+
+        if (typeof Chart === 'undefined') {
+          container.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--red);">Chart.js не е заредена. Проверете интернет връзката.</div>`;
+          return;
+        }
+
+        container.innerHTML = '<div class="charts-loading"><div class="spinner"></div><span>Зарежда от Sheets…</span></div>';
+
+        let rows;
+        try {
+          rows = await fetchSheetsData();
+        } catch(e) {
+          container.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--red);">
+            Грешка при зареждане от Sheets.<br><small style="color:var(--muted);">${e.message}</small>
+          </div>`;
+          return;
+        }
+
+        /* ── Агрегации ── */
+        const byInspector = {}, byIssue = {}, byLocation = {}, byStatus = { 'Чисто': 0, 'Проблем': 0 };
+        rows.forEach(r => {
+          const insp = r['ПРОВЕРЯВАЩ'] || '?';
+          const loc  = (r['ТИП'] || '?').replace('Кинозала - ', 'Зала ').replace('Тоалетна - ', 'Тоал. ');
+          const stat = r['СТАТУС'] || '';
+          byInspector[insp] = (byInspector[insp] || 0) + 1;
+          byLocation[loc]   = (byLocation[loc]   || 0) + 1;
+          if (stat === 'Чисто' || stat === 'Проблем') byStatus[stat]++;
+          const issues = r['ПРОБЛЕМИ'] || '';
+          if (issues && issues !== '—') {
+            issues.split(',').forEach(iss => {
+              const k = iss.trim();
+              if (k && k !== '—') byIssue[k] = (byIssue[k] || 0) + 1;
+            });
+          }
+        });
+
+        const total = rows.length;
+        const problemCount = byStatus['Проблем'] || 0;
+        const cleanCount   = byStatus['Чисто']   || 0;
+        const problemPct   = total ? Math.round(problemCount / total * 100) : 0;
+
+        /* ── HTML ── */
+        container.innerHTML = `
+          <div class="charts-stat-row">
+            <div class="charts-stat-pill">
+              <strong style="color:var(--gold);">${total}</strong>
+              <span>Проверки</span>
+            </div>
+            <div class="charts-stat-pill">
+              <strong style="color:var(--green);">${cleanCount}</strong>
+              <span>Чисто</span>
+            </div>
+            <div class="charts-stat-pill">
+              <strong style="color:var(--red);">${problemPct}%</strong>
+              <span>Проблеми</span>
+            </div>
+          </div>
+          <div class="charts-grid">
+            <div class="chart-card">
+              <div class="chart-title">Проверки по служител</div>
+              <div class="chart-subtitle">Брой проверки на всеки инспектор</div>
+              <div class="chart-wrap" style="height:260px;"><canvas id="chart-inspector"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title">Топ проблеми</div>
+              <div class="chart-subtitle">Най-часто срещани нередности</div>
+              <div class="chart-wrap" style="height:260px;" id="chart-issues-wrap"><canvas id="chart-issues"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title">Проверки по локация</div>
+              <div class="chart-subtitle">Разпределение по зали и тоалетни</div>
+              <div class="chart-wrap" style="height:260px;"><canvas id="chart-location"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title">Чисто vs Проблем</div>
+              <div class="chart-subtitle">Обща оценка на всички проверки</div>
+              <div class="chart-wrap" style="height:260px;"><canvas id="chart-status"></canvas></div>
+            </div>
+          </div>`;
+
+        /* ── Chart.js конфигурация ── */
+        Chart.defaults.color = '#9ba8b9';
+        Chart.defaults.borderColor = 'rgba(38,49,64,.5)';
+        Chart.defaults.font.family = '"DM Sans","Segoe UI",sans-serif';
+        Chart.defaults.font.size = 12;
+
+        const PALETTE = ['#c87818','#62a9ff','#2dcc70','#ef5b5b','#fbbf24','#a78bfa','#eba030','#34d399','#f472b6','#60a5fa'];
+
+        /* 1. Horizontal bar — инспектори */
+        const inspEntries = Object.entries(byInspector).sort((a,b) => b[1]-a[1]);
+        new Chart(document.getElementById('chart-inspector'), {
+          type: 'bar',
+          data: {
+            labels: inspEntries.map(e => e[0]),
+            datasets: [{
+              data: inspEntries.map(e => e[1]),
+              backgroundColor: inspEntries.map((_,i) => PALETTE[i % PALETTE.length] + 'cc'),
+              borderColor:     inspEntries.map((_,i) => PALETTE[i % PALETTE.length]),
+              borderWidth: 1.5, borderRadius: 6, borderSkipped: false
+            }]
+          },
+          options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x} проверки` } } },
+            scales: {
+              x: { grid: { color: 'rgba(38,49,64,.4)' }, ticks: { stepSize: 1 } },
+              y: { grid: { display: false } }
+            }
+          }
+        });
+
+        /* 2. Doughnut — проблеми */
+        const issEntries = Object.entries(byIssue).sort((a,b) => b[1]-a[1]).slice(0,8);
+        if (issEntries.length) {
+          new Chart(document.getElementById('chart-issues'), {
+            type: 'doughnut',
+            data: {
+              labels: issEntries.map(e => e[0]),
+              datasets: [{
+                data: issEntries.map(e => e[1]),
+                backgroundColor: PALETTE.map(c => c + 'cc'),
+                borderColor: PALETTE,
+                borderWidth: 1.5, hoverOffset: 10
+              }]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false, cutout: '64%',
+              plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12, usePointStyle: true } },
+                tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } }
+              }
+            }
+          });
+        } else {
+          document.getElementById('chart-issues-wrap').innerHTML =
+            '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);">Няма регистрирани проблеми</div>';
+        }
+
+        /* 3. Vertical bar — локации */
+        const locEntries = Object.entries(byLocation).sort((a,b) => b[1]-a[1]);
+        new Chart(document.getElementById('chart-location'), {
+          type: 'bar',
+          data: {
+            labels: locEntries.map(e => e[0]),
+            datasets: [{
+              data: locEntries.map(e => e[1]),
+              backgroundColor: '#62a9ffcc', borderColor: '#62a9ff',
+              borderWidth: 1.5, borderRadius: 6, borderSkipped: false
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} проверки` } } },
+            scales: {
+              x: { grid: { display: false }, ticks: { maxRotation: 35 } },
+              y: { grid: { color: 'rgba(38,49,64,.4)' }, ticks: { stepSize: 1 } }
+            }
+          }
+        });
+
+        /* 4. Doughnut — статус */
+        new Chart(document.getElementById('chart-status'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Чисто', 'Проблем'],
+            datasets: [{
+              data: [byStatus['Чисто'], byStatus['Проблем']],
+              backgroundColor: ['#2dcc70cc','#ef5b5bcc'],
+              borderColor: ['#2dcc70','#ef5b5b'],
+              borderWidth: 1.5, hoverOffset: 10
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, cutout: '64%',
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, usePointStyle: true } },
+              tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} (${total ? Math.round(ctx.parsed/total*100) : 0}%)` } }
+            }
+          }
+        });
+      }
+
       function renderInspection() {
         const config = getConfig(state.inspectionType);
         const filledCount = config.items.filter((i) => isFilled(state.itemState[i.id])).length;
