@@ -691,11 +691,17 @@
 
       function releaseLockBeacon(sessionId) {
         if (!sessionId || !isSheetsConfigured()) return;
+        const payload = JSON.stringify({ action: "releaseLock", sessionId });
         try {
-          const blob = new Blob(
-            [JSON.stringify({ action: "releaseLock", sessionId })],
-            { type: "text/plain;charset=UTF-8" }
-          );
+          fetch(SHEETS_WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            body: payload,
+            keepalive: true,
+          }).catch(() => {});
+        } catch (_) {}
+        try {
+          const blob = new Blob([payload], { type: "text/plain;charset=UTF-8" });
           navigator.sendBeacon(SHEETS_WEB_APP_URL, blob);
         } catch (_) {}
       }
@@ -2218,9 +2224,14 @@
       });
 
       /* ── Release lock on page close / navigation ── */
-      window.addEventListener("beforeunload", () => {
+      function _releaseLockOnExit() {
         const sid = state.currentSessionId || sessionStorage.getItem(LOCK_SESSION_KEY);
         if (sid) releaseLockBeacon(sid);
+      }
+      window.addEventListener("beforeunload", _releaseLockOnExit);
+      window.addEventListener("pagehide", _releaseLockOnExit);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden" && isQROnlySession()) _releaseLockOnExit();
       });
 
       /* ── Initial Render ── */
