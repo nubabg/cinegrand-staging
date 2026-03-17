@@ -1305,39 +1305,13 @@
         document.addEventListener("keydown", onKeyDown);
       }
 
-      function parseCSV(text) {
-        const lines = text.trim().split("\n");
-        if (lines.length < 2) return [];
-        const rows = [];
-        for (let i = 1; i < lines.length; i++) {
-          const cols = [];
-          let cur = "", inQ = false;
-          for (let j = 0; j < lines[i].length; j++) {
-            const ch = lines[i][j];
-            if (ch === '"') { inQ = !inQ; continue; }
-            if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ""; continue; }
-            cur += ch;
-          }
-          cols.push(cur.trim());
-          if (cols.length < 5) continue;
-          rows.push({
-            date: cols[1] || "",
-            type: cols[2] || "",
-            location: (cols[2] || "").includes(" - ") ? cols[2].split(" - ").slice(1).join(" - ") : (cols[2] || ""),
-            inspector: cols[3] || "",
-            status: cols[4] || "",
-            issues: cols[5] || "",
-          });
-        }
-        return rows;
-      }
 
       function render() {
         const content =
           state.screen === "home" ? renderHome() :
           state.screen === "inspection" ? renderInspection() :
           state.screen === "history" ? renderHistory() :
-          renderStats();
+          renderHome();
         app.innerHTML = renderShell(content) + renderModals();
         bindInputs();
         if (state.showDeleteModal) setupModalFocusTrap();
@@ -1362,10 +1336,10 @@
         const action = btn.dataset.action;
 
         /* Navigation — blocked for QR-only sessions */
-        if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "go-stats" || action === "open-qr" || action === "start-inspection")) return;
+        if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection")) return;
         if (action === "go-home") { state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
-        if (action === "go-stats") { state.screen = "stats"; render(); return; }
+
 
 
         /* Inspection item status — targeted update, no full re-render */
