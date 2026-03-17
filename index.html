@@ -494,20 +494,70 @@
       .charts-html-row span:first-child { min-width: 90px; color: var(--muted); flex-shrink: 0; }
       .charts-html-row span:last-child { min-width: 32px; text-align: right; font-weight: 600; color: var(--text); }
       .charts-html-row .charts-bar-bg { flex: 1; max-width: none; height: 10px; }
-      /* Донут за Чисто vs Проблем */
+      /* KPI cards */
+      .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 16px; }
+      .kpi-card { padding: 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,.06); background: linear-gradient(160deg, rgba(255,255,255,.03), transparent); transition: transform .15s ease, border-color .15s ease; }
+      .kpi-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.1); }
+      .kpi-card .kpi-value { font-family: "Oswald", sans-serif; font-size: 28px; font-weight: 700; line-height: 1.1; }
+      .kpi-card .kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-top: 4px; }
+      .kpi-card .kpi-badge { font-size: 9px; padding: 2px 6px; border-radius: 6px; margin-top: 6px; display: inline-block; }
+      @media (max-width: 900px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+      @media (max-width: 500px) { .kpi-row { grid-template-columns: 1fr; } }
+      /* Donut */
       .charts-donut-wrap { display: flex; align-items: center; justify-content: center; gap: 24px; flex-wrap: wrap; min-height: 180px; }
       .charts-donut { width: 140px; height: 140px; border-radius: 50%; position: relative; flex-shrink: 0; }
       .charts-donut-center { position: absolute; inset: 50%; transform: translate(-50%, -50%); width: 70%; height: 70%; background: var(--panel-2); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+      /* Vertical bars (time-series) */
+      .charts-vertical-wrap { display: flex; align-items: flex-end; gap: 8px; height: 180px; padding: 0 4px; }
+      .charts-vertical-col { flex: 1; min-width: 24px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+      .charts-vertical-bar { width: 100%; min-height: 6px; border-radius: 6px 6px 0 0; background: var(--gold); transition: height .25s ease; }
+      /* Leaderboard */
+      .leaderboard-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; margin-bottom: 6px; transition: background .15s ease; }
+      .leaderboard-item:hover { background: rgba(255,255,255,.03); }
+      .leaderboard-rank { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
+      .leaderboard-rank.top1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1a1a1a; }
+      .leaderboard-rank.top2 { background: linear-gradient(135deg, #94a3b8, #64748b); color: #fff; }
+      .leaderboard-rank.top3 { background: linear-gradient(135deg, #b45309, #92400e); color: #fef3c7; }
+      .leaderboard-rank.other { background: rgba(255,255,255,.08); color: var(--muted); }
+      .leaderboard-avatar { width: 36px; height: 36px; border-radius: 10px; background: rgba(200,120,24,.2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: var(--gold); flex-shrink: 0; }
+      .leaderboard-bar { flex: 1; height: 10px; background: rgba(255,255,255,.06); border-radius: 6px; overflow: hidden; }
+      .leaderboard-bar-fill { height: 100%; border-radius: 6px; transition: width .25s ease; }
+      /* Issue analysis */
+      .issue-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; margin-bottom: 6px; border-left: 3px solid var(--red); background: rgba(239,91,91,.06); transition: background .15s ease; }
+      .issue-item:hover { background: rgba(239,91,91,.1); }
+      .issue-severity { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+      .issue-severity.high { background: var(--red); }
+      .issue-severity.med { background: var(--gold); }
+      .issue-severity.low { background: var(--muted); }
+      .issue-count { font-weight: 700; color: var(--red); min-width: 24px; text-align: right; }
+      .issue-pct { font-size: 11px; color: var(--muted); }
+      /* Grouped distribution */
+      .zone-group { margin-bottom: 16px; }
+      .zone-group-title { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,.06); }
+      .zone-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 13px; }
+      .zone-item .charts-bar-bg { flex: 1; max-width: none; height: 8px; }
+      /* Heatmap */
+      .heatmap-grid { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; padding: 12px 0; }
+      .heatmap-cell { aspect-ratio: 1; min-height: 20px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; transition: transform .15s ease; }
+      .heatmap-cell:hover { transform: scale(1.08); }
+      .heatmap-cell.has-data { color: rgba(255,255,255,.95); }
+      .heatmap-cell.empty { background: rgba(255,255,255,.04); color: transparent; }
+      .heatmap-legend { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 8px; }
       .chart-card {
         background: linear-gradient(160deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,.015) 100%);
         border: 1px solid rgba(255,255,255,.07); border-radius: 20px;
         padding: 20px 20px 16px; position: relative; overflow: hidden;
+        transition: transform .15s ease, border-color .15s ease;
       }
+      .chart-card:hover { border-color: rgba(255,255,255,.1); }
       .chart-card::before {
         content: ''; position: absolute; inset: 0; border-radius: 20px;
         background: linear-gradient(135deg, rgba(200,120,24,.06) 0%, transparent 60%);
         pointer-events: none;
       }
+      .chart-card.card-donut::before { background: linear-gradient(135deg, rgba(45,204,112,.08) 0%, transparent 60%); }
+      .chart-card.card-issues::before { background: linear-gradient(135deg, rgba(239,91,91,.06) 0%, transparent 60%); }
+      .chart-card.card-time::before { background: linear-gradient(135deg, rgba(167,139,250,.08) 0%, transparent 60%); }
       .chart-title {
         font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 3px;
         font-family: "Oswald", sans-serif; letter-spacing: .04em;
@@ -1747,111 +1797,114 @@
         const maxInsp = Math.max(1, inspEntries[0]?.[1] || 1);
         const maxLoc = Math.max(1, ...locEntries.map(([,v]) => v));
         const maxHour = Math.max(1, ...hourData);
+        const lastDay = dayKeys.length ? dayKeys[dayKeys.length - 1] : '—';
+        const lastDayCount = lastDay !== '—' ? (byDay[lastDay] || 0) : 0;
+        const totalIssues = issEntries.reduce((s, [,v]) => s + v, 0);
+        const hallLocs = locEntries.filter(([l]) => l.startsWith('Зала'));
+        const toiletLocs = locEntries.filter(([l]) => l.startsWith('Тоал'));
+        const getInitials = (n) => (n || '').split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 
-        /* ── Всички визуализации са HTML (като Детайли по служители) — няма Chart.js, данните не се махат ── */
+        /* ── Dashboard с визуално разнообразие: KPI, Donut, Leaderboard, Issue, Zone, Heatmap ── */
         container.innerHTML = `
-          <div class="charts-stat-row">
-            <div class="charts-stat-pill">
-              <strong style="color:var(--gold);">${total}</strong>
-              <span>Общо проверки</span>
-            </div>
-            <div class="charts-stat-pill">
-              <strong style="color:var(--green);">${cleanPct}%</strong>
-              <span>Чисти</span>
-            </div>
-            <div class="charts-stat-pill">
-              <strong style="color:var(--red);">${problemCount}</strong>
-              <span>Проблемни</span>
-            </div>
-            <div class="charts-stat-pill">
-              <strong style="color:var(--blue);">${locationSet.size}</strong>
-              <span>Локации</span>
-            </div>
+          <!-- Ред 1: KPI cards -->
+          <div class="kpi-row" style="margin-bottom:16px;">
+            <div class="kpi-card"><div class="kpi-value" style="color:var(--gold);">${total}</div><div class="kpi-label">Общо проверки</div><div class="kpi-badge" style="background:rgba(200,120,24,.15);color:var(--gold);">активност</div></div>
+            <div class="kpi-card"><div class="kpi-value" style="color:var(--green);">${cleanPct}%</div><div class="kpi-label">Чисто</div><div class="kpi-badge" style="background:rgba(45,204,112,.15);color:var(--green);">${cleanCount} проверки</div></div>
+            <div class="kpi-card"><div class="kpi-value" style="color:var(--red);">${problemCount}</div><div class="kpi-label">Проблеми</div><div class="kpi-badge" style="background:rgba(239,91,91,.15);color:var(--red);">${totalIssues} общо</div></div>
+            <div class="kpi-card"><div class="kpi-value" style="color:var(--blue);">${inspEntries.length}</div><div class="kpi-label">Служители</div><div class="kpi-badge" style="background:rgba(98,169,255,.15);color:var(--blue);">активни</div></div>
+            <div class="kpi-card"><div class="kpi-value" style="color:#a78bfa;">${lastDay}</div><div class="kpi-label">Последна активност</div><div class="kpi-badge" style="background:rgba(167,139,250,.15);color:#a78bfa;">${lastDayCount} проверки</div></div>
           </div>
 
-          <!-- Ред 1: Дневен тренд + Статус (донут) -->
+          <!-- Ред 2: Donut + Daily activity -->
           <div class="charts-grid">
-            <div class="chart-card">
-              <div class="chart-title">Проверки по дни</div>
-              <div class="chart-subtitle">Дневна активност (последни ${dayKeys.length} дни)</div>
-              <div class="chart-wrap" style="min-height:200px;">
-                <div class="charts-html-list">${dayKeys.map(k => {
-                  const v = byDay[k] || 0;
-                  const pct = maxDay ? Math.round(v/maxDay*100) : 0;
-                  return `<div class="charts-html-row"><span>${k}</span><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${pct}%;"></div></div><span style="min-width:28px;font-weight:600;">${v}</span></div>`;
-                }).join('')}</div>
-              </div>
-            </div>
-            <div class="chart-card">
+            <div class="chart-card card-donut">
               <div class="chart-title">Чисто vs Проблем</div>
               <div class="chart-subtitle">Обща оценка на всички проверки</div>
-              <div class="chart-wrap" style="min-height:220px;">
+              <div class="chart-wrap" style="min-height:240px;">
                 <div class="charts-donut-wrap">
                   <div class="charts-donut" style="background:conic-gradient(var(--green) 0% ${cleanPct}%, var(--red) ${cleanPct}% 100%);">
-                    <div class="charts-donut-center" style="background:var(--panel-2);"><span style="font-size:28px;font-weight:700;color:var(--green);">${cleanPct}%</span><span style="font-size:10px;color:var(--muted);">ЧИСТО</span></div>
+                    <div class="charts-donut-center" style="background:var(--panel-2);"><span style="font-size:32px;font-weight:700;color:var(--green);">${cleanPct}%</span><span style="font-size:10px;color:var(--muted);">ЧИСТО</span></div>
                   </div>
-                  <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div style="display:flex;flex-direction:column;gap:10px;">
                     <div style="display:flex;align-items:center;gap:8px;"><span style="width:12px;height:12px;border-radius:50%;background:var(--green);"></span><span>Чисто: ${cleanCount}</span></div>
                     <div style="display:flex;align-items:center;gap:8px;"><span style="width:12px;height:12px;border-radius:50%;background:var(--red);"></span><span>Проблем: ${problemCount}</span></div>
                   </div>
                 </div>
+                <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);">${total} проверки общо · ${cleanCount} чисто / ${problemCount} проблем</div>
               </div>
             </div>
-          </div>
-
-          <!-- Ред 2: Служители (хоризонтални барове с палитра) + Проблеми (тагове/пилове) -->
-          <div class="charts-grid">
-            <div class="chart-card">
-              <div class="chart-title">Проверки по служител</div>
-              <div class="chart-subtitle">Брой проверки на всеки служител</div>
-              <div class="chart-wrap" style="min-height:200px;">
-                <div class="charts-html-list">${inspEntries.map(([name, count], i) => {
-                  const pct = Math.round(count/maxInsp*100);
-                  const colors = ['#c87818','#62a9ff','#2dcc70','#ef5b5b','#fbbf24','#a78bfa','#38bdf8','#34d399'];
-                  const col = colors[i % colors.length];
-                  return `<div class="charts-html-row"><span>${escapeHtml(name)}</span><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${pct}%;background:${col};"></div></div><span>${count}</span></div>`;
+            <div class="chart-card card-time">
+              <div class="chart-title">Проверки по дни</div>
+              <div class="chart-subtitle">Дневна активност (последни ${dayKeys.length} дни)</div>
+              <div class="chart-wrap" style="min-height:220px;">
+                <div class="charts-vertical-wrap">${dayKeys.map(k => {
+                  const v = byDay[k] || 0;
+                  const h = maxDay ? Math.max(8, Math.round(v/maxDay*100)) : 0;
+                  return `<div class="charts-vertical-col" title="${k}: ${v} проверки"><div style="height:160px;display:flex;flex-direction:column-reverse;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden;"><div class="charts-vertical-bar" style="height:${h}%;"></div></div><span style="font-size:10px;color:var(--muted);">${k}</span><span style="font-weight:600;font-size:12px;">${v}</span></div>`;
                 }).join('')}</div>
               </div>
             </div>
+          </div>
+
+          <!-- Ред 3: Leaderboard + Issue analysis -->
+          <div class="charts-grid">
             <div class="chart-card">
+              <div class="chart-title">Проверки по служител</div>
+              <div class="chart-subtitle">Ранкинг по брой проверки</div>
+              <div class="chart-wrap" style="min-height:240px;">
+                <div>${inspEntries.map(([name, count], i) => {
+                  const pct = Math.round(count/maxInsp*100);
+                  const rankCls = i === 0 ? 'top1' : i === 1 ? 'top2' : i === 2 ? 'top3' : 'other';
+                  const colors = ['#c87818','#62a9ff','#2dcc70','#a78bfa','#38bdf8'];
+                  const col = colors[i % colors.length];
+                  return `<div class="leaderboard-item"><span class="leaderboard-rank ${rankCls}">${i+1}</span><span class="leaderboard-avatar">${getInitials(name)}</span><span style="flex:1;font-weight:600;">${escapeHtml(name)}</span><div class="leaderboard-bar"><div class="leaderboard-bar-fill" style="width:${pct}%;background:${col};"></div></div><span style="font-weight:700;min-width:28px;">${count}</span></div>`;
+                }).join('')}</div>
+              </div>
+            </div>
+            <div class="chart-card card-issues">
               <div class="chart-title">Топ проблеми</div>
               <div class="chart-subtitle">Най-често срещани нередности</div>
-              <div class="chart-wrap" style="min-height:200px;">
-                ${issEntries.length ? `<div class="charts-html-list">${issEntries.map(([name, count]) => {
+              <div class="chart-wrap" style="min-height:240px;">
+                ${issEntries.length ? issEntries.map(([name, count], i) => {
+                  const pctOfTotal = totalIssues ? Math.round(count/totalIssues*100) : 0;
                   const maxIss = Math.max(...issEntries.map(([,v]) => v));
-                  const pct = maxIss ? Math.round(count/maxIss*100) : 0;
-                  return `<div class="charts-html-row"><span>${escapeHtml(name)}</span><div class="charts-bar-bg"><div class="charts-bar-fill charts-bar-fill--red" style="width:${pct}%;"></div></div><span>${count}</span></div>`;
-                }).join('')}</div>` : '<div class="chart-empty">Няма регистрирани проблеми</div>'}
+                  const severity = count >= maxIss * 0.7 ? 'high' : count >= maxIss * 0.3 ? 'med' : 'low';
+                  const barPct = maxIss ? Math.round(count/maxIss*100) : 0;
+                  return `<div class="issue-item" title="${escapeHtml(name)}: ${count} пъти (${pctOfTotal}% от всички проблеми)"><span class="issue-severity ${severity}"></span><span style="flex:1;">${escapeHtml(name)}</span><span class="issue-pct">${pctOfTotal}%</span><span class="issue-count">${count}</span><div class="charts-bar-bg" style="width:80px;height:6px;"><div class="charts-bar-fill charts-bar-fill--red" style="width:${barPct}%;"></div></div></div>`;
+                }).join('') : '<div class="chart-empty">Няма регистрирани проблеми</div>'}
               </div>
             </div>
           </div>
 
-          <!-- Ред 3: Локации + Часове -->
+          <!-- Ред 4: Zone distribution + Hourly heatmap -->
           <div class="charts-grid">
             <div class="chart-card">
               <div class="chart-title">Проверки по локация</div>
               <div class="chart-subtitle">Разпределение по зали и тоалетни</div>
-              <div class="chart-wrap" style="min-height:200px;">
-                <div class="charts-html-list">${locEntries.map(([loc, count]) => {
-                  const pct = maxLoc ? Math.round(count/maxLoc*100) : 0;
-                  return `<div class="charts-html-row"><span>${escapeHtml(loc)}</span><div class="charts-bar-bg"><div class="charts-bar-fill charts-bar-fill--blue" style="width:${pct}%;"></div></div><span>${count}</span></div>`;
-                }).join('')}</div>
+              <div class="chart-wrap" style="min-height:240px;">
+                ${hallLocs.length ? `<div class="zone-group"><div class="zone-group-title">🎬 Кинозали</div>${hallLocs.map(([loc, count]) => { const pct = maxLoc ? Math.round(count/maxLoc*100) : 0; return `<div class="zone-item"><span style="min-width:100px;">${escapeHtml(loc)}</span><div class="charts-bar-bg"><div class="charts-bar-fill charts-bar-fill--blue" style="width:${pct}%;"></div></div><span style="font-weight:600;">${count}</span></div>`; }).join('')}</div>` : ''}
+                ${toiletLocs.length ? `<div class="zone-group"><div class="zone-group-title">🚿 Тоалетни</div>${toiletLocs.map(([loc, count]) => { const pct = maxLoc ? Math.round(count/maxLoc*100) : 0; return `<div class="zone-item"><span style="min-width:100px;">${escapeHtml(loc)}</span><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${pct}%;background:#38bdf8;"></div></div><span style="font-weight:600;">${count}</span></div>`; }).join('')}</div>` : ''}
+                ${!hallLocs.length && !toiletLocs.length ? '<div class="chart-empty">Няма данни по локации</div>' : ''}
               </div>
             </div>
-            <div class="chart-card">
+            <div class="chart-card card-time">
               <div class="chart-title">Активност по часове</div>
               <div class="chart-subtitle">Разпределение в денонощието (0–23 ч)</div>
-              <div class="chart-wrap" style="min-height:200px;">
-                <div class="charts-html-list" style="max-height:260px;overflow-y:auto;">${hourLabels.map((label, i) => {
+              <div class="chart-wrap" style="min-height:240px;">
+                <div class="heatmap-grid">${hourLabels.map((label, i) => {
                   const v = hourData[i] || 0;
-                  const pct = maxHour ? Math.round(v/maxHour*100) : 0;
-                  return `<div class="charts-html-row"><span>${label}</span><div class="charts-bar-bg"><div class="charts-bar-fill charts-bar-fill--purple" style="width:${pct}%;"></div></div><span>${v}</span></div>`;
+                  const intensity = maxHour ? v / maxHour : 0;
+                  const opacity = 0.2 + intensity * 0.8;
+                  const bg = v > 0 ? `rgba(167,139,250,${opacity})` : 'rgba(255,255,255,.04)';
+                  const peak = maxHour && v === Math.max(...hourData) && v > 0;
+                  return `<div class="heatmap-cell ${v > 0 ? 'has-data' : 'empty'}" style="background:${bg};${peak ? 'box-shadow:0 0 0 2px var(--gold);' : ''}" title="${label}: ${v} проверки">${v > 0 ? v : ''}</div>`;
                 }).join('')}</div>
+                <div class="heatmap-legend"><span>00:00</span><span>12:00</span><span>23:00</span></div>
               </div>
             </div>
           </div>
 
-          <!-- Таблица служители -->
+          <!-- Детайли по служители -->
           <div class="chart-card" style="margin-bottom:16px;">
             <div class="chart-title">Детайли по служители</div>
             <div class="chart-subtitle">Брой проверки и процент от общите</div>
