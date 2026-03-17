@@ -2191,6 +2191,11 @@
       }
 
 
+      function destroyChartsIfAny() {
+        _activeCharts.forEach(c => { try { c.destroy(); } catch(_){} });
+        _activeCharts = [];
+      }
+
       function render() {
         const content =
           state.screen === "home" ? renderHome() :
@@ -2201,10 +2206,17 @@
         app.innerHTML = renderShell(content) + renderModals();
         bindInputs();
         if (state.showDeleteModal) setupModalFocusTrap();
-        /* Charts: rebuild from cache after DOM replacement */
+        /* Charts: rebuild from cache after DOM replacement — двойно rAF за правилен layout преди Chart.js */
         if (state.screen === "charts" && _cachedChartRows && typeof Chart !== 'undefined') {
           const c = document.getElementById('charts-container');
-          if (c) buildChartsFromData(c, _cachedChartRows);
+          if (c) {
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                if (state.screen !== "charts" || !c.parentNode) return;
+                buildChartsFromData(c, _cachedChartRows);
+              });
+            });
+          }
         }
       }
 
@@ -2252,8 +2264,8 @@
 
         /* Navigation — blocked for QR-only sessions */
         if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection")) return;
-        if (action === "go-home") { cleanupSessionLock(); state.screen = "home"; render(); return; }
-        if (action === "go-history") { state.screen = "history"; render(); return; }
+        if (action === "go-home") { cleanupSessionLock(); if (state.screen === "charts") destroyChartsIfAny(); state.screen = "home"; render(); return; }
+        if (action === "go-history") { if (state.screen === "charts") destroyChartsIfAny(); state.screen = "history"; render(); return; }
         if (action === "go-charts") {
           if (Date.now() < chartsCooldownUntil) {
             showToast("Моля да не спамиш. След няколко секунди опитай пак.", "error");
@@ -2277,7 +2289,7 @@
               }
             }, 1000);
           }
-          cleanupSessionLock(); state.screen = "charts"; render(); initChartsScreen(true);
+          cleanupSessionLock(); state.screen = "charts"; render();
           return;
         }
 
