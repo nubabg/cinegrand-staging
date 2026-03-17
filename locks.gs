@@ -111,6 +111,45 @@ function handleReleaseLock_(data) {
   }
 }
 
+function handleAcquireLockFirstFree_(data) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+  } catch (e) {
+    return jsonResponse_({ success: false, error: "Сървърът е зает. Опитайте отново." });
+  }
+
+  try {
+    var sheet = getLockSheet_();
+    cleanExpiredLocks_(sheet);
+    var allData = sheet.getDataRange().getValues();
+    var lockedLocations = {};
+    for (var i = 1; i < allData.length; i++) {
+      lockedLocations[allData[i][0] + "|" + allData[i][1]] = true;
+    }
+
+    var locations = data.locations || [];
+    var type = data.type || "";
+    var sessionId = data.sessionId || "";
+    for (var j = 0; j < locations.length; j++) {
+      var loc = locations[j];
+      if (!lockedLocations[type + "|" + loc]) {
+        var now = new Date();
+        var expires = new Date(now.getTime() + LOCK_TIMEOUT_MIN * 60 * 1000);
+        sheet.appendRow([type, loc, sessionId, now.toISOString(), expires.toISOString()]);
+        lock.releaseLock();
+        return jsonResponse_({ success: true, location: loc });
+      }
+    }
+
+    lock.releaseLock();
+    return jsonResponse_({ success: false, allLocked: true, error: "Всички локации са заети." });
+  } catch (e) {
+    lock.releaseLock();
+    return jsonResponse_({ success: false, error: e.message });
+  }
+}
+
 function handleCheckLock_(data) {
   try {
     var sheet = getLockSheet_();
@@ -141,9 +180,10 @@ function jsonResponse_(obj) {
  *      var data = JSON.parse(e.postData.contents);
  *
  *      // --- Lock endpoints ---
- *      if (data.action === "acquireLock") return handleAcquireLock_(data);
- *      if (data.action === "releaseLock") return handleReleaseLock_(data);
- *      if (data.action === "checkLock")   return handleCheckLock_(data);
+ *      if (data.action === "acquireLock")          return handleAcquireLock_(data);
+ *      if (data.action === "acquireLockFirstFree") return handleAcquireLockFirstFree_(data);
+ *      if (data.action === "releaseLock")           return handleReleaseLock_(data);
+ *      if (data.action === "checkLock")             return handleCheckLock_(data);
  *
  *      // ... съществуващият код за запис на проверки ...
  *    }

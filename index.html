@@ -1066,6 +1066,22 @@
         render();
       }
 
+      async function acquireLockFirstFree(type, locations, sessionId) {
+        if (!isSheetsConfigured()) return { success: true, location: locations[0] };
+        try {
+          const res = await fetch(SHEETS_WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            body: JSON.stringify({ action: "acquireLockFirstFree", type, locations, sessionId }),
+          });
+          if (!res.ok) return { success: true, location: locations[0], offline: true };
+          try { return await res.json(); } catch (_) { return { success: true, location: locations[0], offline: true }; }
+        } catch (err) {
+          console.warn("[Lock] acquireLockFirstFree failed:", err.message);
+          return { success: true, location: locations[0], offline: true };
+        }
+      }
+
       async function startInspectionWithLock(type, locationOverride) {
         if (_lockBusy) return false;
         _lockBusy = true;
@@ -1091,22 +1107,17 @@
             startInspection(type, locationOverride);
             return true;
           }
-          /* Non-QR: пробвай ВСИЧКИ локации паралелно, вземи първата свободна */
-          const attempts = config.locations.map(loc => {
-            const sid = generateSessionId();
-            return acquireLock(type, loc, sid).then(r => ({ loc, sid, result: r }));
-          });
-          const results = await Promise.all(attempts);
-          const won = results.find(r => r.result.success);
-          if (!won) {
+          /* Non-QR: 1 заявка — сървърът намира първата свободна локация */
+          const sessionId = generateSessionId();
+          const result = await acquireLockFirstFree(type, config.locations, sessionId);
+          if (!result.success) {
             showToast("Всички " + config.shortTitle.toLowerCase() + " се проверяват в момента. Опитайте след няколко минути.", "error");
             return false;
           }
-          results.forEach(r => { if (r.result.success && r.sid !== won.sid) releaseLock(r.sid); });
-          state.currentSessionId = won.sid;
+          state.currentSessionId = sessionId;
           _lockAcquiredAt = Date.now();
-          sessionStorage.setItem(LOCK_SESSION_KEY, won.sid);
-          startInspection(type, won.loc);
+          sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
+          startInspection(type, result.location);
           return true;
         } finally {
           _lockBusy = false;
