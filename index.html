@@ -508,9 +508,17 @@
       .charts-donut { width: 140px; height: 140px; border-radius: 50%; position: relative; flex-shrink: 0; }
       .charts-donut-center { position: absolute; inset: 50%; transform: translate(-50%, -50%); width: 70%; height: 70%; background: var(--panel-2); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
       /* Vertical bars (time-series) */
-      .charts-vertical-wrap { display: flex; align-items: flex-end; gap: 8px; height: 180px; padding: 0 4px; }
-      .charts-vertical-col { flex: 1; min-width: 24px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-      .charts-vertical-bar { width: 100%; min-height: 6px; border-radius: 6px 6px 0 0; background: var(--gold); transition: height .25s ease; }
+      .charts-vertical-wrap { display: flex; align-items: flex-end; gap: 12px; height: 200px; padding: 0 8px; }
+      .charts-vertical-col { flex: 1; min-width: 36px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+      .daily-bar-track { width: 100%; height: 150px; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(255,255,255,.06); border-radius: 8px 8px 0 0; overflow: hidden; }
+      .daily-bar-fill { width: 100%; min-height: 8px; border-radius: 6px 6px 0 0; background: var(--gold); transition: height .25s ease; }
+      /* Hourly histogram */
+      .hourly-histogram { display: flex; align-items: flex-end; gap: 4px; height: 200px; padding: 0 4px; }
+      .hourly-col { flex: 1; min-width: 14px; display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; }
+      .hourly-bar-track { width: 100%; height: 160px; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(255,255,255,.04); border-radius: 4px 4px 0 0; overflow: visible; }
+      .hourly-bar-fill { width: 100%; min-height: 2px; border-radius: 4px 4px 0 0; background: rgba(167,139,250,.7); transition: height .25s ease; }
+      .hourly-label { font-size: 9px; color: var(--muted-2); }
+      .hourly-value { font-size: 9px; font-weight: 700; color: var(--text); }
       /* Leaderboard */
       .leaderboard-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; margin-bottom: 6px; transition: background .15s ease; }
       .leaderboard-item:hover { background: rgba(255,255,255,.03); }
@@ -1839,8 +1847,8 @@
               <div class="chart-wrap" style="min-height:220px;">
                 <div class="charts-vertical-wrap">${dayKeys.map(k => {
                   const v = byDay[k] || 0;
-                  const h = maxDay ? Math.max(8, Math.round(v/maxDay*100)) : 0;
-                  return `<div class="charts-vertical-col" title="${k}: ${v} проверки"><div style="height:160px;display:flex;flex-direction:column-reverse;background:rgba(255,255,255,.06);border-radius:6px;overflow:hidden;"><div class="charts-vertical-bar" style="height:${h}%;"></div></div><span style="font-size:10px;color:var(--muted);">${k}</span><span style="font-weight:600;font-size:12px;">${v}</span></div>`;
+                  const barH = maxDay ? Math.max(12, Math.round(150 * v / maxDay)) : 0;
+                  return `<div class="charts-vertical-col" title="${k}: ${v} проверки"><div class="daily-bar-track"><div class="daily-bar-fill" style="height:${barH}px;"></div></div><span style="font-size:11px;color:var(--muted);">${k}</span><span style="font-weight:600;font-size:13px;">${v}</span></div>`;
                 }).join('')}</div>
               </div>
             </div>
@@ -1891,15 +1899,13 @@
               <div class="chart-title">Активност по часове</div>
               <div class="chart-subtitle">Разпределение в денонощието (0–23 ч)</div>
               <div class="chart-wrap" style="min-height:240px;">
-                <div class="heatmap-grid">${hourLabels.map((label, i) => {
+                <div class="hourly-histogram">${hourLabels.map((label, i) => {
                   const v = hourData[i] || 0;
-                  const intensity = maxHour ? v / maxHour : 0;
-                  const opacity = 0.2 + intensity * 0.8;
-                  const bg = v > 0 ? `rgba(167,139,250,${opacity})` : 'rgba(255,255,255,.04)';
+                  const barH = maxHour ? Math.max(4, Math.round(160 * v / maxHour)) : 0;
                   const peak = maxHour && v === Math.max(...hourData) && v > 0;
-                  return `<div class="heatmap-cell ${v > 0 ? 'has-data' : 'empty'}" style="background:${bg};${peak ? 'box-shadow:0 0 0 2px var(--gold);' : ''}" title="${label}: ${v} проверки">${v > 0 ? v : ''}</div>`;
+                  return `<div class="hourly-col" title="${label}: ${v} проверки"><div class="hourly-bar-track"><div class="hourly-bar-fill" style="height:${barH}px;${peak ? 'background:var(--gold);box-shadow:0 0 8px rgba(200,120,24,.5);' : ''}"></div></div>${v > 0 ? `<span class="hourly-value">${v}</span>` : ''}</div>`;
                 }).join('')}</div>
-                <div class="heatmap-legend"><span>00:00</span><span>12:00</span><span>23:00</span></div>
+                <div class="heatmap-legend"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
               </div>
             </div>
           </div>
