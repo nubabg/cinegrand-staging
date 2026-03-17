@@ -1081,20 +1081,24 @@
           startInspection(type, locationOverride);
           return true;
         }
-        /* Non-QR: опитай всяка локация докато намериш свободна */
-        for (const loc of config.locations) {
-          const sessionId = generateSessionId();
-          const lockResult = await acquireLock(type, loc, sessionId);
-          if (lockResult.success) {
-            state.currentSessionId = sessionId;
-            _lockAcquiredAt = Date.now();
-            sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
-            startInspection(type, loc);
-            return true;
-          }
+        /* Non-QR: пробвай ВСИЧКИ локации паралелно, вземи първата свободна */
+        const attempts = config.locations.map(loc => {
+          const sid = generateSessionId();
+          return acquireLock(type, loc, sid).then(r => ({ loc, sid, result: r }));
+        });
+        const results = await Promise.all(attempts);
+        const won = results.find(r => r.result.success);
+        if (!won) {
+          showToast("Всички " + config.shortTitle.toLowerCase() + " се проверяват в момента. Опитайте след няколко минути.", "error");
+          return false;
         }
-        showToast("Всички " + config.shortTitle.toLowerCase() + " се проверяват в момента. Опитайте след няколко минути.", "error");
-        return false;
+        /* Освободи lock-овете на останалите успешни (ако има) */
+        results.forEach(r => { if (r.result.success && r.sid !== won.sid) releaseLock(r.sid); });
+        state.currentSessionId = won.sid;
+        _lockAcquiredAt = Date.now();
+        sessionStorage.setItem(LOCK_SESSION_KEY, won.sid);
+        startInspection(type, won.loc);
+        return true;
       }
 
       let _submitBusy = false;
@@ -1473,38 +1477,47 @@
 
       async function fetchSheetsData() {
         const SHEET_ID = '17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA';
-        // Опит 1: Google Visualization API (gviz/tq) — без CORS проблеми
-        try {
-          const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0`;
+        const cacheBust = '_cb=' + Date.now();
+
+        async function tryGviz() {
+          const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0&${cacheBust}`;
           const res = await fetch(url);
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const text = await res.text();
-          // Robust JSONP strip: намираме първото { и последното }
           const start = text.indexOf('{');
           const end   = text.lastIndexOf('}');
-          if (start === -1 || end === -1) throw new Error('Неочакван формат на отговора');
+          if (start === -1 || end === -1) throw new Error('Неочакван формат');
           const json = JSON.parse(text.slice(start, end + 1));
-          if (!json.table) throw new Error('Липсва table в отговора');
+          if (!json.table) throw new Error('Липсва table');
           const cols = json.table.cols.map(c => (c.label || c.id || '').trim());
-          const rows = (json.table.rows || []).map(row => {
+          return (json.table.rows || []).map(row => {
             const obj = {};
             cols.forEach((col, i) => {
               const cell = row.c && row.c[i];
               obj[col] = cell ? (cell.f != null ? String(cell.f) : cell.v != null ? String(cell.v) : '') : '';
             });
             return obj;
-          });
-          // Филтрираме редове без данни
-          return rows.filter(r => Object.values(r).some(v => v !== ''));
-        } catch (err) {
-          console.warn('gviz/tq неуспешен:', err.message, '— опитвам CSV');
+          }).filter(r => Object.values(r).some(v => v !== ''));
         }
-        // Опит 2: CSV export (изисква таблицата да е публично споделена)
-        const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
-        const res2 = await fetch(csvUrl);
-        if (!res2.ok) throw new Error('HTTP ' + res2.status + ' при CSV export');
-        const csv = await res2.text();
-        return parseCSV(csv);
+
+        async function tryCsv() {
+          const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0&${cacheBust}`;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return parseCSV(await res.text());
+        }
+
+        /* Опит 1: gviz, Опит 2: gviz retry, Опит 3: CSV */
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try { return await tryGviz(); } catch (e) {
+            console.warn('[Charts] gviz опит ' + (attempt + 1) + ':', e.message);
+            if (attempt === 0) await new Promise(r => setTimeout(r, 500));
+          }
+        }
+        try { return await tryCsv(); } catch (e) {
+          console.warn('[Charts] CSV:', e.message);
+          throw e;
+        }
       }
 
       /* Парсва дата от различни формати */
@@ -1521,6 +1534,7 @@
         return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0');
       }
 
+      let _activeCharts = [];
       async function initChartsScreen() {
         const container = document.getElementById('charts-container');
         if (!container) return;
@@ -1529,6 +1543,10 @@
           container.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--red);">Chart.js не е заредена. Проверете интернет връзката.</div>`;
           return;
         }
+
+        /* Унищожи предишни chart инстанции */
+        _activeCharts.forEach(c => { try { c.destroy(); } catch(_){} });
+        _activeCharts = [];
 
         container.innerHTML = '<div class="charts-loading"><div class="spinner"></div><span>Зарежда от Sheets…</span></div>';
 
@@ -1723,7 +1741,7 @@
         };
 
         /* 1. Line chart — дневен тренд */
-        new Chart(document.getElementById('chart-daily'), {
+        _activeCharts.push(new Chart(document.getElementById('chart-daily'), {
           type: 'line',
           data: {
             labels: dayKeys,
@@ -1755,7 +1773,7 @@
               }
             }
           }
-        });
+        }));
 
         /* 2. Doughnut — Чисто vs Проблем с централен текст */
         const centerTextPlugin = {
@@ -1775,7 +1793,7 @@
             ctx.restore();
           }
         };
-        new Chart(document.getElementById('chart-status'), {
+        _activeCharts.push(new Chart(document.getElementById('chart-status'), {
           type: 'doughnut',
           plugins: [centerTextPlugin],
           data: {
@@ -1797,10 +1815,10 @@
               tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.label}: ${ctx.parsed} (${total ? Math.round(ctx.parsed/total*100) : 0}%)` } }
             }
           }
-        });
+        }));
 
         /* 3. Horizontal bar — служители */
-        new Chart(document.getElementById('chart-inspector'), {
+        _activeCharts.push(new Chart(document.getElementById('chart-inspector'), {
           type: 'bar',
           data: {
             labels: inspEntries.map(e => e[0]),
@@ -1831,11 +1849,11 @@
               }
             }
           }
-        });
+        }));
 
         /* 4. Doughnut — топ проблеми */
         if (issEntries.length) {
-          new Chart(document.getElementById('chart-issues'), {
+          _activeCharts.push(new Chart(document.getElementById('chart-issues'), {
             type: 'doughnut',
             data: {
               labels: issEntries.map(e => e[0]),
@@ -1856,14 +1874,14 @@
                 tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.label}: ${ctx.parsed}` } }
               }
             }
-          });
+          }));
         } else {
           document.getElementById('chart-issues-wrap').innerHTML =
             '<div class="chart-empty">Няма регистрирани проблеми</div>';
         }
 
         /* 5. Vertical bar — локации */
-        new Chart(document.getElementById('chart-location'), {
+        _activeCharts.push(new Chart(document.getElementById('chart-location'), {
           type: 'bar',
           data: {
             labels: locEntries.map(e => e[0]),
@@ -1893,10 +1911,10 @@
               }
             }
           }
-        });
+        }));
 
         /* 6. Bar chart — часово разпределение */
-        new Chart(document.getElementById('chart-hourly'), {
+        _activeCharts.push(new Chart(document.getElementById('chart-hourly'), {
           type: 'bar',
           data: {
             labels: hourLabels,
@@ -1926,7 +1944,7 @@
               }
             }
           }
-        });
+        }));
       }
 
       function renderInspection() {
