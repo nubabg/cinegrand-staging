@@ -1550,8 +1550,8 @@
       let _cachedChartRows = null;
       let _chartsFetchVersion = 0;
 
-      async function initChartsScreen(forceRefresh) {
-        if (_chartsLoading) return;
+      async function initChartsScreen(skipFetch) {
+        if (_chartsLoading && !skipFetch) return;
         const container = document.getElementById('charts-container');
         if (!container) return;
 
@@ -1560,8 +1560,22 @@
           return;
         }
 
-        /* Ако има кеширани данни и не е ръчен refresh — рисувай директно */
-        if (_cachedChartRows && !forceRefresh) {
+        /* При навигация (бутон Данни): само показвай кеш, НИКОГА не fetch-вай. Данните се обновяват само при F5. */
+        if (skipFetch) {
+          if (_cachedChartRows && _cachedChartRows.length > 0) {
+            buildChartsFromData(container, _cachedChartRows);
+          } else {
+            container.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--muted);">
+              <div style="font-size:28px;margin-bottom:12px;">&#128202;</div>
+              <div style="font-weight:600;margin-bottom:8px;">Презареди страницата (F5)</div>
+              <div style="font-size:13px;">за да заредиш данните от Google Sheets.</div>
+            </div>`;
+          }
+          return;
+        }
+
+        /* Ако има кеширани данни — рисувай директно (само при page load) */
+        if (_cachedChartRows) {
           buildChartsFromData(container, _cachedChartRows);
           return;
         }
@@ -2253,10 +2267,19 @@
                 clearInterval(chartsCooldownInterval);
                 chartsCooldownInterval = null;
               }
-              render();
+              if (state.screen === "charts") {
+                const btn = document.querySelector('[data-action="go-charts"]');
+                if (btn) {
+                  const inCooldown = chartsCooldownUntil > Date.now();
+                  btn.innerHTML = inCooldown ? "&#128202; Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : "&#128202; Данни";
+                  btn.classList.toggle('cooldown', inCooldown);
+                }
+              } else {
+                render();
+              }
             }, 1000);
           }
-          cleanupSessionLock(); state.screen = "charts"; render(); initChartsScreen();
+          cleanupSessionLock(); state.screen = "charts"; render(); initChartsScreen(true);
           return;
         }
 
@@ -2355,6 +2378,14 @@
       checkAccess().then(async (allowed) => {
         if (allowed === "outside") { showOutsideCinema(); return; }
         if (!allowed) { showAccessDenied(); return; }
+        /* Preload charts data — единствено при зареждане на страницата (F5). Бутонът Данни само показва кеша. */
+        fetchSheetsData().then(r => {
+          _cachedChartRows = r;
+          if (state.screen === "charts") {
+            const c = document.getElementById('charts-container');
+            if (c && r && r.length) buildChartsFromData(c, r);
+          }
+        }).catch(() => {});
         /* Обработи URL параметри от QR сканиране */
         const search = window.location.search || "";
         const hash = window.location.hash || "";
