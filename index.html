@@ -44,6 +44,7 @@
       button, input, select, textarea { font: inherit; }
 
       #app { position: relative; z-index: 1; }
+      #modals { position: relative; z-index: 100; }
       .app-shell { min-height: 100vh; padding: 24px; }
       .workspace { width: min(1280px, 100%); margin: 0 auto; }
 
@@ -483,6 +484,14 @@
       .charts-bar-fill {
         background: var(--gold); border-radius: 6px; height: 100%;
       }
+      .charts-bar-fill--green { background: var(--green); }
+      .charts-bar-fill--red { background: var(--red); }
+      .charts-bar-fill--blue { background: var(--blue); }
+      .charts-bar-fill--purple { background: #a78bfa; }
+      .charts-html-list { display: flex; flex-direction: column; gap: 10px; }
+      .charts-html-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+      .charts-html-row span:first-child { min-width: 60px; color: var(--muted); }
+      .charts-html-row .charts-bar-bg { flex: 1; max-width: none; height: 10px; }
       .chart-card {
         background: linear-gradient(160deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,.015) 100%);
         border: 1px solid rgba(255,255,255,.07); border-radius: 20px;
@@ -629,12 +638,12 @@
       <span class="bloom-orb bloom-orb--purple"></span>
     </div>
     <div id="app"></div>
+    <div id="modals"></div>
     <div class="broom-fun" aria-hidden="true">
       <span class="broom-dust"></span><span class="broom-dust"></span><span class="broom-dust"></span>
       <span class="broom-dust"></span><span class="broom-dust"></span><span class="broom-dust"></span>
       <span class="broom-sweep">🧹</span>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script>
 
       /* ── Constants ── */
@@ -1581,7 +1590,6 @@
         return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0');
       }
 
-      let _activeCharts = [];
       let _chartsLoading = false;
       let _cachedChartRows = null;
       let _chartsFetchVersion = 0;
@@ -1590,11 +1598,6 @@
         if (_chartsLoading && !skipFetch) return;
         const container = document.getElementById('charts-container');
         if (!container) return;
-
-        if (typeof Chart === 'undefined') {
-          container.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--red);">Chart.js не е заредена. Проверете интернет връзката.</div>`;
-          return;
-        }
 
         /* При навигация (бутон Данни): само показвай кеш, НИКОГА не fetch-вай. Данните се обновяват само при F5. */
         if (skipFetch) {
@@ -1660,8 +1663,6 @@
       }
 
       function buildChartsFromData(container, rows) {
-        _activeCharts.forEach(c => { try { c.destroy(); } catch(_){} });
-        _activeCharts = [];
 
         /* ── Normalize rows ── */
         let skipped = 0;
@@ -1736,7 +1737,12 @@
         const issEntries  = Object.entries(byIssue).sort((a,b) => b[1]-a[1]).slice(0,10);
         const locEntries  = Object.entries(byLocation).sort((a,b) => b[1]-a[1]);
 
-        /* ── HTML ── */
+        const maxDay = Math.max(1, ...dayKeys.map(k => byDay[k] || 0));
+        const maxInsp = Math.max(1, inspEntries[0]?.[1] || 1);
+        const maxLoc = Math.max(1, ...locEntries.map(([,v]) => v));
+        const maxHour = Math.max(1, ...hourData);
+
+        /* ── Всички визуализации са HTML (като Детайли по служители) — няма Chart.js, данните не се махат ── */
         container.innerHTML = `
           <div class="charts-stat-row">
             <div class="charts-stat-pill">
@@ -1762,12 +1768,24 @@
             <div class="chart-card">
               <div class="chart-title">Проверки по дни</div>
               <div class="chart-subtitle">Дневна активност (последни ${dayKeys.length} дни)</div>
-              <div class="chart-wrap" style="height:270px;"><canvas id="chart-daily"></canvas></div>
+              <div class="chart-wrap" style="min-height:200px;">
+                <div class="charts-html-list">${dayKeys.map(k => {
+                  const v = byDay[k] || 0;
+                  const pct = maxDay ? Math.round(v/maxDay*100) : 0;
+                  return `<div class="charts-html-row"><span>${k}</span><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${pct}%;"></div></div><span style="min-width:28px;">${v}</span></div>`;
+                }).join('')}</div>
+              </div>
             </div>
             <div class="chart-card">
               <div class="chart-title">Чисто vs Проблем</div>
               <div class="chart-subtitle">Обща оценка на всички проверки</div>
-              <div class="chart-wrap" style="height:270px;"><canvas id="chart-status"></canvas></div>
+              <div class="chart-wrap" style="min-height:200px;">
+                <div style="text-align:center;font-size:32px;font-weight:700;color:var(--green);margin-bottom:16px;">${cleanPct}%</div>
+                <div class="charts-html-list">
+                  <div class="charts-html-row"><span>Чисто</span><div class="charts-bar-bg"><div class="charts-bar-fill charts-bar-fill--green" style="width:${cleanPct}%;"></div></div><span>${cleanCount}</span></div>
+                  <div class="charts-html-row"><span>Проблем</span><div class="charts-bar-bg"><div class="charts-bar-fill charts-bar-fill--red" style="width:${problemPct}%;"></div></div><span>${problemCount}</span></div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1776,12 +1794,23 @@
             <div class="chart-card">
               <div class="chart-title">Проверки по служител</div>
               <div class="chart-subtitle">Брой проверки на всеки служител</div>
-              <div class="chart-wrap" style="height:${Math.max(220, inspEntries.length * 36)}px;"><canvas id="chart-inspector"></canvas></div>
+              <div class="chart-wrap" style="min-height:200px;">
+                <div class="charts-html-list">${inspEntries.map(([name, count]) => {
+                  const pct = Math.round(count/maxInsp*100);
+                  return `<div class="charts-html-row"><span>${escapeHtml(name)}</span><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${pct}%;"></div></div><span>${count}</span></div>`;
+                }).join('')}</div>
+              </div>
             </div>
             <div class="chart-card">
               <div class="chart-title">Топ проблеми</div>
               <div class="chart-subtitle">Най-често срещани нередности</div>
-              <div class="chart-wrap" style="height:270px;" id="chart-issues-wrap"><canvas id="chart-issues"></canvas></div>
+              <div class="chart-wrap" style="min-height:200px;">
+                ${issEntries.length ? `<div class="charts-html-list">${issEntries.map(([name, count]) => {
+                  const maxIss = Math.max(...issEntries.map(([,v]) => v));
+                  const pct = maxIss ? Math.round(count/maxIss*100) : 0;
+                  return `<div class="charts-html-row"><span>${escapeHtml(name)}</span><div class="charts-bar-bg"><div class="charts-bar-fill charts-bar-fill--red" style="width:${pct}%;"></div></div><span>${count}</span></div>`;
+                }).join('')}</div>` : '<div class="chart-empty">Няма регистрирани проблеми</div>'}
+              </div>
             </div>
           </div>
 
@@ -1790,12 +1819,23 @@
             <div class="chart-card">
               <div class="chart-title">Проверки по локация</div>
               <div class="chart-subtitle">Разпределение по зали и тоалетни</div>
-              <div class="chart-wrap" style="height:270px;"><canvas id="chart-location"></canvas></div>
+              <div class="chart-wrap" style="min-height:200px;">
+                <div class="charts-html-list">${locEntries.map(([loc, count]) => {
+                  const pct = maxLoc ? Math.round(count/maxLoc*100) : 0;
+                  return `<div class="charts-html-row"><span>${escapeHtml(loc)}</span><div class="charts-bar-bg"><div class="charts-bar-fill charts-bar-fill--blue" style="width:${pct}%;"></div></div><span>${count}</span></div>`;
+                }).join('')}</div>
+              </div>
             </div>
             <div class="chart-card">
               <div class="chart-title">Активност по часове</div>
               <div class="chart-subtitle">Разпределение в денонощието</div>
-              <div class="chart-wrap" style="height:270px;"><canvas id="chart-hourly"></canvas></div>
+              <div class="chart-wrap" style="min-height:200px;">
+                <div class="charts-html-list" style="max-height:260px;overflow-y:auto;">${hourLabels.map((label, i) => {
+                  const v = hourData[i] || 0;
+                  const pct = maxHour ? Math.round(v/maxHour*100) : 0;
+                  return `<div class="charts-html-row"><span>${label}</span><div class="charts-bar-bg"><div class="charts-bar-fill charts-bar-fill--purple" style="width:${pct}%;"></div></div><span>${v}</span></div>`;
+                }).join('')}</div>
+              </div>
             </div>
           </div>
 
@@ -1808,7 +1848,7 @@
               <tbody>
                 ${inspEntries.map(([name, count], i) => `<tr>
                   <td style="color:var(--muted-2);">${i+1}</td>
-                  <td style="color:var(--text);font-weight:600;">${name}</td>
+                  <td style="color:var(--text);font-weight:600;">${escapeHtml(name)}</td>
                   <td>${count}</td>
                   <td>${Math.round(count/total*100)}%</td>
                   <td><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${Math.round(count/inspEntries[0][1]*100)}%;"></div></div></td>
@@ -1816,246 +1856,7 @@
               </tbody>
             </table>
           </div>`;
-
-        /* ── Chart.js глобални настройки ── */
-        Chart.defaults.color = '#8a97aa';
-        Chart.defaults.borderColor = 'rgba(255,255,255,.06)';
-        Chart.defaults.font.family = '"DM Sans","Segoe UI",sans-serif';
-        Chart.defaults.font.size = 12;
-        Chart.defaults.animation = { duration: 700, easing: 'easeOutQuart' };
-
-        const PALETTE = [
-          '#c87818','#62a9ff','#2dcc70','#ef5b5b',
-          '#fbbf24','#a78bfa','#38bdf8','#34d399',
-          '#f472b6','#fb923c'
-        ];
-
-        const tooltipDefaults = {
-          backgroundColor: 'rgba(15,20,28,.92)',
-          borderColor: 'rgba(255,255,255,.1)',
-          borderWidth: 1,
-          padding: { top:10, bottom:10, left:14, right:14 },
-          titleColor: '#e8edf4',
-          bodyColor: '#8a97aa',
-          cornerRadius: 12,
-          boxPadding: 6,
-        };
-
-        function createChart(id, config) {
-          try {
-            const el = document.getElementById(id) || container.querySelector('#' + id);
-            if (!el) { console.warn('[Charts] Canvas not found:', id); return; }
-            const c = new Chart(el, config);
-            _activeCharts.push(c);
-          } catch (e) { console.error('[Charts] Error creating', id, e); }
-        }
-
-        /* 1. Line chart — дневен тренд */
-        createChart('chart-daily', {
-          type: 'line',
-          data: {
-            labels: dayKeys,
-            datasets: [{
-              data: dayKeys.map(k => byDay[k] || 0),
-              borderColor: '#c87818',
-              backgroundColor: 'rgba(200,120,24,.15)',
-              borderWidth: 2.5, fill: true, tension: 0.35,
-              pointRadius: 3, pointBackgroundColor: '#c87818',
-              pointBorderColor: '#c87818', pointHoverRadius: 6,
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.parsed.y} проверки` } }
-            },
-            scales: {
-              x: {
-                grid: { color: 'rgba(255,255,255,.04)' },
-                ticks: { maxRotation: 45, color: '#6b7a8d', font: { size: 10 }, maxTicksLimit: 15 },
-                border: { display: false }
-              },
-              y: {
-                grid: { color: 'rgba(255,255,255,.05)' },
-                ticks: { stepSize: 1, color: '#6b7a8d' },
-                border: { display: false }, beginAtZero: true
-              }
-            }
-          }
-        });
-
-        /* 2. Doughnut — Чисто vs Проблем с централен текст */
-        const centerTextPlugin = {
-          id: 'centerText',
-          afterDraw(chart) {
-            if (chart.canvas.id !== 'chart-status' || !chart.chartArea) return;
-            const { ctx, chartArea: { left, top, right, bottom } } = chart;
-            const cx = (left + right) / 2, cy = (top + bottom) / 2;
-            ctx.save();
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#2dcc70';
-            ctx.font = 'bold 32px "Oswald", sans-serif';
-            ctx.fillText(cleanPct + '%', cx, cy - 10);
-            ctx.fillStyle = '#6b7a8d';
-            ctx.font = '11px "DM Sans", sans-serif';
-            ctx.fillText('ЧИСТО', cx, cy + 14);
-            ctx.restore();
-          }
-        };
-        createChart('chart-status', {
-          type: 'doughnut',
-          plugins: [centerTextPlugin],
-          data: {
-            labels: ['Чисто', 'Проблем'],
-            datasets: [{
-              data: [cleanCount, problemCount],
-              backgroundColor: ['rgba(45,204,112,.75)','rgba(239,91,91,.65)'],
-              borderColor: 'rgba(15,20,28,.6)',
-              borderWidth: 2, hoverOffset: 14, spacing: 3,
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false, cutout: '72%',
-            plugins: {
-              legend: {
-                position: 'bottom',
-                labels: { boxWidth: 10, padding: 18, usePointStyle: true, pointStyle: 'circle', color: '#8a97aa', font: { size: 12 } }
-              },
-              tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.label}: ${ctx.parsed} (${total ? Math.round(ctx.parsed/total*100) : 0}%)` } }
-            }
-          }
-        });
-
-        /* 3. Horizontal bar — служители */
-        createChart('chart-inspector', {
-          type: 'bar',
-          data: {
-            labels: inspEntries.map(e => e[0]),
-            datasets: [{
-              data: inspEntries.map(e => e[1]),
-              backgroundColor: inspEntries.map((_,i) => PALETTE[i % PALETTE.length] + 'bb'),
-              borderColor:     inspEntries.map((_,i) => PALETTE[i % PALETTE.length]),
-              borderWidth: 1, borderRadius: 8, borderSkipped: false,
-              barPercentage: 0.72,
-            }]
-          },
-          options: {
-            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.parsed.x} проверки` } }
-            },
-            scales: {
-              x: {
-                grid: { color: 'rgba(255,255,255,.05)', lineWidth: 1 },
-                ticks: { stepSize: 1, color: '#6b7a8d' },
-                border: { display: false }
-              },
-              y: {
-                grid: { display: false },
-                ticks: { color: '#9ba8b9', font: { weight: '600' } },
-                border: { display: false }
-              }
-            }
-          }
-        });
-
-        /* 4. Doughnut — топ проблеми */
-        if (issEntries.length) {
-          createChart('chart-issues', {
-            type: 'doughnut',
-            data: {
-              labels: issEntries.map(e => e[0]),
-              datasets: [{
-                data: issEntries.map(e => e[1]),
-                backgroundColor: PALETTE.slice(0, issEntries.length).map(c => c + 'bb'),
-                borderColor: 'rgba(15,20,28,.6)',
-                borderWidth: 2, hoverOffset: 12, spacing: 2,
-              }]
-            },
-            options: {
-              responsive: true, maintainAspectRatio: false, cutout: '65%',
-              plugins: {
-                legend: {
-                  position: 'bottom',
-                  labels: { boxWidth: 8, padding: 12, usePointStyle: true, pointStyle: 'circle', color: '#8a97aa', font: { size: 10 } }
-                },
-                tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.label}: ${ctx.parsed}` } }
-              }
-            }
-          });
-        } else {
-          const issWrap = document.getElementById('chart-issues-wrap') || container.querySelector('#chart-issues-wrap');
-          if (issWrap) issWrap.innerHTML = '<div class="chart-empty">Няма регистрирани проблеми</div>';
-        }
-
-        /* 5. Vertical bar — локации */
-        createChart('chart-location', {
-          type: 'bar',
-          data: {
-            labels: locEntries.map(e => e[0]),
-            datasets: [{
-              data: locEntries.map(e => e[1]),
-              backgroundColor: 'rgba(98,169,255,.5)',
-              borderColor: '#62a9ff', borderWidth: 1,
-              borderRadius: 8, borderSkipped: false, barPercentage: 0.65,
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.parsed.y} проверки` } }
-            },
-            scales: {
-              x: {
-                grid: { display: false },
-                ticks: { maxRotation: 45, color: '#6b7a8d', font: { size: 10 } },
-                border: { display: false }
-              },
-              y: {
-                grid: { color: 'rgba(255,255,255,.05)' },
-                ticks: { stepSize: 1, color: '#6b7a8d' },
-                border: { display: false }, beginAtZero: true
-              }
-            }
-          }
-        });
-
-        /* 6. Bar chart — часово разпределение */
-        createChart('chart-hourly', {
-          type: 'bar',
-          data: {
-            labels: hourLabels,
-            datasets: [{
-              data: hourData,
-              backgroundColor: 'rgba(167,139,250,.45)',
-              borderColor: '#a78bfa', borderWidth: 1,
-              borderRadius: 6, borderSkipped: false, barPercentage: 0.8,
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.parsed.y} проверки в ${ctx.label}` } }
-            },
-            scales: {
-              x: {
-                grid: { display: false },
-                ticks: { color: '#6b7a8d', font: { size: 10 }, maxTicksLimit: 12 },
-                border: { display: false }
-              },
-              y: {
-                grid: { color: 'rgba(255,255,255,.05)' },
-                ticks: { stepSize: 1, color: '#6b7a8d' },
-                border: { display: false }, beginAtZero: true
-              }
-            }
-          }
-        });
-        console.log('[Charts] Created', _activeCharts.length, 'charts from', rows.length, 'rows');
+        console.log('[Charts] Rendered', rows.length, 'rows (HTML)');
       }
 
       function renderInspection() {
@@ -2227,9 +2028,10 @@
       }
 
 
-      function destroyChartsIfAny() {
-        _activeCharts.forEach(c => { try { c.destroy(); } catch(_){} });
-        _activeCharts = [];
+      function updateModals() {
+        const el = document.getElementById('modals');
+        if (el) el.innerHTML = renderModals();
+        if (state.showDeleteModal) setupModalFocusTrap();
       }
 
       function render() {
@@ -2239,20 +2041,13 @@
           state.screen === "history" ? renderHistory() :
           state.screen === "charts" ? renderCharts() :
           renderHome();
-        app.innerHTML = renderShell(content) + renderModals();
+        app.innerHTML = renderShell(content);
+        updateModals();
         bindInputs();
-        if (state.showDeleteModal) setupModalFocusTrap();
-        /* Charts: rebuild from cache after DOM replacement — двойно rAF за правилен layout преди Chart.js */
-        if (state.screen === "charts" && _cachedChartRows && typeof Chart !== 'undefined') {
+        /* Charts: HTML визуализации (без Chart.js) — синхронно от кеш */
+        if (state.screen === "charts" && _cachedChartRows && _cachedChartRows.length > 0) {
           const c = document.getElementById('charts-container');
-          if (c) {
-            requestAnimationFrame(() => {
-              requestAnimationFrame(() => {
-                if (state.screen !== "charts" || !c.parentNode) return;
-                buildChartsFromData(c, _cachedChartRows);
-              });
-            });
-          }
+          if (c) buildChartsFromData(c, _cachedChartRows);
         }
       }
 
@@ -2300,8 +2095,8 @@
 
         /* Navigation — blocked for QR-only sessions */
         if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection")) return;
-        if (action === "go-home") { cleanupSessionLock(); if (state.screen === "charts") destroyChartsIfAny(); state.screen = "home"; render(); return; }
-        if (action === "go-history") { if (state.screen === "charts") destroyChartsIfAny(); state.screen = "history"; render(); return; }
+        if (action === "go-home") { cleanupSessionLock(); state.screen = "home"; render(); return; }
+        if (action === "go-history") { state.screen = "history"; render(); return; }
         if (action === "go-charts") {
           if (Date.now() < chartsCooldownUntil) {
             showToast("Моля да не спамиш. След няколко секунди опитай пак.", "error");
@@ -2325,7 +2120,14 @@
               }
             }, 1000);
           }
-          cleanupSessionLock(); state.screen = "charts"; render();
+          cleanupSessionLock();
+          if (state.screen === "charts") {
+            /* Вече сме на Данни — не презареждаме, данните остават; само обновяваме бутона */
+            const btn = document.querySelector('[data-action="go-charts"]');
+            if (btn) { btn.classList.add('cooldown'); btn.disabled = true; btn.innerHTML = "&#128202; Данни (" + CHARTS_COOLDOWN_SEC + ")"; }
+            return;
+          }
+          state.screen = "charts"; render();
           return;
         }
 
@@ -2372,9 +2174,9 @@
         /* Export */
         if (action === "export-pdf") { exportPdf(); return; }
 
-        /* QR modal */
-        if (action === "open-qr") { state.showQRModal = true; render(); return; }
-        if (action === "close-qr") { state.showQRModal = false; render(); return; }
+        /* QR modal — само updateModals(), не презареждаме съдържанието, данните остават */
+        if (action === "open-qr") { state.showQRModal = true; updateModals(); return; }
+        if (action === "close-qr") { state.showQRModal = false; updateModals(); return; }
       });
 
       document.addEventListener("keydown", (e) => {
@@ -2384,7 +2186,7 @@
           render();
         } else if (state.showQRModal) {
           state.showQRModal = false;
-          render();
+          updateModals();
         }
       });
 
