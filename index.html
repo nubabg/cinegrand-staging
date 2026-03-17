@@ -440,6 +440,11 @@
         display: flex; align-items: center; justify-content: center;
         gap: 14px; padding: 80px 20px; color: var(--muted); font-size: 15px;
       }
+      .charts-loading .spinner {
+        width: 36px; height: 36px; border-radius: 50%;
+        border: 3px solid var(--border); border-top-color: var(--gold);
+        animation: spin .8s linear infinite;
+      }
       .charts-stat-row {
         display: grid; grid-template-columns: repeat(4, 1fr);
         gap: 12px; margin-bottom: 20px;
@@ -1146,7 +1151,6 @@
           _lockAcquiredAt = 0;
           sessionStorage.removeItem(LOCK_SESSION_KEY);
         }
-        _submitBusy = false;
         showToast(`Проверката на „${state.location}" е записана.`);
         if (isSheetsConfigured()) {
           const syncResult = await syncRecord(record);
@@ -1161,6 +1165,7 @@
         if (sessionStorage.getItem(QR_MODE_KEY) === "1") {
           setQRCooldown(state.inspectionType, state.location);
           state.openedFromQR = false;
+          _submitBusy = false;
           setTimeout(() => {
             sessionStorage.removeItem(QR_SESSION_KEY);
             sessionStorage.removeItem(QR_MODE_KEY);
@@ -1170,6 +1175,7 @@
           }, 1200);
           return;
         }
+        _submitBusy = false;
         state.screen = "home";
         render();
       }
@@ -1352,11 +1358,11 @@
                 <td>${fmt(r.timestamp)}</td>
                 <td style="display:flex;align-items:center;gap:6px;">
                   <span style="font-size:14px;">${r.type === "hall" ? "🎬" : "🚿"}</span>
-                  ${r.location}
+                  ${escapeHtml(r.location)}
                 </td>
-                <td class="muted">${r.inspector}</td>
+                <td class="muted">${escapeHtml(r.inspector)}</td>
                 <td><span class="pill ${issues.length ? "bad" : "ok"}">${issues.length ? `✗ ${issues.length} \u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0430` : "✓ \u0427\u0438\u0441\u0442\u043e"}</span></td>
-                <td class="muted">${issues.length ? issues.map((i) => i.label).join(", ") : "—"}</td>
+                <td class="muted">${issues.length ? issues.map((i) => escapeHtml(i.label)).join(", ") : "—"}</td>
                 <td><div style="display:flex;gap:8px;align-items:center;">
                   <span>${sync === "synced" ? "✓" : sync === "sent" ? "↑" : sync === "syncing" ? "⟳" : sync === "error" ? "✗" : "—"}</span>
                   ${(sync === "error" || (!sync && isSheetsConfigured())) ? `<button class="btn btn-outline" data-action="retry-sync" data-id="${r.id}" style="padding:4px 8px;">retry</button>` : ""}
@@ -1381,63 +1387,6 @@
           ${records.length ? renderRecentTable(records, false) : `<div class="panel" style="text-align:center;color:var(--muted);padding:60px 20px;">\u041d\u044f\u043c\u0430 \u0437\u0430\u043f\u0438\u0441\u0438 \u043f\u043e \u0442\u0435\u043a\u0443\u0449\u0438\u0442\u0435 \u0444\u0438\u043b\u0442\u0440\u0438.</div>`}
         </div>`;
       }
-      function barColor(p) { return p > 60 ? "var(--red)" : p > 30 ? "#f59e0b" : "var(--green)"; }
-
-      function renderBars(entries) {
-        return `<div class="bars">${entries.map(([label, data]) => {
-          const p = pct(data.issues, data.total);
-          return `<div>
-            <div class="bar-label"><span>${label}</span><span style="color:${barColor(p)};">${data.issues}/${data.total} - ${p}%</span></div>
-            <div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${barColor(p)};"></div></div>
-          </div>`;
-        }).join("")}</div>`;
-      }
-
-      function renderStats() {
-        const records = filteredRecords();
-        if (!records.length) return `<div class="page"><div class="panel" style="text-align:center;color:var(--muted);padding:60px 20px;">\u041d\u044f\u043c\u0430 \u0434\u0430\u043d\u043d\u0438 \u0437\u0430 \u0438\u0437\u0431\u0440\u0430\u043d\u0438\u044f \u043f\u0435\u0440\u0438\u043e\u0434.</div></div>`;
-        const stats = computeStats(records);
-        const totalDirty = records.reduce((s, r) => s + dirtyItems(r).length, 0);
-        const totalClean = records.reduce((s, r) => s + r.items.filter((i) => i.status === STATUS.CLEAN).length, 0);
-        const overall = pct(totalDirty, totalClean + totalDirty);
-        const topIssue = Object.entries(stats.byItem).sort((a, b) => pct(b[1].issues, b[1].total) - pct(a[1].issues, a[1].total))[0];
-        const topLocation = Object.entries(stats.byLocation).sort((a, b) => pct(b[1].issues, b[1].total) - pct(a[1].issues, a[1].total))[0];
-        const trafficText = overall === 0 ? "\u0417\u0415\u041b\u0415\u041d\u041e - \u041e\u0442\u043b\u0438\u0447\u043d\u043e" : overall <= 20 ? "\u0416\u042a\u041b\u0422\u041e - \u0414\u043e\u0431\u0440\u043e" : overall <= 50 ? "\u041e\u0420\u0410\u041d\u0416\u0415\u0412\u041e - \u041d\u0443\u0436\u043d\u043e \u0432\u043d\u0438\u043c\u0430\u043d\u0438\u0435" : "\u0427\u0415\u0420\u0412\u0415\u041d\u041e - \u041a\u0440\u0438\u0442\u0438\u0447\u043d\u043e";
-
-        return `<div class="page">
-          <div class="panel" style="margin-bottom:16px;">
-            <div class="toolbar"><h3 class="section-title" style="margin:0;">\u041e\u0431\u0449\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043d\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438\u0442\u0435</h3><span class="meta-chip">${rangeLabel(state.statsRange)}</span></div>
-            <div class="muted" style="margin-bottom:14px;">\u0422\u0443\u043a \u0441\u0435 \u043e\u0431\u043e\u0431\u0449\u0430\u0432\u0430\u0442 \u0432\u0441\u0438\u0447\u043a\u0438 \u0437\u0430\u043f\u0438\u0441\u0430\u043d\u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0437\u0430 \u0438\u0437\u0431\u0440\u0430\u043d\u0438\u044f \u043f\u0435\u0440\u0438\u043e\u0434.</div>
-            <div class="toolbar toolbar-controls">
-              <div class="tabs">${RANGE_OPTIONS.map(([v, l]) => `<button class="tab ${state.statsRange === v ? "active" : ""}" data-action="set-range" data-value="${v}">${l}</button>`).join("")}</div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <select id="export-range-select" style="min-width:180px;">${renderRangeOptions(state.exportRange)}</select>
-                <button class="btn btn-outline" data-action="export-pdf">PDF</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid cards-4" style="margin-bottom:16px;">${[
-            ["\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0438", records.length, "var(--gold)"],
-            ["\u041f\u0440\u043e\u0431\u043b\u0435\u043c\u0438", totalDirty, "var(--red)"],
-            ["\u0427\u0438\u0441\u0442\u0438", totalClean, "var(--green)"],
-            ["% \u041f\u0440\u043e\u0431\u043b\u0435\u043c", overall + "%", "var(--text)"],
-          ].map(([l, v, c]) => `<div class="panel stat"><div class="muted">${l}</div><strong style="color:${c};">${v}</strong></div>`).join("")}</div>
-
-          <div class="panel" style="margin-bottom:16px;border-left:4px solid ${barColor(overall)};"><strong>${trafficText}</strong><div class="muted" style="margin-top:6px;">\u041e\u0431\u0449\u0430 \u043e\u0446\u0435\u043d\u043a\u0430 \u0437\u0430 \u043f\u0435\u0440\u0438\u043e\u0434\u0430</div></div>
-
-          <div class="grid cards-2 cg-chart-grid" style="margin-bottom:16px;">
-            ${topIssue ? `<div class="panel"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.12em;">\u041d\u0430\u0439-\u0447\u0435\u0441\u0442 \u043f\u0440\u043e\u0431\u043b\u0435\u043c</div><h3 class="section-title" style="color:var(--red);">${topIssue[0]}</h3><div class="muted">${topIssue[1].issues}/${topIssue[1].total} \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 - ${pct(topIssue[1].issues, topIssue[1].total)}%</div></div>` : ""}
-            ${topLocation ? `<div class="panel"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.12em;">\u041d\u0430\u0439-\u043f\u0440\u043e\u0431\u043b\u0435\u043c\u043d\u0430 \u043b\u043e\u043a\u0430\u0446\u0438\u044f</div><h3 class="section-title" style="color:#fbbf24;">${topLocation[0]}</h3><div class="muted">${topLocation[1].issues} \u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0430</div></div>` : ""}
-          </div>
-
-          <div class="grid cards-2 cg-chart-grid">
-            <div class="panel"><h3 class="section-title">\u041f\u043e \u043b\u043e\u043a\u0430\u0446\u0438\u044f</h3>${renderBars(Object.entries(stats.byLocation))}</div>
-            <div class="panel"><h3 class="section-title">\u041f\u043e \u0435\u043b\u0435\u043c\u0435\u043d\u0442</h3>${renderBars(Object.entries(stats.byItem))}</div>
-          </div>
-        </div>`;
-      }
-
       /* ── Charts Screen ──────────────────────────────────────────────────── */
       function renderCharts() {
         return `<div class="page">
@@ -1564,6 +1513,7 @@
         let rows;
         try {
           rows = await fetchSheetsData();
+          if (state.screen !== "charts") { _chartsLoading = false; return; }
           if (rows.length > 0) {
             console.log('[Charts] Колони:', Object.keys(rows[0]));
             console.log('[Charts] Заредени редове:', rows.length);
@@ -1573,7 +1523,7 @@
             <div class="panel" style="text-align:center;padding:60px 20px;">
               <div style="font-size:32px;margin-bottom:16px;">&#9888;</div>
               <div style="color:var(--red);font-weight:700;margin-bottom:8px;">Грешка при зареждане</div>
-              <div style="color:var(--muted);font-size:13px;">${e.message}</div>
+              <div style="color:var(--muted);font-size:13px;">${escapeHtml(e.message)}</div>
               <div style="margin-top:16px;font-size:12px;color:var(--muted);">Уверете се, че таблицата е споделена публично.</div>
             </div>`;
           _chartsLoading = false;
@@ -1792,7 +1742,7 @@
         const centerTextPlugin = {
           id: 'centerText',
           afterDraw(chart) {
-            if (chart.canvas.id !== 'chart-status') return;
+            if (chart.canvas.id !== 'chart-status' || !chart.chartArea) return;
             const { ctx, chartArea: { left, top, right, bottom } } = chart;
             const cx = (left + right) / 2, cy = (top + bottom) / 2;
             ctx.save();
@@ -2101,7 +2051,9 @@
           </div>`;
       }
 
+      let _modalTrapHandler = null;
       function setupModalFocusTrap() {
+        if (_modalTrapHandler) document.removeEventListener("keydown", _modalTrapHandler);
         const modal = document.getElementById("modal-delete");
         if (!modal) return;
         const focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
@@ -2109,10 +2061,11 @@
         const last = focusable[focusable.length - 1];
         const prevActive = document.activeElement;
         if (first) first.focus();
-        function onKeyDown(e) {
+        _modalTrapHandler = function(e) {
           if (e.key === "Escape") {
             state.showDeleteModal = false; state.deleteErr = ""; state.deletePass = ""; render();
-            document.removeEventListener("keydown", onKeyDown);
+            document.removeEventListener("keydown", _modalTrapHandler);
+            _modalTrapHandler = null;
             if (prevActive && prevActive.focus) prevActive.focus();
             return;
           }
@@ -2122,8 +2075,8 @@
           } else {
             if (document.activeElement === last) { e.preventDefault(); if (first) first.focus(); }
           }
-        }
-        document.addEventListener("keydown", onKeyDown);
+        };
+        document.addEventListener("keydown", _modalTrapHandler);
       }
 
 
@@ -2212,7 +2165,10 @@
         }
 
         /* Delete modal */
-        if (action === "close-delete") { state.showDeleteModal = false; state.deleteErr = ""; state.deletePass = ""; render(); return; }
+        if (action === "close-delete") {
+          if (_modalTrapHandler) { document.removeEventListener("keydown", _modalTrapHandler); _modalTrapHandler = null; }
+          state.showDeleteModal = false; state.deleteErr = ""; state.deletePass = ""; render(); return;
+        }
         if (action === "toggle-pass") { state.showPassword = !state.showPassword; render(); return; }
         if (action === "confirm-delete") {
           if (state.deletePass !== DELETE_PASSWORD) { state.deleteErr = "Грешна парола. Опитай отново."; render(); return; }
