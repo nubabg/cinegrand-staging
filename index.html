@@ -642,13 +642,23 @@
       }
 
       /* ── Location Lock helpers ── */
+      let _lockBusy = false;
+      let _lockAcquiredAt = 0;
+      const LOCK_TIMEOUT_MS = LOCK_TIMEOUT_MIN * 60 * 1000;
+
       function generateSessionId() {
         if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
         return Date.now().toString(36) + "-" + Math.random().toString(36).substr(2, 9);
       }
 
+      function isLockExpired() {
+        return _lockAcquiredAt > 0 && (Date.now() - _lockAcquiredAt >= LOCK_TIMEOUT_MS);
+      }
+
       async function acquireLock(type, location, sessionId) {
         if (!isSheetsConfigured()) return { success: true };
+        if (_lockBusy) return { success: false, error: "Заявката се обработва…" };
+        _lockBusy = true;
         try {
           const res = await fetch(SHEETS_WEB_APP_URL, {
             method: "POST",
@@ -660,6 +670,8 @@
         } catch (err) {
           console.warn("[Lock] acquireLock failed:", err.message);
           return { success: true, offline: true };
+        } finally {
+          _lockBusy = false;
         }
       }
 
@@ -691,6 +703,7 @@
         if (state.currentSessionId) {
           releaseLock(state.currentSessionId);
           state.currentSessionId = null;
+          _lockAcquiredAt = 0;
         }
         sessionStorage.removeItem(LOCK_SESSION_KEY);
       }
@@ -1053,6 +1066,7 @@
       }
 
       async function startInspectionWithLock(type, locationOverride) {
+        if (_lockBusy) return false;
         const config = getConfig(type);
         const loc = locationOverride && config.locations.includes(locationOverride) ? locationOverride : config.locations[0];
         const sessionId = generateSessionId();
@@ -1066,18 +1080,26 @@
           return false;
         }
         state.currentSessionId = sessionId;
+        _lockAcquiredAt = Date.now();
         sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
         startInspection(type, locationOverride);
         return true;
       }
 
+      let _submitBusy = false;
       async function submitInspection() {
+        if (_submitBusy) return;
+        if (isLockExpired()) {
+          showToast("Времето за проверка изтече (" + LOCK_TIMEOUT_MIN + " мин). Моля сканирайте QR кода отново.", "error");
+          return;
+        }
         const config = getConfig(state.inspectionType);
         state.showValidation = true;
         const allFilled = config.items.every((i) => isFilled(state.itemState[i.id]));
         if (!state.inspector.trim()) { showToast("Моля въведи своето пълно име.", "error"); return; }
         if (!/^[\u0400-\u04FF ]+$/.test(state.inspector.trim())) { showToast("Името трябва да е само на кирилица, без специални символи.", "error"); return; }
         if (!allFilled) { showToast("Всички точки трябва да бъдат попълнени.", "error"); render(); return; }
+        _submitBusy = true;
 
         const record = {
           id: Date.now(),
@@ -1095,8 +1117,10 @@
         if (state.currentSessionId) {
           releaseLock(state.currentSessionId);
           state.currentSessionId = null;
+          _lockAcquiredAt = 0;
           sessionStorage.removeItem(LOCK_SESSION_KEY);
         }
+        _submitBusy = false;
         showToast(`Проверката на „${state.location}" е записана.`);
         if (isSheetsConfigured()) {
           const syncResult = await syncRecord(record);
@@ -2075,6 +2099,7 @@
           const newLoc = e.target.value;
           const oldLoc = state.location;
           if (newLoc === oldLoc) return;
+          if (_lockBusy) { e.target.value = oldLoc; return; }
           if (state.currentSessionId && !isQROnlySession()) {
             const oldSid = state.currentSessionId;
             const sessionId = generateSessionId();
@@ -2086,6 +2111,7 @@
             }
             await releaseLock(oldSid);
             state.currentSessionId = sessionId;
+            _lockAcquiredAt = Date.now();
             sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
           }
           state.location = newLoc;
@@ -2199,6 +2225,7 @@
               return;
             }
             state.currentSessionId = sessionId;
+            _lockAcquiredAt = Date.now();
             sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
             state.openedFromQR = true;
             Object.assign(state, { inspectionType: type, location: resolvedLoc, inspector: "", itemState: {}, notes: "", showValidation: false, screen: "inspection" });
@@ -2218,6 +2245,7 @@
             return;
           }
           state.currentSessionId = sessionId;
+          _lockAcquiredAt = Date.now();
           sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
           state.openedFromQR = true;
           Object.assign(state, { inspectionType: savedType, location: resolvedLoc, inspector: "", itemState: {}, notes: "", showValidation: false, screen: "inspection" });
@@ -2237,6 +2265,25 @@
             sessionStorage.removeItem(QR_TYPE_KEY);
             sessionStorage.removeItem(QR_LOC_KEY);
             window.location.replace(QR_REDIRECT_URL);
+          }
+        }, 60 * 1000);
+        /* Проверка за изтичане на lock (всяка минута) */
+        setInterval(function() {
+          if (!_lockAcquiredAt || state.screen !== "inspection") return;
+          const elapsed = Date.now() - _lockAcquiredAt;
+          const remaining = LOCK_TIMEOUT_MS - elapsed;
+          if (remaining <= 0) {
+            showToast("Времето за проверка изтече. Моля сканирайте QR кода отново.", "error");
+            state.currentSessionId = null;
+            _lockAcquiredAt = 0;
+            sessionStorage.removeItem(LOCK_SESSION_KEY);
+            if (isQROnlySession()) {
+              setTimeout(() => window.location.replace(QR_REDIRECT_URL), 2000);
+            } else {
+              state.screen = "home"; render();
+            }
+          } else if (remaining <= 120000 && remaining > 60000) {
+            showToast("Остават по-малко от 2 мин за тази проверка.", "error");
           }
         }, 60 * 1000);
         /* Периодична проверка на геолокация за QR сесии (всеки 5 минути) */
