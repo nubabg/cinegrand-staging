@@ -8,9 +8,17 @@ var LOCK_SPREADSHEET_ID = "1UDZQAZU2WAs8G6Yh_II-PZp_0oTj6kGj__b8qecgMAU";
 
 // -----------------------------------------------------------
 // doGet(e) - за refresh polling от сайта
+// Поддържа ?callback=fn за JSONP (обходи CORS)
 // -----------------------------------------------------------
 function doGet(e) {
-  return handleGetRefreshSignal_();
+  var result = handleGetRefreshSignal_();
+  var callback = e && e.parameter && e.parameter.callback;
+  if (callback && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(callback)) {
+    var json = result.getContent();
+    var js = callback + "(" + json + ")";
+    return ContentService.createTextOutput(js).setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return result;
 }
 
 function handleGetRefreshSignal_() {

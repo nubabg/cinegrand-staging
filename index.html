@@ -2406,19 +2406,23 @@
         }, GEO_RECHECK_MS);
       });
 
-      /* ── Refresh от Google Sheets (L1 в Локс): при "REFRESH ALL OPENED WEBSITES!" всички табове се презареждат ── */
+      /* ── Refresh от Google Sheets (L1 в Локс): JSONP заобикаля CORS ── */
       (function() {
         if (!isSheetsConfigured()) return;
-        async function checkRefresh() {
-          try {
-            const res = await fetch(SHEETS_WEB_APP_URL + '?t=' + Date.now(), { method: 'GET', cache: 'no-store' });
-            if (!res.ok) return;
-            const data = await res.json();
-            if (data && data.action === 'refresh') window.location.reload();
-          } catch (_) {}
+        window.__cgRefreshCheck = function(data) {
+          if (data && data.action === 'refresh') window.location.reload();
+        };
+        function checkRefresh() {
+          const cb = '__cgRefreshCheck';
+          const url = SHEETS_WEB_APP_URL + '?callback=' + cb + '&t=' + Date.now();
+          const script = document.createElement('script');
+          script.src = url;
+          script.onerror = function() { document.body.removeChild(script); };
+          script.onload = function() { document.body.removeChild(script); };
+          document.body.appendChild(script);
         }
-        checkRefresh(); // първа проверка веднага
-        setInterval(checkRefresh, 15000); // после на всеки 15 сек
+        checkRefresh();
+        setInterval(checkRefresh, 15000);
       })();
     </script>
   </body>
