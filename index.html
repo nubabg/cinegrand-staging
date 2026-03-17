@@ -657,8 +657,6 @@
 
       async function acquireLock(type, location, sessionId) {
         if (!isSheetsConfigured()) return { success: true };
-        if (_lockBusy) return { success: false, error: "Заявката се обработва…" };
-        _lockBusy = true;
         try {
           const res = await fetch(SHEETS_WEB_APP_URL, {
             method: "POST",
@@ -670,8 +668,6 @@
         } catch (err) {
           console.warn("[Lock] acquireLock failed:", err.message);
           return { success: true, offline: true };
-        } finally {
-          _lockBusy = false;
         }
       }
 
@@ -1067,38 +1063,49 @@
 
       async function startInspectionWithLock(type, locationOverride) {
         if (_lockBusy) return false;
-        const config = getConfig(type);
-        if (locationOverride) {
-          const sessionId = generateSessionId();
-          const lockResult = await acquireLock(type, locationOverride, sessionId);
-          if (!lockResult.success) {
-            showLocationLocked(locationOverride, lockResult.error);
+        _lockBusy = true;
+        try {
+          /* Ако вече има активен lock, освободи го */
+          if (state.currentSessionId) {
+            await releaseLock(state.currentSessionId);
+            state.currentSessionId = null;
+            _lockAcquiredAt = 0;
+            sessionStorage.removeItem(LOCK_SESSION_KEY);
+          }
+          const config = getConfig(type);
+          if (locationOverride) {
+            const sessionId = generateSessionId();
+            const lockResult = await acquireLock(type, locationOverride, sessionId);
+            if (!lockResult.success) {
+              showLocationLocked(locationOverride, lockResult.error);
+              return false;
+            }
+            state.currentSessionId = sessionId;
+            _lockAcquiredAt = Date.now();
+            sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
+            startInspection(type, locationOverride);
+            return true;
+          }
+          /* Non-QR: пробвай ВСИЧКИ локации паралелно, вземи първата свободна */
+          const attempts = config.locations.map(loc => {
+            const sid = generateSessionId();
+            return acquireLock(type, loc, sid).then(r => ({ loc, sid, result: r }));
+          });
+          const results = await Promise.all(attempts);
+          const won = results.find(r => r.result.success);
+          if (!won) {
+            showToast("Всички " + config.shortTitle.toLowerCase() + " се проверяват в момента. Опитайте след няколко минути.", "error");
             return false;
           }
-          state.currentSessionId = sessionId;
+          results.forEach(r => { if (r.result.success && r.sid !== won.sid) releaseLock(r.sid); });
+          state.currentSessionId = won.sid;
           _lockAcquiredAt = Date.now();
-          sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
-          startInspection(type, locationOverride);
+          sessionStorage.setItem(LOCK_SESSION_KEY, won.sid);
+          startInspection(type, won.loc);
           return true;
+        } finally {
+          _lockBusy = false;
         }
-        /* Non-QR: пробвай ВСИЧКИ локации паралелно, вземи първата свободна */
-        const attempts = config.locations.map(loc => {
-          const sid = generateSessionId();
-          return acquireLock(type, loc, sid).then(r => ({ loc, sid, result: r }));
-        });
-        const results = await Promise.all(attempts);
-        const won = results.find(r => r.result.success);
-        if (!won) {
-          showToast("Всички " + config.shortTitle.toLowerCase() + " се проверяват в момента. Опитайте след няколко минути.", "error");
-          return false;
-        }
-        /* Освободи lock-овете на останалите успешни (ако има) */
-        results.forEach(r => { if (r.result.success && r.sid !== won.sid) releaseLock(r.sid); });
-        state.currentSessionId = won.sid;
-        _lockAcquiredAt = Date.now();
-        sessionStorage.setItem(LOCK_SESSION_KEY, won.sid);
-        startInspection(type, won.loc);
-        return true;
       }
 
       let _submitBusy = false;
