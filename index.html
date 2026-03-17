@@ -620,6 +620,51 @@
       const QR_COOLDOWN_KEY = "cg_qr_cooldown";
       const QR_COOLDOWN_MS = 10 * 60 * 1000; /* 10 минути */
 
+      /* ── Location Lock ── */
+      const QR_LOCK_SESSION_KEY = "cg_lock_sid"; /* session ID за заключване на локация */
+
+      function generateSessionId() {
+        try { return crypto.randomUUID(); } catch (_) {}
+        return Date.now().toString(36) + Math.random().toString(36).slice(2);
+      }
+
+      /**
+       * Заявява заключване на type+location в backend-а.
+       * При мрежова/CORS грешка пропуска заключването (fail-open),
+       * за да не блокира легитимни потребители при недостъпен backend.
+       */
+      async function acquireLock(type, location, sessionId) {
+        if (!isSheetsConfigured()) return { success: true };
+        try {
+          const res = await fetch(SHEETS_WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            body: JSON.stringify({ action: "acquireLock", type, location, session_id: sessionId }),
+          });
+          if (!res.ok) return { success: true }; /* fail-open при HTTP грешка */
+          return await res.json();
+        } catch (_) {
+          return { success: true }; /* fail-open при CORS / мрежова грешка */
+        }
+      }
+
+      /**
+       * Освобождава заключването за текущата сесия.
+       * Използва sendBeacon когато е наличен (надежден при beforeunload),
+       * иначе no-cors fetch (fire-and-forget).
+       */
+      function releaseLock(sessionId) {
+        if (!isSheetsConfigured() || !sessionId) return;
+        try {
+          const body = JSON.stringify({ action: "releaseLock", session_id: sessionId });
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon(SHEETS_WEB_APP_URL, new Blob([body], { type: "text/plain;charset=UTF-8" }));
+          } else {
+            fetch(SHEETS_WEB_APP_URL, { method: "POST", mode: "no-cors", body }).catch(() => {});
+          }
+        } catch (_) {}
+      }
+
       function getQRCooldownRemaining(type, loc) {
         try {
           const data = JSON.parse(localStorage.getItem(QR_COOLDOWN_KEY) || "{}");
@@ -705,6 +750,17 @@
           </div>`;
       }
 
+      function showLocationLocked(location) {
+        document.getElementById("app").innerHTML = `
+          <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+            <div style="text-align:center;max-width:400px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:32px;">🔐</div>
+              <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;">ЛОКАЦИЯТА Е ЗАЕТА</div>
+              <div style="color:var(--muted);font-size:14px;line-height:1.6;"><strong style="color:var(--text);">${escapeHtml(location)}</strong> вече се проверява в момента.<br><br>Опитайте отново след <strong style="color:var(--text);">~45 мин.</strong></div>
+            </div>
+          </div>`;
+      }
+
       async function checkAccess() {
         const params = new URLSearchParams(window.location.search || (window.location.hash.startsWith("#") ? window.location.hash.slice(1) : ""));
         /* QR достъп — URL съдържа QR параметри */
@@ -716,6 +772,12 @@
           updateLoadingText("Проверка на локация…");
           const pos = await getGeolocation();
           if (!pos || !isNearCinema(pos.lat, pos.lng)) return "outside";
+          /* Заключване на локация — предотвратява паралелни проверки */
+          const sid = generateSessionId();
+          updateLoadingText("Проверка за активна проверка…");
+          const lockResult = await acquireLock(type, loc, sid);
+          if (!lockResult.success) return "locked";
+          sessionStorage.setItem(QR_LOCK_SESSION_KEY, sid);
           sessionStorage.setItem(QR_SESSION_KEY, String(Date.now()));
           sessionStorage.setItem(QR_MODE_KEY, "1");
           sessionStorage.setItem(QR_TYPE_KEY, type);
@@ -1002,6 +1064,12 @@
         }
         if (sessionStorage.getItem(QR_MODE_KEY) === "1") {
           setQRCooldown(state.inspectionType, state.location);
+          /* Освобождаваме заключването веднага след успешен submit */
+          const lockSid = sessionStorage.getItem(QR_LOCK_SESSION_KEY);
+          if (lockSid) {
+            releaseLock(lockSid);
+            sessionStorage.removeItem(QR_LOCK_SESSION_KEY);
+          }
           state.openedFromQR = false;
           setTimeout(() => {
             sessionStorage.removeItem(QR_SESSION_KEY);
@@ -2046,6 +2114,14 @@
       showAccessLoading();
       checkAccess().then((allowed) => {
         if (allowed === "outside") { showOutsideCinema(); return; }
+        if (allowed === "locked") {
+          /* Покажи съобщение за заета локация */
+          const _params = new URLSearchParams(window.location.search || (window.location.hash.startsWith("#") ? window.location.hash.slice(1) : ""));
+          const _rawLoc = _params.get("location") || "";
+          const _loc = decodeURIComponent(_rawLoc.replace(/\+/g, "%20"));
+          showLocationLocked(_loc);
+          return;
+        }
         if (!allowed) { showAccessDenied(); return; }
         /* Обработи URL параметри от QR сканиране */
         const search = window.location.search || "";
@@ -2073,11 +2149,21 @@
           Object.assign(state, { inspectionType: savedType, location: resolvedLoc, inspector: "", itemState: {}, notes: "", showValidation: false, screen: "inspection" });
         }
         render();
+        /* Освобождаване на заключването при затваряне на таба / навигация */
+        window.addEventListener("beforeunload", function() {
+          const sid = sessionStorage.getItem(QR_LOCK_SESSION_KEY);
+          if (sid && sessionStorage.getItem(QR_MODE_KEY) === "1") {
+            releaseLock(sid);
+          }
+        });
+
         /* Периодична проверка за изтекла QR сесия (всяка минута) */
         setInterval(function() {
           if (sessionStorage.getItem(QR_MODE_KEY) !== "1") return;
           const sessionTs = parseInt(sessionStorage.getItem(QR_SESSION_KEY) || "0", 10);
           if (!sessionTs || Date.now() - sessionTs >= QR_SESSION_TTL_MS) {
+            /* Сесията е изтекла — заключването изтича едновременно, не е нужно да го пускаме */
+            sessionStorage.removeItem(QR_LOCK_SESSION_KEY);
             sessionStorage.removeItem(QR_SESSION_KEY);
             sessionStorage.removeItem(QR_MODE_KEY);
             sessionStorage.removeItem(QR_TYPE_KEY);
@@ -2090,6 +2176,10 @@
           if (sessionStorage.getItem(QR_MODE_KEY) !== "1") return;
           const pos = await getGeolocation();
           if (!pos || !isNearCinema(pos.lat, pos.lng)) {
+            /* Потребителят е напуснал киното — освобождаваме заключването */
+            const sid = sessionStorage.getItem(QR_LOCK_SESSION_KEY);
+            if (sid) releaseLock(sid);
+            sessionStorage.removeItem(QR_LOCK_SESSION_KEY);
             sessionStorage.removeItem(QR_SESSION_KEY);
             sessionStorage.removeItem(QR_MODE_KEY);
             sessionStorage.removeItem(QR_TYPE_KEY);
