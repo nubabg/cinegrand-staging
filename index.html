@@ -137,6 +137,7 @@
         color: var(--gold-2); border-color: rgba(200,120,24,.26);
         background: rgba(200,120,24,.10);
       }
+      .nav-btn.cooldown { opacity: 0.7; cursor: not-allowed; }
 
       .page { padding: 8px 0 24px; }
       .grid { display: grid; gap: 16px; }
@@ -899,6 +900,11 @@
       /* ── Toast timer (clean, no property on function) ── */
       let toastTimer = null;
 
+      /* ── Charts button cooldown (prevents spam / chart bugs) ── */
+      const CHARTS_COOLDOWN_SEC = 12;
+      let chartsCooldownUntil = 0;
+      let chartsCooldownInterval = null;
+
       /* ── Helpers ── */
       const app = document.getElementById("app");
 
@@ -1274,7 +1280,7 @@
           state.screen !== "home" ? `<button class="nav-btn" data-action="go-home" aria-label="Начална страница">Начало</button>` : "",
           `<button class="nav-btn" data-action="open-qr" aria-label="QR кодове за печат">QR кодове</button>`,
           `<a class="nav-btn${isSheetsConfigured() ? ' state' : ''}" href="${SHEETS_SPREADSHEET_URL}" target="_blank" rel="noopener" aria-label="Отвори Sheets таблица">${isSheetsConfigured() ? "Sheets ✓" : "Sheets ✗"}</a>`,
-          `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''}" data-action="go-charts" aria-label="Данни от Sheets">&#128202; Данни</button>`,
+          `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''} ${chartsCooldownUntil > Date.now() ? 'cooldown' : ''}" data-action="go-charts" aria-label="Данни от Sheets">&#128202; ${chartsCooldownUntil > Date.now() ? "Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : "Данни"}</button>`,
         ].filter(Boolean).join("");
 
         return `
@@ -2200,7 +2206,25 @@
         if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection")) return;
         if (action === "go-home") { cleanupSessionLock(); state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
-        if (action === "go-charts") { cleanupSessionLock(); state.screen = "charts"; render(); initChartsScreen(); return; }
+        if (action === "go-charts") {
+          if (Date.now() < chartsCooldownUntil) {
+            showToast("Моля да не спамиш. След няколко секунди опитай пак.", "error");
+            return;
+          }
+          chartsCooldownUntil = Date.now() + CHARTS_COOLDOWN_SEC * 1000;
+          if (!chartsCooldownInterval) {
+            chartsCooldownInterval = setInterval(() => {
+              if (Date.now() >= chartsCooldownUntil) {
+                chartsCooldownUntil = 0;
+                clearInterval(chartsCooldownInterval);
+                chartsCooldownInterval = null;
+              }
+              render();
+            }, 1000);
+          }
+          cleanupSessionLock(); state.screen = "charts"; render(); initChartsScreen();
+          return;
+        }
 
         /* Inspection item status — targeted update, no full re-render */
         if (action === "set-item") {
