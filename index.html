@@ -970,24 +970,9 @@
 
       function showToast(msg, type = "success") {
         state.toast = { msg, type };
+        render();
         clearTimeout(toastTimer);
-        /* На charts екрана не правим пълен render — вмъкваме toast директно */
-        if (state.screen === "charts" && _chartsLoading === false) {
-          let toastEl = document.getElementById("live-toast");
-          if (!toastEl) {
-            toastEl = document.createElement("div");
-            toastEl.id = "live-toast";
-            document.body.appendChild(toastEl);
-          }
-          toastEl.className = "toast " + type;
-          toastEl.setAttribute("role", "status");
-          toastEl.textContent = msg;
-          toastEl.style.display = "block";
-          toastTimer = setTimeout(() => { toastEl.style.display = "none"; state.toast = null; }, 4000);
-        } else {
-          render();
-          toastTimer = setTimeout(() => { state.toast = null; render(); }, 4000);
-        }
+        toastTimer = setTimeout(() => { state.toast = null; render(); }, 4000);
       }
 
       /* ── Google Sheets Sync ── */
@@ -1531,6 +1516,7 @@
       let _activeCharts = [];
       let _chartsLoading = false;
       let _cachedChartRows = null;
+      let _chartsFetchVersion = 0;
 
       async function initChartsScreen(forceRefresh) {
         if (_chartsLoading) return;
@@ -1549,35 +1535,38 @@
         }
 
         _chartsLoading = true;
-        _chartsRendered = false;
+        const thisVersion = ++_chartsFetchVersion;
+        console.log('[Charts] Fetching data (v' + thisVersion + ')…');
 
-        _activeCharts.forEach(c => { try { c.destroy(); } catch(_){} });
-        _activeCharts = [];
-
-        container.innerHTML = '<div class="charts-loading"><div class="spinner"></div><span>Зарежда от Sheets…</span></div>';
+        /* Don't destroy charts during loading — keep them visible */
+        if (!_cachedChartRows) {
+          container.innerHTML = '<div class="charts-loading"><div class="spinner"></div><span>Зарежда от Sheets…</span></div>';
+        }
 
         let rows;
         try {
           rows = await fetchSheetsData();
+          console.log('[Charts] Fetched', rows ? rows.length : 0, 'raw rows (v' + thisVersion + ')');
         } catch(e) {
-          /* При грешка: ако има кеш, покажи него; иначе грешка */
-          if (_cachedChartRows) {
-            rows = _cachedChartRows;
-          } else {
-            const c2 = document.getElementById('charts-container');
-            if (c2) c2.innerHTML = `
-              <div class="panel" style="text-align:center;padding:60px 20px;">
-                <div style="font-size:32px;margin-bottom:16px;">&#9888;</div>
-                <div style="color:var(--red);font-weight:700;margin-bottom:8px;">Грешка при зареждане</div>
-                <div style="color:var(--muted);font-size:13px;">${escapeHtml(e.message)}</div>
-              </div>`;
-            _chartsLoading = false;
-            return;
-          }
+          console.warn('[Charts] Fetch failed (v' + thisVersion + '):', e.message);
+          _chartsLoading = false;
+          if (thisVersion !== _chartsFetchVersion) return;
+          if (_cachedChartRows) return; /* Keep showing cached data */
+          const c2 = document.getElementById('charts-container');
+          if (c2) c2.innerHTML = `
+            <div class="panel" style="text-align:center;padding:60px 20px;">
+              <div style="font-size:32px;margin-bottom:16px;">&#9888;</div>
+              <div style="color:var(--red);font-weight:700;margin-bottom:8px;">Грешка при зареждане</div>
+              <div style="color:var(--muted);font-size:13px;">${escapeHtml(e.message)}</div>
+            </div>`;
+          return;
         }
 
         _chartsLoading = false;
+        if (thisVersion !== _chartsFetchVersion) return;
+
         if (!rows || rows.length === 0) {
+          if (_cachedChartRows) return; /* Keep showing cached data */
           const c2 = document.getElementById('charts-container');
           if (c2) c2.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--muted);">Няма данни в таблицата.</div>`;
           return;
@@ -1592,46 +1581,56 @@
         _activeCharts.forEach(c => { try { c.destroy(); } catch(_){} });
         _activeCharts = [];
 
-        /* ── Агрегации ── */
+        /* ── Normalize rows ── */
+        let skipped = 0;
+        const normalized = [];
+        rows.forEach(r => {
+          try {
+            const id = colVal(r, '№', 'ID', 'НОМЕР', 'ЗАПИС', 'A') || '';
+            const insp = (colVal(r, 'ПРОВЕРЯВАЩ', 'INSPECTOR', 'EMPLOYEE', 'СЛУЖИТЕЛ', 'ИМЕ') || '').trim();
+            const rawLoc = (colVal(r, 'ТИП', 'TYPE', 'ЛОКАЦИЯ', 'LOCATION', 'ЗАЛА') || '').trim();
+            const stat = (colVal(r, 'СТАТУС', 'STATUS', 'РЕЗУЛТАТ') || '').trim();
+            const dateStr = (colVal(r, 'ДАТА', 'DATE', 'TIMESTAMP', 'INSPECTED', 'ПРОВЕРКА') || '').trim();
+            const issues = (colVal(r, 'ПРОБЛЕМИ', 'ISSUES') || '').trim();
+            if (!insp && !rawLoc && !stat) { skipped++; return; }
+            const loc = rawLoc.replace('Кинозала - ', 'Зала ').replace('Тоалетна - ', 'Тоал. ');
+            const statUp = stat.toUpperCase();
+            const status = statUp.includes('ЧИСТ') ? 'ЧИСТА'
+              : (statUp.includes('МРЪСН') || statUp.includes('ПРОБЛЕМ')) ? 'МРЪСНА' : '';
+            const date = parseChartDate(dateStr);
+            normalized.push({ id, inspector: insp || '?', location: loc || '?', status, date,
+              dateKey: date ? fmtChartDate(date) : null,
+              hour: date ? date.getHours() : null,
+              issues: issues && issues !== '—' && issues !== '-' ? issues : '' });
+          } catch (_) { skipped++; }
+        });
+        console.log('[Charts] Normalized:', normalized.length, 'rows, skipped:', skipped);
+
+        /* ── Derive aggregations from normalized data ── */
         const byInspector = {}, byIssue = {}, byLocation = {}, byDay = {}, byHour = {};
         const byStatus = { 'ЧИСТА': 0, 'МРЪСНА': 0 };
         const locationSet = new Set();
 
-        rows.forEach(r => {
-          const insp = colVal(r, 'ПРОВЕРЯВАЩ', 'INSPECTOR', 'EMPLOYEE', 'СЛУЖИТЕЛ', 'ИМЕ') || '?';
-          const rawLoc = colVal(r, 'ТИП', 'TYPE', 'ЛОКАЦИЯ', 'LOCATION', 'ЗАЛА') || '?';
-          const loc = rawLoc.replace('Кинозала - ', 'Зала ').replace('Тоалетна - ', 'Тоал. ');
-          const stat = (colVal(r, 'СТАТУС', 'STATUS', 'РЕЗУЛТАТ') || '').toUpperCase().trim();
-          const dateStr = colVal(r, 'ДАТА', 'DATE', 'TIMESTAMP', 'INSPECTED', 'ПРОВЕРКА');
-          const issues = colVal(r, 'ПРОБЛЕМИ', 'ISSUES', 'БЕЛЕЖКИ', 'NOTES');
-
-          locationSet.add(loc);
-          byInspector[insp] = (byInspector[insp] || 0) + 1;
-          byLocation[loc]   = (byLocation[loc]   || 0) + 1;
-
-          if (stat.includes('ЧИСТ')) byStatus['ЧИСТА']++;
-          else if (stat.includes('МРЪСН') || stat.includes('ПРОБЛЕМ')) byStatus['МРЪСНА']++;
-
-          const date = parseChartDate(dateStr);
-          if (date) {
-            const dayKey = fmtChartDate(date);
-            byDay[dayKey] = (byDay[dayKey] || 0) + 1;
-            const hour = date.getHours();
-            if (!isNaN(hour)) {
-              const hKey = String(hour).padStart(2,'0') + ':00';
-              byHour[hKey] = (byHour[hKey] || 0) + 1;
-            }
+        normalized.forEach(r => {
+          locationSet.add(r.location);
+          byInspector[r.inspector] = (byInspector[r.inspector] || 0) + 1;
+          byLocation[r.location]   = (byLocation[r.location]   || 0) + 1;
+          if (r.status === 'ЧИСТА') byStatus['ЧИСТА']++;
+          else if (r.status === 'МРЪСНА') byStatus['МРЪСНА']++;
+          if (r.dateKey) byDay[r.dateKey] = (byDay[r.dateKey] || 0) + 1;
+          if (r.hour !== null) {
+            const hKey = String(r.hour).padStart(2,'0') + ':00';
+            byHour[hKey] = (byHour[hKey] || 0) + 1;
           }
-
-          if (issues && issues !== '—' && issues !== '-') {
-            issues.split(/[,;]+/).forEach(iss => {
+          if (r.issues) {
+            r.issues.split(/[,;]+/).forEach(iss => {
               const k = iss.trim();
-              if (k && k !== '—' && k !== '-') byIssue[k] = (byIssue[k] || 0) + 1;
+              if (k) byIssue[k] = (byIssue[k] || 0) + 1;
             });
           }
         });
 
-        const total = rows.length;
+        const total = normalized.length;
         const cleanCount   = byStatus['ЧИСТА'] || 0;
         const problemCount = byStatus['МРЪСНА'] || 0;
         const cleanPct   = total ? Math.round(cleanCount / total * 100) : 0;
@@ -1974,8 +1973,7 @@
             }
           }
         });
-        _chartsRendered = true;
-        console.log('[Charts] Created', _activeCharts.length, 'charts');
+        console.log('[Charts] Created', _activeCharts.length, 'charts from', rows.length, 'rows');
       }
 
       function renderInspection() {
@@ -2147,22 +2145,7 @@
       }
 
 
-      let _chartsRendered = false;
       function render() {
-        if (state.screen === "charts" && _chartsRendered) {
-          /* Обнови само toast-а без да пипаш графиките */
-          const t = document.getElementById("live-toast");
-          if (state.toast) {
-            if (!t) {
-              const el = document.createElement("div");
-              el.id = "live-toast"; el.className = "toast " + state.toast.type;
-              el.textContent = state.toast.msg; el.style.display = "block";
-              document.body.appendChild(el);
-            } else { t.className = "toast " + state.toast.type; t.textContent = state.toast.msg; t.style.display = "block"; }
-          } else if (t) { t.style.display = "none"; }
-          return;
-        }
-        if (state.screen !== "charts") _chartsRendered = false;
         const content =
           state.screen === "home" ? renderHome() :
           state.screen === "inspection" ? renderInspection() :
@@ -2172,6 +2155,11 @@
         app.innerHTML = renderShell(content) + renderModals();
         bindInputs();
         if (state.showDeleteModal) setupModalFocusTrap();
+        /* Charts: rebuild from cache after DOM replacement */
+        if (state.screen === "charts" && _cachedChartRows && typeof Chart !== 'undefined') {
+          const c = document.getElementById('charts-container');
+          if (c) buildChartsFromData(c, _cachedChartRows);
+        }
       }
 
       function bindInputs() {
@@ -2221,7 +2209,7 @@
         if (action === "go-home") { cleanupSessionLock(); state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
         if (action === "go-charts") { cleanupSessionLock(); state.screen = "charts"; render(); initChartsScreen(); return; }
-        if (action === "refresh-charts") { _chartsRendered = false; initChartsScreen(true); return; }
+        if (action === "refresh-charts") { initChartsScreen(true); return; }
 
         /* Inspection item status — targeted update, no full re-render */
         if (action === "set-item") {
