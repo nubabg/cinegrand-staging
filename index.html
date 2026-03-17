@@ -1111,8 +1111,14 @@
           const sessionId = generateSessionId();
           const result = await acquireLockFirstFree(type, config.locations, sessionId);
           if (!result.success) {
-            showToast("Всички " + config.shortTitle.toLowerCase() + " се проверяват в момента. Опитайте след няколко минути.", "error");
-            return false;
+            if (result.allLocked) {
+              showToast("Всички " + config.shortTitle.toLowerCase() + " се проверяват в момента. Опитайте след няколко минути.", "error");
+              return false;
+            }
+            /* Сървърна грешка — пропусни lock, отвори формата */
+            console.warn("[Lock] acquireLockFirstFree error:", result.error);
+            startInspection(type);
+            return true;
           }
           state.currentSessionId = sessionId;
           _lockAcquiredAt = Date.now();
