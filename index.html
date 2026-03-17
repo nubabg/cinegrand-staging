@@ -2223,13 +2223,35 @@
         }
       });
 
-      /* ── Release lock on page close / navigation ── */
+      /* ── Release lock on page close / re-acquire on return ── */
       function _releaseLockOnExit() {
         const sid = state.currentSessionId || sessionStorage.getItem(LOCK_SESSION_KEY);
         if (sid) releaseLockBeacon(sid);
       }
       window.addEventListener("beforeunload", _releaseLockOnExit);
-      window.addEventListener("pagehide", _releaseLockOnExit);
+
+      document.addEventListener("visibilitychange", async () => {
+        if (document.visibilityState === "hidden") {
+          _releaseLockOnExit();
+        } else if (document.visibilityState === "visible") {
+          if (state.screen === "inspection" && state.currentSessionId) {
+            const sid = generateSessionId();
+            const type = state.inspectionType;
+            const loc = state.location;
+            const result = await acquireLock(type, loc, sid);
+            if (result.success) {
+              state.currentSessionId = sid;
+              _lockAcquiredAt = Date.now();
+              sessionStorage.setItem(LOCK_SESSION_KEY, sid);
+            } else {
+              showToast(loc + " е заета от друг. Данните ще се запишат, но залата вече не е заключена.", "error");
+              state.currentSessionId = null;
+              _lockAcquiredAt = 0;
+              sessionStorage.removeItem(LOCK_SESSION_KEY);
+            }
+          }
+        }
+      });
 
       /* ── Initial Render ── */
       cleanupOldRecords();
