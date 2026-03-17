@@ -111,6 +111,22 @@ function handleReleaseLock_(data) {
   }
 }
 
+function handleCheckLock_(data) {
+  try {
+    var sheet = getLockSheet_();
+    cleanExpiredLocks_(sheet);
+    var allData = sheet.getDataRange().getValues();
+    for (var i = 1; i < allData.length; i++) {
+      if (allData[i][2] === data.sessionId) {
+        return jsonResponse_({ success: true, valid: true });
+      }
+    }
+    return jsonResponse_({ success: true, valid: false });
+  } catch (e) {
+    return jsonResponse_({ success: false, error: e.message });
+  }
+}
+
 function jsonResponse_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
@@ -127,6 +143,7 @@ function jsonResponse_(obj) {
  *      // --- Lock endpoints ---
  *      if (data.action === "acquireLock") return handleAcquireLock_(data);
  *      if (data.action === "releaseLock") return handleReleaseLock_(data);
+ *      if (data.action === "checkLock")   return handleCheckLock_(data);
  *
  *      // ... съществуващият код за запис на проверки ...
  *    }
