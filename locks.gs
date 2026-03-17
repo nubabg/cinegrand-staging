@@ -12,11 +12,11 @@
 
 var LOCK_SHEET_NAME = "Locks";
 var LOCK_TIMEOUT_MIN = 10;
-var LOCK_SPREADSHEET_ID = "ПОСТАВИ_ТУКА_ID_НА_LOCKS_ТАБЛИЦАТА";
+var LOCK_SPREADSHEET_ID = "1UDZQAZU2WAs8G6Yh_II-PZp_0oTj6kGj__b8qecgMAU";
 
 function getLockSheet_() {
   var ss = SpreadsheetApp.openById(LOCK_SPREADSHEET_ID);
-  var sheet = ss.getSheetByName(LOCK_SHEET_NAME);
+  var sheet = ss.getSheetByName(LOCK_SHEET_NAME) || ss.getSheetByName("Локс");
   if (!sheet) {
     sheet = ss.insertSheet(LOCK_SHEET_NAME);
     sheet.appendRow(["type", "location", "session_id", "locked_at", "expires_at"]);
