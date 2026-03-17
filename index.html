@@ -775,16 +775,26 @@
       }
 
       async function checkAccess() {
+        /* IP проверка — whitelisted IP-та имат достъп отвсякъде */
+        let isWhitelistedIP = false;
+        try {
+          const res = await fetch("https://api.ipify.org?format=json");
+          const { ip } = await res.json();
+          isWhitelistedIP = ACCESS_ALLOWED_IPS.includes(ip);
+        } catch (_) {}
+
         const params = new URLSearchParams(window.location.search || (window.location.hash.startsWith("#") ? window.location.hash.slice(1) : ""));
         /* QR достъп — URL съдържа QR параметри */
         if (params.get("open") === "inspection") {
           const type = params.get("type") || "";
           const loc = params.get("location") || "";
           if (getQRCooldownRemaining(type, loc) > 0) return false;
-          /* Геолокация — трябва да е в киното */
-          updateLoadingText("Проверка на локация…");
-          const pos = await getGeolocation();
-          if (!pos || !isNearCinema(pos.lat, pos.lng)) return "outside";
+          if (!isWhitelistedIP) {
+            /* Геолокация — трябва да е в киното (само за не-whitelisted IP) */
+            updateLoadingText("Проверка на локация…");
+            const pos = await getGeolocation();
+            if (!pos || !isNearCinema(pos.lat, pos.lng)) return "outside";
+          }
           sessionStorage.setItem(QR_SESSION_KEY, String(Date.now()));
           sessionStorage.setItem(QR_MODE_KEY, "1");
           sessionStorage.setItem(QR_TYPE_KEY, type);
@@ -795,10 +805,12 @@
         const sessionTs = parseInt(sessionStorage.getItem(QR_SESSION_KEY) || "0", 10);
         if (sessionTs) {
           if (Date.now() - sessionTs < QR_SESSION_TTL_MS) {
-            /* Геолокация при reload на QR сесия */
-            updateLoadingText("Проверка на локация…");
-            const pos = await getGeolocation();
-            if (!pos || !isNearCinema(pos.lat, pos.lng)) return "outside";
+            if (!isWhitelistedIP) {
+              /* Геолокация при reload на QR сесия (само за не-whitelisted IP) */
+              updateLoadingText("Проверка на локация…");
+              const pos = await getGeolocation();
+              if (!pos || !isNearCinema(pos.lat, pos.lng)) return "outside";
+            }
             return true;
           }
           sessionStorage.removeItem(QR_SESSION_KEY);
@@ -806,12 +818,8 @@
           sessionStorage.removeItem(QR_TYPE_KEY);
           sessionStorage.removeItem(QR_LOC_KEY);
         }
-        /* IP проверка — офис компютри (без геолокация) */
-        try {
-          const res = await fetch("https://api.ipify.org?format=json");
-          const { ip } = await res.json();
-          if (ACCESS_ALLOWED_IPS.includes(ip)) return true;
-        } catch (_) {}
+        /* Whitelisted IP без QR — пълен достъп */
+        if (isWhitelistedIP) return true;
         return false;
       }
 
@@ -2230,8 +2238,14 @@
           }
         }, 60 * 1000);
         /* Периодична проверка на геолокация за QR сесии (всеки 5 минути) */
+        /* Whitelisted IP-та се пропускат — могат да работят отвсякъде */
         setInterval(async function() {
           if (sessionStorage.getItem(QR_MODE_KEY) !== "1") return;
+          try {
+            const ipRes = await fetch("https://api.ipify.org?format=json");
+            const { ip } = await ipRes.json();
+            if (ACCESS_ALLOWED_IPS.includes(ip)) return;
+          } catch (_) {}
           const pos = await getGeolocation();
           if (!pos || !isNearCinema(pos.lat, pos.lng)) {
             const sid = state.currentSessionId || sessionStorage.getItem(LOCK_SESSION_KEY);
