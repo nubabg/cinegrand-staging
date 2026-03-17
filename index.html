@@ -619,6 +619,8 @@
       const QR_SESSION_TTL_MS = 45 * 60 * 1000; /* 45 минути */
       const QR_COOLDOWN_KEY = "cg_qr_cooldown";
       const QR_COOLDOWN_MS = 10 * 60 * 1000; /* 10 минути */
+      const LOCK_SESSION_KEY = "cg_lock_session_id";
+      const LOCK_TIMEOUT_MINUTES = 45;
 
       function getQRCooldownRemaining(type, loc) {
         try {
@@ -942,6 +944,69 @@
         return result;
       }
 
+      /* ── Location Lock (блокиране на дублирани проверки) ── */
+      function generateSessionId() {
+        return typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 11);
+      }
+
+      async function acquireLock(type, location) {
+        if (!isSheetsConfigured()) return { ok: true };
+        const sessionId = generateSessionId();
+        try {
+          const res = await fetch(SHEETS_WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            body: JSON.stringify({ action: "acquireLock", type, location, sessionId }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (data.ok) {
+            sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
+            return { ok: true };
+          }
+          if (data.error === "locked") {
+            return { ok: false, error: data.error, message: data.message || "\u041b\u043e\u043a\u0430\u0446\u0438\u044f\u0442\u0430 \u0432\u0435\u0447\u0435 \u0441\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0432\u0430. \u041e\u043f\u0438\u0442\u0430\u0439\u0442\u0435 \u0441\u043b\u0435\u0434 ~" + LOCK_TIMEOUT_MINUTES + " \u043c\u0438\u043d." };
+          }
+          /* Backend без lock handlers – позволяваме да продължи */
+          return { ok: true };
+        } catch (err) {
+          return { ok: false, error: "network", message: err.message || "\u0413\u0440\u0435\u0448\u043a\u0430 \u043f\u0440\u0438 \u0441\u0432\u044a\u0440\u0437\u0432\u0430\u043d\u0435" };
+        }
+      }
+
+      async function releaseLock() {
+        const sessionId = sessionStorage.getItem(LOCK_SESSION_KEY);
+        if (!sessionId || !isSheetsConfigured()) return;
+        sessionStorage.removeItem(LOCK_SESSION_KEY);
+        try {
+          await fetch(SHEETS_WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            body: JSON.stringify({ action: "releaseLock", sessionId }),
+          });
+        } catch (_) {}
+      }
+
+      function releaseLockBeacon() {
+        const sessionId = sessionStorage.getItem(LOCK_SESSION_KEY);
+        if (!sessionId || !isSheetsConfigured()) return;
+        sessionStorage.removeItem(LOCK_SESSION_KEY);
+        try {
+          const blob = new Blob([JSON.stringify({ action: "releaseLock", sessionId })], { type: "text/plain;charset=UTF-8" });
+          navigator.sendBeacon(SHEETS_WEB_APP_URL, blob);
+        } catch (_) {}
+      }
+
+      function showLocationLockedMessage(location) {
+        document.getElementById("app").innerHTML = `
+          <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+            <div style="text-align:center;max-width:400px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:rgba(235,180,50,.15);border:1px solid rgba(235,180,50,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:32px;">\u231b</div>
+              <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;">\u041b\u043e\u043a\u0430\u0446\u0438\u044f\u0442\u0430 \u0417\u0410\u0415\u0422\u0410</div>
+              <div style="color:var(--muted);font-size:14px;line-height:1.6;">\u00ab${escapeHtml(location)}\u00bb \u0432\u0435\u0447\u0435 \u0441\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0432\u0430. \u041e\u043f\u0438\u0442\u0430\u0439\u0442\u0435 \u0441\u043b\u0435\u0434 ~${LOCK_TIMEOUT_MINUTES} \u043c\u0438\u043d.</div>
+            </div>
+          </div>`;
+      }
+
       function getQRBaseUrl() {
         const saved = (localStorage.getItem(STORAGE_KEYS.qrBaseUrl) || "").trim();
         if (saved && saved.startsWith("http") && saved.length > 40) return saved.replace(/\/$/, "");
@@ -954,9 +1019,16 @@
         return QR_DEFAULT_URL;
       }
 
-      function startInspection(type, locationOverride) {
+      async function startInspection(type, locationOverride) {
         const config = getConfig(type);
         const loc = locationOverride && config.locations.includes(locationOverride) ? locationOverride : config.locations[0];
+        if (isSheetsConfigured()) {
+          const lockResult = await acquireLock(type, loc);
+          if (!lockResult.ok) {
+            showToast(lockResult.message || "\u041b\u043e\u043a\u0430\u0446\u0438\u044f\u0442\u0430 \u0432\u0435\u0447\u0435 \u0441\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0432\u0430. \u041e\u043f\u0438\u0442\u0430\u0439\u0442\u0435 \u0441\u043b\u0435\u0434 ~" + LOCK_TIMEOUT_MINUTES + " \u043c\u0438\u043d.", "error");
+            return;
+          }
+        }
         Object.assign(state, {
           inspectionType: type,
           location: loc,
@@ -1003,6 +1075,7 @@
         if (sessionStorage.getItem(QR_MODE_KEY) === "1") {
           setQRCooldown(state.inspectionType, state.location);
           state.openedFromQR = false;
+          await releaseLock();
           setTimeout(() => {
             sessionStorage.removeItem(QR_SESSION_KEY);
             sessionStorage.removeItem(QR_MODE_KEY);
@@ -1012,6 +1085,7 @@
           }, 1200);
           return;
         }
+        await releaseLock();
         state.screen = "home";
         render();
       }
@@ -1980,7 +2054,12 @@
 
         /* Navigation — blocked for QR-only sessions */
         if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection")) return;
-        if (action === "go-home") { state.screen = "home"; render(); return; }
+        if (action === "go-home") {
+          if (state.screen === "inspection") await releaseLock();
+          state.screen = "home";
+          render();
+          return;
+        }
         if (action === "go-history") { state.screen = "history"; render(); return; }
         if (action === "go-charts") { state.screen = "charts"; render(); initChartsScreen(); return; }
         if (action === "refresh-charts") { initChartsScreen(); return; }
@@ -1999,7 +2078,7 @@
         }
 
         if (action === "submit-inspection") { await submitInspection(); return; }
-        if (action === "start-inspection") { startInspection(btn.dataset.type); return; }
+        if (action === "start-inspection") { await startInspection(btn.dataset.type); return; }
 
         /* Sync */
         if (action === "retry-sync") {
@@ -2041,10 +2120,12 @@
         }
       });
 
+      window.addEventListener("beforeunload", () => { releaseLockBeacon(); });
+
       /* ── Initial Render ── */
       cleanupOldRecords();
       showAccessLoading();
-      checkAccess().then((allowed) => {
+      checkAccess().then(async (allowed) => {
         if (allowed === "outside") { showOutsideCinema(); return; }
         if (!allowed) { showAccessDenied(); return; }
         /* Обработи URL параметри от QR сканиране */
@@ -2059,6 +2140,13 @@
             const decodedLoc = decodeURIComponent(loc.replace(/\+/g, "%20"));
             const config = getConfig(type);
             const resolvedLoc = config.locations.includes(decodedLoc) ? decodedLoc : config.locations[0];
+            if (isSheetsConfigured()) {
+              const lockResult = await acquireLock(type, resolvedLoc);
+              if (!lockResult.ok) {
+                showLocationLockedMessage(resolvedLoc);
+                return;
+              }
+            }
             Object.assign(state, { inspectionType: type, location: resolvedLoc, inspector: "", itemState: {}, notes: "", showValidation: false, screen: "inspection" });
             try { history.replaceState({}, "", window.location.origin + window.location.pathname); } catch (_) {}
           }
