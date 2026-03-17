@@ -514,34 +514,67 @@
       }
       .bloom-orb {
         position: absolute; border-radius: 50%;
-        filter: blur(100px);
-        animation: bloomPulse 10s ease-in-out infinite;
-        will-change: opacity, transform;
+        filter: blur(90px);
+        animation: bloomPulse 8s ease-in-out infinite;
+        will-change: opacity, transform, filter;
       }
       .bloom-orb--gold {
-        width: 50vw; height: 50vw; top: -10%; left: -8%;
-        background: radial-gradient(circle, rgba(200,120,24,.18), transparent 70%);
-        animation-duration: 11s; animation-delay: 0s;
+        width: 55vw; height: 55vw; top: -12%; left: -10%;
+        background: radial-gradient(circle, rgba(200,120,24,.35), rgba(200,120,24,.12) 40%, transparent 70%);
+        animation: bloomPulse 9s ease-in-out infinite, bloomHue1 12s linear infinite;
+        animation-delay: 0s, 0s;
       }
       .bloom-orb--blue {
-        width: 40vw; height: 40vw; top: 15%; right: -8%;
-        background: radial-gradient(circle, rgba(98,169,255,.12), transparent 70%);
-        animation-duration: 13s; animation-delay: -4s;
+        width: 45vw; height: 45vw; top: 12%; right: -10%;
+        background: radial-gradient(circle, rgba(98,169,255,.28), rgba(98,169,255,.08) 40%, transparent 70%);
+        animation: bloomPulse 10s ease-in-out infinite, bloomHue2 14s linear infinite;
+        animation-delay: -3s, -2s;
       }
       .bloom-orb--red {
-        width: 35vw; height: 35vw; bottom: 10%; left: 25%;
-        background: radial-gradient(circle, rgba(239,91,91,.08), transparent 70%);
-        animation-duration: 15s; animation-delay: -7s;
+        width: 42vw; height: 42vw; bottom: 8%; left: 20%;
+        background: radial-gradient(circle, rgba(239,91,91,.22), rgba(239,91,91,.06) 40%, transparent 70%);
+        animation: bloomPulse 11s ease-in-out infinite, bloomHue3 16s linear infinite;
+        animation-delay: -5s, -4s;
       }
       .bloom-orb--gold2 {
-        width: 28vw; height: 28vw; bottom: 20%; right: 5%;
-        background: radial-gradient(circle, rgba(200,120,24,.10), transparent 70%);
-        animation-duration: 12s; animation-delay: -2s;
+        width: 35vw; height: 35vw; bottom: 15%; right: 2%;
+        background: radial-gradient(circle, rgba(200,120,24,.25), rgba(200,120,24,.08) 40%, transparent 70%);
+        animation: bloomPulse 7s ease-in-out infinite, bloomHue4 10s linear infinite;
+        animation-delay: -2s, -1s;
+      }
+      .bloom-orb--purple {
+        width: 38vw; height: 38vw; top: 50%; left: 50%;
+        margin-left: -19vw; margin-top: -19vw;
+        background: radial-gradient(circle, rgba(167,139,250,.2), rgba(167,139,250,.05) 40%, transparent 70%);
+        animation: bloomPulse 9.5s ease-in-out infinite, bloomHue5 13s linear infinite;
+        animation-delay: -6s, -3s;
       }
       @keyframes bloomPulse {
-        0%   { opacity: 0.4; transform: scale(1); }
-        50%  { opacity: 0.85; transform: scale(1.1); }
-        100% { opacity: 0.4; transform: scale(1); }
+        0%   { opacity: 0.55; transform: scale(1) translate(0, 0); }
+        25%  { opacity: 1; transform: scale(1.18) translate(4vw, -3vw); }
+        50%  { opacity: 0.9; transform: scale(1.1) translate(-5vw, 4vw); }
+        75%  { opacity: 1; transform: scale(1.15) translate(3vw, 5vw); }
+        100% { opacity: 0.55; transform: scale(1) translate(0, 0); }
+      }
+      @keyframes bloomHue1 {
+        0%, 100% { filter: blur(90px) hue-rotate(0deg) saturate(1.2); }
+        50% { filter: blur(90px) hue-rotate(15deg) saturate(1.4); }
+      }
+      @keyframes bloomHue2 {
+        0%, 100% { filter: blur(90px) hue-rotate(0deg) saturate(1.1); }
+        50% { filter: blur(90px) hue-rotate(-20deg) saturate(1.3); }
+      }
+      @keyframes bloomHue3 {
+        0%, 100% { filter: blur(90px) hue-rotate(0deg) saturate(1.15); }
+        50% { filter: blur(90px) hue-rotate(10deg) saturate(1.35); }
+      }
+      @keyframes bloomHue4 {
+        0%, 100% { filter: blur(90px) hue-rotate(0deg) saturate(1.1); }
+        50% { filter: blur(90px) hue-rotate(-12deg) saturate(1.3); }
+      }
+      @keyframes bloomHue5 {
+        0%, 100% { filter: blur(90px) hue-rotate(0deg) saturate(1.2); }
+        50% { filter: blur(90px) hue-rotate(25deg) saturate(1.4); }
       }
 
       @media print {
@@ -557,6 +590,7 @@
       <span class="bloom-orb bloom-orb--blue"></span>
       <span class="bloom-orb bloom-orb--red"></span>
       <span class="bloom-orb bloom-orb--gold2"></span>
+      <span class="bloom-orb bloom-orb--purple"></span>
     </div>
     <div id="app"></div>
     <div class="broom-fun" aria-hidden="true">
