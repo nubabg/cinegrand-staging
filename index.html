@@ -1093,6 +1093,7 @@
           state.screen !== "home" ? `<button class="nav-btn" data-action="go-home" aria-label="Начална страница">Начало</button>` : "",
           `<button class="nav-btn" data-action="open-qr" aria-label="QR кодове за печат">QR кодове</button>`,
           `<a class="nav-btn${isSheetsConfigured() ? ' state' : ''}" href="${SHEETS_SPREADSHEET_URL}" target="_blank" rel="noopener" aria-label="Отвори Sheets таблица">${isSheetsConfigured() ? "Sheets ✓" : "Sheets ✗"}</a>`,
+          `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''}" data-action="go-charts" aria-label="Данни от Sheets">&#128202; Данни</button>`,
         ].filter(Boolean).join("");
 
         return `
@@ -1951,6 +1952,7 @@
           state.screen === "home" ? renderHome() :
           state.screen === "inspection" ? renderInspection() :
           state.screen === "history" ? renderHistory() :
+          state.screen === "charts" ? renderCharts() :
           renderHome();
         app.innerHTML = renderShell(content) + renderModals();
         bindInputs();
@@ -1979,8 +1981,8 @@
         if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection")) return;
         if (action === "go-home") { state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
-
-
+        if (action === "go-charts") { state.screen = "charts"; render(); initChartsScreen(); return; }
+        if (action === "refresh-charts") { initChartsScreen(); return; }
 
         /* Inspection item status — targeted update, no full re-render */
         if (action === "set-item") {
