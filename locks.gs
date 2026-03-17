@@ -16,7 +16,7 @@ var LOCK_SPREADSHEET_ID = "1UDZQAZU2WAs8G6Yh_II-PZp_0oTj6kGj__b8qecgMAU";
 
 function getLockSheet_() {
   var ss = SpreadsheetApp.openById(LOCK_SPREADSHEET_ID);
-  var sheet = ss.getSheetByName(LOCK_SHEET_NAME) || ss.getSheetByName("Локс");
+  var sheet = ss.getSheetByName(LOCK_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(LOCK_SHEET_NAME);
     sheet.appendRow(["type", "location", "session_id", "locked_at", "expires_at"]);
