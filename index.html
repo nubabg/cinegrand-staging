@@ -507,16 +507,21 @@
         height: 100%; color: var(--muted); font-size: 13px;
       }
 
-      /* ── Bloom Background Effect ── */
+      /* ── Bloom Background Effect (PC + мобилни + таблети) ── */
       .bloom-layer {
         position: fixed; inset: 0;
         pointer-events: none; z-index: 0; overflow: hidden;
+        min-height: 100vh; min-height: 100dvh;
+        -webkit-backface-visibility: hidden; backface-visibility: hidden;
+        transform: translateZ(0); -webkit-transform: translateZ(0);
       }
       .bloom-orb {
         position: absolute; border-radius: 50%;
-        filter: blur(90px);
+        filter: blur(90px); -webkit-filter: blur(90px);
         animation: bloomPulse 8s ease-in-out infinite;
-        will-change: opacity, transform, filter;
+        will-change: opacity, transform;
+        -webkit-backface-visibility: hidden; backface-visibility: hidden;
+        transform: translateZ(0); -webkit-transform: translateZ(0);
       }
       .bloom-orb--gold {
         width: 55vw; height: 55vw; top: -12%; left: -10%;
@@ -549,6 +554,23 @@
         animation: bloomPulse 9.5s ease-in-out infinite, bloomHue5 13s linear infinite;
         animation-delay: -6s, -3s;
       }
+      /* Bloom за таблети и телефони — по-малък blur (мобилните го рендират по-добре), по-ярки цветове */
+      @media (max-width: 1024px) {
+        .bloom-orb { filter: blur(60px); -webkit-filter: blur(60px); }
+        .bloom-orb--gold { background: radial-gradient(circle, rgba(200,120,24,.45), rgba(200,120,24,.2) 40%, transparent 70%); }
+        .bloom-orb--blue { background: radial-gradient(circle, rgba(98,169,255,.38), rgba(98,169,255,.15) 40%, transparent 70%); }
+        .bloom-orb--red { background: radial-gradient(circle, rgba(239,91,91,.35), rgba(239,91,91,.12) 40%, transparent 70%); }
+        .bloom-orb--gold2 { background: radial-gradient(circle, rgba(200,120,24,.4), rgba(200,120,24,.18) 40%, transparent 70%); }
+        .bloom-orb--purple { background: radial-gradient(circle, rgba(167,139,250,.3), rgba(167,139,250,.12) 40%, transparent 70%); }
+      }
+      @media (max-width: 768px) {
+        .bloom-orb { filter: blur(50px); -webkit-filter: blur(50px); }
+        .bloom-orb--gold { background: radial-gradient(circle, rgba(200,120,24,.5), rgba(200,120,24,.25) 40%, transparent 70%); }
+        .bloom-orb--blue { background: radial-gradient(circle, rgba(98,169,255,.45), rgba(98,169,255,.2) 40%, transparent 70%); }
+        .bloom-orb--red { background: radial-gradient(circle, rgba(239,91,91,.42), rgba(239,91,91,.18) 40%, transparent 70%); }
+        .bloom-orb--gold2 { background: radial-gradient(circle, rgba(200,120,24,.48), rgba(200,120,24,.22) 40%, transparent 70%); }
+        .bloom-orb--purple { background: radial-gradient(circle, rgba(167,139,250,.38), rgba(167,139,250,.18) 40%, transparent 70%); }
+      }
       @keyframes bloomPulse {
         0%   { opacity: 0.55; transform: scale(1) translate(0, 0); }
         25%  { opacity: 1; transform: scale(1.18) translate(4vw, -3vw); }
@@ -576,9 +598,23 @@
         0%, 100% { filter: blur(90px) hue-rotate(0deg) saturate(1.2); }
         50% { filter: blur(90px) hue-rotate(25deg) saturate(1.4); }
       }
+      @media (max-width: 1024px) {
+        @keyframes bloomHue1 { 0%, 100% { filter: blur(60px) hue-rotate(0deg) saturate(1.2); } 50% { filter: blur(60px) hue-rotate(15deg) saturate(1.4); } }
+        @keyframes bloomHue2 { 0%, 100% { filter: blur(60px) hue-rotate(0deg) saturate(1.1); } 50% { filter: blur(60px) hue-rotate(-20deg) saturate(1.3); } }
+        @keyframes bloomHue3 { 0%, 100% { filter: blur(60px) hue-rotate(0deg) saturate(1.15); } 50% { filter: blur(60px) hue-rotate(10deg) saturate(1.35); } }
+        @keyframes bloomHue4 { 0%, 100% { filter: blur(60px) hue-rotate(0deg) saturate(1.1); } 50% { filter: blur(60px) hue-rotate(-12deg) saturate(1.3); } }
+        @keyframes bloomHue5 { 0%, 100% { filter: blur(60px) hue-rotate(0deg) saturate(1.2); } 50% { filter: blur(60px) hue-rotate(25deg) saturate(1.4); } }
+      }
+      @media (max-width: 768px) {
+        @keyframes bloomHue1 { 0%, 100% { filter: blur(50px) hue-rotate(0deg) saturate(1.2); } 50% { filter: blur(50px) hue-rotate(15deg) saturate(1.4); } }
+        @keyframes bloomHue2 { 0%, 100% { filter: blur(50px) hue-rotate(0deg) saturate(1.1); } 50% { filter: blur(50px) hue-rotate(-20deg) saturate(1.3); } }
+        @keyframes bloomHue3 { 0%, 100% { filter: blur(50px) hue-rotate(0deg) saturate(1.15); } 50% { filter: blur(50px) hue-rotate(10deg) saturate(1.35); } }
+        @keyframes bloomHue4 { 0%, 100% { filter: blur(50px) hue-rotate(0deg) saturate(1.1); } 50% { filter: blur(50px) hue-rotate(-12deg) saturate(1.3); } }
+        @keyframes bloomHue5 { 0%, 100% { filter: blur(50px) hue-rotate(0deg) saturate(1.2); } 50% { filter: blur(50px) hue-rotate(25deg) saturate(1.4); } }
+      }
 
       @media print {
-        .app-shell, .broom-fun { display: none !important; }
+        .bloom-layer, .app-shell, .broom-fun { display: none !important; }
         #qr-modal-backdrop { position: static !important; background: #fff !important; padding: 20px !important; width: 100% !important; min-height: 100vh !important; }
         .qr-modal { box-shadow: none !important; border: 1px solid #ddd !important; max-width: 100% !important; }
       }
