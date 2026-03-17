@@ -21,8 +21,9 @@
 3. **Run workflow** → **Run workflow**
 4. Готово – cinegrand-inspection е обновен
 
-## След sync – изтрий workflow-а (по желание)
+## Спиране / пускане на workflow-а
 
-Ако искаш да махнеш workflow-а след като sync-неш:
-- Изтрий файла `.github/workflows/sync-to-inspection.yml`
-- Commit + push
+**Спиране:** Преименувай `sync-to-inspection.yml` → `sync-to-inspection.yml.disabled`
+**Пускане отново:** Преименувай `sync-to-inspection.yml.disabled` → `sync-to-inspection.yml`
+
+След всяка промяна: Commit + push
