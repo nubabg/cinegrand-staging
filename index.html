@@ -1760,8 +1760,17 @@
           boxPadding: 6,
         };
 
+        function createChart(id, config) {
+          try {
+            const el = document.getElementById(id) || container.querySelector('#' + id);
+            if (!el) { console.warn('[Charts] Canvas not found:', id); return; }
+            const c = new Chart(el, config);
+            _activeCharts.push(c);
+          } catch (e) { console.error('[Charts] Error creating', id, e); }
+        }
+
         /* 1. Line chart — дневен тренд */
-        _activeCharts.push(new Chart(document.getElementById('chart-daily'), {
+        createChart('chart-daily', {
           type: 'line',
           data: {
             labels: dayKeys,
@@ -1793,7 +1802,7 @@
               }
             }
           }
-        }));
+        });
 
         /* 2. Doughnut — Чисто vs Проблем с централен текст */
         const centerTextPlugin = {
@@ -1813,7 +1822,7 @@
             ctx.restore();
           }
         };
-        _activeCharts.push(new Chart(document.getElementById('chart-status'), {
+        createChart('chart-status', {
           type: 'doughnut',
           plugins: [centerTextPlugin],
           data: {
@@ -1835,10 +1844,10 @@
               tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.label}: ${ctx.parsed} (${total ? Math.round(ctx.parsed/total*100) : 0}%)` } }
             }
           }
-        }));
+        });
 
         /* 3. Horizontal bar — служители */
-        _activeCharts.push(new Chart(document.getElementById('chart-inspector'), {
+        createChart('chart-inspector', {
           type: 'bar',
           data: {
             labels: inspEntries.map(e => e[0]),
@@ -1869,11 +1878,11 @@
               }
             }
           }
-        }));
+        });
 
         /* 4. Doughnut — топ проблеми */
         if (issEntries.length) {
-          _activeCharts.push(new Chart(document.getElementById('chart-issues'), {
+          createChart('chart-issues', {
             type: 'doughnut',
             data: {
               labels: issEntries.map(e => e[0]),
@@ -1894,14 +1903,14 @@
                 tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.label}: ${ctx.parsed}` } }
               }
             }
-          }));
+          });
         } else {
-          document.getElementById('chart-issues-wrap').innerHTML =
-            '<div class="chart-empty">Няма регистрирани проблеми</div>';
+          const issWrap = document.getElementById('chart-issues-wrap') || container.querySelector('#chart-issues-wrap');
+          if (issWrap) issWrap.innerHTML = '<div class="chart-empty">Няма регистрирани проблеми</div>';
         }
 
         /* 5. Vertical bar — локации */
-        _activeCharts.push(new Chart(document.getElementById('chart-location'), {
+        createChart('chart-location', {
           type: 'bar',
           data: {
             labels: locEntries.map(e => e[0]),
@@ -1931,10 +1940,10 @@
               }
             }
           }
-        }));
+        });
 
         /* 6. Bar chart — часово разпределение */
-        _activeCharts.push(new Chart(document.getElementById('chart-hourly'), {
+        createChart('chart-hourly', {
           type: 'bar',
           data: {
             labels: hourLabels,
@@ -1964,8 +1973,9 @@
               }
             }
           }
-        }));
+        });
         _chartsRendered = true;
+        console.log('[Charts] Created', _activeCharts.length, 'charts');
       }
 
       function renderInspection() {
@@ -2139,8 +2149,19 @@
 
       let _chartsRendered = false;
       function render() {
-        /* На charts екрана: не презаписвай ако графиките са заредени */
-        if (state.screen === "charts" && _chartsRendered) return;
+        if (state.screen === "charts" && _chartsRendered) {
+          /* Обнови само toast-а без да пипаш графиките */
+          const t = document.getElementById("live-toast");
+          if (state.toast) {
+            if (!t) {
+              const el = document.createElement("div");
+              el.id = "live-toast"; el.className = "toast " + state.toast.type;
+              el.textContent = state.toast.msg; el.style.display = "block";
+              document.body.appendChild(el);
+            } else { t.className = "toast " + state.toast.type; t.textContent = state.toast.msg; t.style.display = "block"; }
+          } else if (t) { t.style.display = "none"; }
+          return;
+        }
         if (state.screen !== "charts") _chartsRendered = false;
         const content =
           state.screen === "home" ? renderHome() :
