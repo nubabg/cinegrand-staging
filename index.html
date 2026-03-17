@@ -1947,6 +1947,7 @@
             }
           }
         }));
+        _chartsRendered = true;
         _chartsLoading = false;
       }
 
@@ -2119,7 +2120,11 @@
       }
 
 
+      let _chartsRendered = false;
       function render() {
+        /* На charts екрана: не презаписвай ако графиките са заредени */
+        if (state.screen === "charts" && _chartsRendered) return;
+        if (state.screen !== "charts") _chartsRendered = false;
         const content =
           state.screen === "home" ? renderHome() :
           state.screen === "inspection" ? renderInspection() :
@@ -2178,7 +2183,7 @@
         if (action === "go-home") { cleanupSessionLock(); state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
         if (action === "go-charts") { cleanupSessionLock(); state.screen = "charts"; render(); initChartsScreen(); return; }
-        if (action === "refresh-charts") { initChartsScreen(); return; }
+        if (action === "refresh-charts") { _chartsRendered = false; initChartsScreen(); return; }
 
         /* Inspection item status — targeted update, no full re-render */
         if (action === "set-item") {
