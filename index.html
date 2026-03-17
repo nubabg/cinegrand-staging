@@ -2406,39 +2406,6 @@
         }, GEO_RECHECK_MS);
       });
 
-      /* ── Refresh от Google Sheets (L1 в Локс): fetch + JSONP fallback ── */
-      (function() {
-        if (!isSheetsConfigured()) return;
-        window.__cgRefreshCheck = function(data) {
-          if (data && data.action === 'refresh') window.location.reload();
-        };
-        function checkRefresh() {
-          var url = SHEETS_WEB_APP_URL + '?t=' + Date.now();
-          fetch(url, { method: 'GET', cache: 'no-store', mode: 'cors' })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-              if (data && data.action === 'refresh') window.location.reload();
-            })
-            .catch(function() {
-              var cb = '__cgRefreshCheck';
-              var script = document.createElement('script');
-              script.src = SHEETS_WEB_APP_URL + '?callback=' + cb + '&t=' + Date.now();
-              script.onerror = function() { try { document.body.removeChild(script); } catch(e) {} };
-              script.onload = function() { try { document.body.removeChild(script); } catch(e) {} };
-              document.body.appendChild(script);
-            });
-        }
-        checkRefresh();
-        setInterval(checkRefresh, 15000);
-        if (location.search.indexOf('debug=1') >= 0) {
-          var a = document.createElement('a');
-          a.href = SHEETS_WEB_APP_URL + '?t=' + Date.now();
-          a.target = '_blank';
-          a.textContent = 'Тест backend (отвори в нов таб)';
-          a.style.cssText = 'position:fixed;bottom:10px;right:10px;background:#333;color:#fff;padding:8px 12px;border-radius:6px;font-size:12px;z-index:9999;text-decoration:none;';
-          document.body.appendChild(a);
-        }
-      })();
     </script>
   </body>
 </html>
