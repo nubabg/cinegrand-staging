@@ -172,6 +172,41 @@ function jsonResponse_(obj) {
 }
 
 /**
+ * Refresh signal — чете L1 от листа Локс/Locks. При "REFRESH ALL OPENED WEBSITES!"
+ * връща action: "refresh" и веднага задава L1 обратно на "DO NOTHING" за да няма loop.
+ */
+function handleGetRefreshSignal_() {
+  try {
+    var ss = SpreadsheetApp.openById(LOCK_SPREADSHEET_ID);
+    var sheet = ss.getSheetByName("Локс") || ss.getSheetByName("Locks");
+    if (!sheet) return jsonResponse_({ action: "do_nothing" });
+    var val = (sheet.getRange("L1").getValue() || "").toString().toUpperCase();
+    if (val.indexOf("REFRESH") >= 0) {
+      sheet.getRange("L1").setValue("DO NOTHING IN WEBSITES!");
+      SpreadsheetApp.flush();
+      return jsonResponse_({ action: "refresh" });
+    }
+    return jsonResponse_({ action: "do_nothing" });
+  } catch (e) {
+    return jsonResponse_({ action: "do_nothing", error: e.message });
+  }
+}
+
+/**
+ * Добави doGet за refresh polling. Сайтът прави GET заявки на WEB_APP_URL.
+ * Връща { action: "refresh" } или { action: "do_nothing" }
+ *
+ * ВАЖНО: Ако вече имаш doGet в проекта, добави в него:
+ *   return handleGetRefreshSignal_();
+ * Или премахни стария doGet и използвай този.
+ *
+ * След промяна: Deploy → Manage deployments → Edit (иконка) → New version → Deploy
+ */
+function doGet(e) {
+  return handleGetRefreshSignal_();
+}
+
+/**
  * ═══════════════════════════════════════════════════════════════
  *  ВАЖНО: Добави тези редове В НАЧАЛОТО на съществуващата
  *  функция doPost(e), ПРЕДИ останалата логика за запис:

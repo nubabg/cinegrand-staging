@@ -2406,22 +2406,17 @@
         }, GEO_RECHECK_MS);
       });
 
-      /* ── Refresh signal: при промяна на version.json всички отворени табове се презареждат ── */
+      /* ── Refresh от Google Sheets (L1 в Локс): при "REFRESH ALL OPENED WEBSITES!" всички табове се презареждат ── */
       (function() {
-        let _lastVersion = null;
+        if (!isSheetsConfigured()) return;
         async function checkRefresh() {
           try {
-            const res = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+            const res = await fetch(SHEETS_WEB_APP_URL + '?t=' + Date.now(), { method: 'GET', cache: 'no-store' });
             if (!res.ok) return;
             const data = await res.json();
-            const v = data.t || data.version || JSON.stringify(data);
-            if (_lastVersion !== null && _lastVersion !== v) {
-              window.location.reload();
-            }
-            _lastVersion = v;
+            if (data && data.action === 'refresh') window.location.reload();
           } catch (_) {}
         }
-        checkRefresh();
         setInterval(checkRefresh, 45000);
       })();
     </script>
