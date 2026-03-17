@@ -1068,27 +1068,42 @@
       async function startInspectionWithLock(type, locationOverride) {
         if (_lockBusy) return false;
         const config = getConfig(type);
-        const loc = locationOverride && config.locations.includes(locationOverride) ? locationOverride : config.locations[0];
-        const sessionId = generateSessionId();
-        const lockResult = await acquireLock(type, loc, sessionId);
-        if (!lockResult.success) {
-          const locName = escapeHtml(loc);
-          const msg = lockResult.minutesLeft
-            ? locName + " се проверява в момента. Ще можете да започнете след ~" + lockResult.minutesLeft + " мин."
-            : locName + " се проверява в момента. След приключване на проверката ще можете да започнете.";
-          showToast(msg, "error");
-          return false;
+        if (locationOverride) {
+          const sessionId = generateSessionId();
+          const lockResult = await acquireLock(type, locationOverride, sessionId);
+          if (!lockResult.success) {
+            showLocationLocked(locationOverride, lockResult.error);
+            return false;
+          }
+          state.currentSessionId = sessionId;
+          _lockAcquiredAt = Date.now();
+          sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
+          startInspection(type, locationOverride);
+          return true;
         }
-        state.currentSessionId = sessionId;
-        _lockAcquiredAt = Date.now();
-        sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
-        startInspection(type, locationOverride);
-        return true;
+        /* Non-QR: опитай всяка локация докато намериш свободна */
+        for (const loc of config.locations) {
+          const sessionId = generateSessionId();
+          const lockResult = await acquireLock(type, loc, sessionId);
+          if (lockResult.success) {
+            state.currentSessionId = sessionId;
+            _lockAcquiredAt = Date.now();
+            sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
+            startInspection(type, loc);
+            return true;
+          }
+        }
+        showToast("Всички " + config.shortTitle.toLowerCase() + " се проверяват в момента. Опитайте след няколко минути.", "error");
+        return false;
       }
 
       let _submitBusy = false;
       async function submitInspection() {
         if (_submitBusy) return;
+        if (!state.currentSessionId) {
+          showToast("Няма активно заключване. Моля изберете локация отново.", "error");
+          return;
+        }
         if (isLockExpired()) {
           showToast("Времето за проверка изтече (" + LOCK_TIMEOUT_MIN + " мин). Моля сканирайте QR кода отново.", "error");
           return;
@@ -1939,7 +1954,7 @@
 
           <div class="panel" style="margin-bottom:16px;">
             <div class="grid cards-2">
-              <div class="field"><label>Локация *</label><select id="location-select" ${isQROnlySession() ? "disabled" : ""}>${config.locations.map((l) => `<option value="${l}" ${l === state.location ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+              <div class="field"><label>Локация *${!state.currentSessionId && !isQROnlySession() ? ' <span style="color:var(--red);font-size:11px;">(няма заключване)</span>' : ""}</label><select id="location-select" ${isQROnlySession() ? "disabled" : ""}>${config.locations.map((l) => `<option value="${l}" ${l === state.location ? "selected" : ""}>${l}</option>`).join("")}</select></div>
               <div class="field"><label>Проверяващ *</label><input id="inspector-input" value="${escapeHtml(state.inspector)}" placeholder="Пълно име…" />${state.showValidation && !state.inspector.trim() ? `<div style="color:var(--red);font-size:12px;">Задължително поле</div>` : state.showValidation && !/^[\u0400-\u04FF ]+$/.test(state.inspector.trim()) ? `<div style="color:var(--red);font-size:12px;">Само кирилица, без специални символи</div>` : ""}</div>
             </div>
             <div class="muted" style="font-size:13px;">Дата и час: ${fmt(new Date().toISOString())}</div>
@@ -2100,16 +2115,20 @@
           const oldLoc = state.location;
           if (newLoc === oldLoc) return;
           if (_lockBusy) { e.target.value = oldLoc; return; }
-          if (state.currentSessionId && !isQROnlySession()) {
+          if (!isQROnlySession()) {
             const oldSid = state.currentSessionId;
             const sessionId = generateSessionId();
             const lockResult = await acquireLock(state.inspectionType, newLoc, sessionId);
             if (!lockResult.success) {
-              showToast(lockResult.error || (newLoc + " вече се проверява."), "error");
+              const locName = escapeHtml(newLoc);
+              const msg = lockResult.minutesLeft
+                ? locName + " се проверява в момента. Опитайте след ~" + lockResult.minutesLeft + " мин."
+                : locName + " се проверява. Изберете друга локация.";
+              showToast(msg, "error");
               e.target.value = oldLoc;
               return;
             }
-            await releaseLock(oldSid);
+            if (oldSid) await releaseLock(oldSid);
             state.currentSessionId = sessionId;
             _lockAcquiredAt = Date.now();
             sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
