@@ -427,6 +427,87 @@
       @media (max-width: 900px) {
         .item-row { grid-template-columns: 1fr; }
       }
+
+      /* ── Charts Screen ── */
+      .charts-refresh {
+        background: rgba(200,120,24,.12); color: var(--gold);
+        border: 1px solid rgba(200,120,24,.28); border-radius: 12px;
+        padding: 9px 18px; cursor: pointer; font-size: 13px; font-weight: 600;
+        transition: background .15s, transform .1s;
+      }
+      .charts-refresh:hover { background: rgba(200,120,24,.22); transform: scale(1.04); }
+      .charts-loading {
+        display: flex; align-items: center; justify-content: center;
+        gap: 14px; padding: 80px 20px; color: var(--muted); font-size: 15px;
+      }
+      .charts-stat-row {
+        display: grid; grid-template-columns: repeat(4, 1fr);
+        gap: 12px; margin-bottom: 20px;
+      }
+      .charts-stat-pill {
+        display: flex; flex-direction: column; align-items: center;
+        gap: 4px; padding: 20px 16px;
+        background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
+        border: 1px solid rgba(255,255,255,.07); border-radius: 18px;
+        text-align: center;
+      }
+      .charts-stat-pill strong { font-family: "Oswald", sans-serif; font-size: 36px; line-height: 1; }
+      .charts-stat-pill span  { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; }
+      .charts-grid {
+        display: grid; grid-template-columns: repeat(2, 1fr);
+        gap: 16px; margin-bottom: 16px;
+      }
+      @media (max-width: 860px) {
+        .charts-grid { grid-template-columns: 1fr; }
+        .charts-stat-row { grid-template-columns: repeat(2, 1fr); }
+      }
+      .chart-card.full-width { grid-column: 1 / -1; }
+      .charts-table {
+        width: 100%; border-collapse: collapse; font-size: 13px;
+      }
+      .charts-table th {
+        text-align: left; padding: 10px 12px;
+        font-family: "Oswald", sans-serif; font-weight: 600;
+        font-size: 11px; text-transform: uppercase; letter-spacing: .1em;
+        color: var(--muted); border-bottom: 1px solid rgba(255,255,255,.08);
+      }
+      .charts-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(255,255,255,.04);
+        color: var(--muted);
+      }
+      .charts-table tr:last-child td { border-bottom: none; }
+      .charts-table tr:hover td { background: rgba(255,255,255,.02); }
+      .charts-bar-bg {
+        background: rgba(255,255,255,.06); border-radius: 6px; height: 8px; width: 100%; max-width: 200px;
+      }
+      .charts-bar-fill {
+        background: var(--gold); border-radius: 6px; height: 100%;
+      }
+      .chart-card {
+        background: linear-gradient(160deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,.015) 100%);
+        border: 1px solid rgba(255,255,255,.07); border-radius: 20px;
+        padding: 20px 20px 16px; position: relative; overflow: hidden;
+      }
+      .chart-card::before {
+        content: ''; position: absolute; inset: 0; border-radius: 20px;
+        background: linear-gradient(135deg, rgba(200,120,24,.06) 0%, transparent 60%);
+        pointer-events: none;
+      }
+      .chart-title {
+        font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 3px;
+        font-family: "Oswald", sans-serif; letter-spacing: .04em;
+      }
+      .chart-subtitle {
+        font-size: 11px; color: var(--muted); margin-bottom: 16px;
+        text-transform: uppercase; letter-spacing: .1em;
+      }
+      .chart-wrap { position: relative; }
+      .chart-empty {
+        display: flex; align-items: center; justify-content: center;
+        height: 100%; color: var(--muted); font-size: 13px;
+      }
+
       /* ── Bloom Background Effect ── */
       .bloom-layer {
         position: fixed; inset: 0;
@@ -1140,6 +1221,565 @@
           ${records.length ? renderRecentTable(records, false) : `<div class="panel" style="text-align:center;color:var(--muted);padding:60px 20px;">\u041d\u044f\u043c\u0430 \u0437\u0430\u043f\u0438\u0441\u0438 \u043f\u043e \u0442\u0435\u043a\u0443\u0449\u0438\u0442\u0435 \u0444\u0438\u043b\u0442\u0440\u0438.</div>`}
         </div>`;
       }
+      function barColor(p) { return p > 60 ? "var(--red)" : p > 30 ? "#f59e0b" : "var(--green)"; }
+
+      function renderBars(entries) {
+        return `<div class="bars">${entries.map(([label, data]) => {
+          const p = pct(data.issues, data.total);
+          return `<div>
+            <div class="bar-label"><span>${label}</span><span style="color:${barColor(p)};">${data.issues}/${data.total} - ${p}%</span></div>
+            <div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${barColor(p)};"></div></div>
+          </div>`;
+        }).join("")}</div>`;
+      }
+
+      function renderStats() {
+        const records = filteredRecords();
+        if (!records.length) return `<div class="page"><div class="panel" style="text-align:center;color:var(--muted);padding:60px 20px;">\u041d\u044f\u043c\u0430 \u0434\u0430\u043d\u043d\u0438 \u0437\u0430 \u0438\u0437\u0431\u0440\u0430\u043d\u0438\u044f \u043f\u0435\u0440\u0438\u043e\u0434.</div></div>`;
+        const stats = computeStats(records);
+        const totalDirty = records.reduce((s, r) => s + dirtyItems(r).length, 0);
+        const totalClean = records.reduce((s, r) => s + r.items.filter((i) => i.status === STATUS.CLEAN).length, 0);
+        const overall = pct(totalDirty, totalClean + totalDirty);
+        const topIssue = Object.entries(stats.byItem).sort((a, b) => pct(b[1].issues, b[1].total) - pct(a[1].issues, a[1].total))[0];
+        const topLocation = Object.entries(stats.byLocation).sort((a, b) => pct(b[1].issues, b[1].total) - pct(a[1].issues, a[1].total))[0];
+        const trafficText = overall === 0 ? "\u0417\u0415\u041b\u0415\u041d\u041e - \u041e\u0442\u043b\u0438\u0447\u043d\u043e" : overall <= 20 ? "\u0416\u042a\u041b\u0422\u041e - \u0414\u043e\u0431\u0440\u043e" : overall <= 50 ? "\u041e\u0420\u0410\u041d\u0416\u0415\u0412\u041e - \u041d\u0443\u0436\u043d\u043e \u0432\u043d\u0438\u043c\u0430\u043d\u0438\u0435" : "\u0427\u0415\u0420\u0412\u0415\u041d\u041e - \u041a\u0440\u0438\u0442\u0438\u0447\u043d\u043e";
+
+        return `<div class="page">
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="toolbar"><h3 class="section-title" style="margin:0;">\u041e\u0431\u0449\u0430 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u043d\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438\u0442\u0435</h3><span class="meta-chip">${rangeLabel(state.statsRange)}</span></div>
+            <div class="muted" style="margin-bottom:14px;">\u0422\u0443\u043a \u0441\u0435 \u043e\u0431\u043e\u0431\u0449\u0430\u0432\u0430\u0442 \u0432\u0441\u0438\u0447\u043a\u0438 \u0437\u0430\u043f\u0438\u0441\u0430\u043d\u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u0437\u0430 \u0438\u0437\u0431\u0440\u0430\u043d\u0438\u044f \u043f\u0435\u0440\u0438\u043e\u0434.</div>
+            <div class="toolbar toolbar-controls">
+              <div class="tabs">${RANGE_OPTIONS.map(([v, l]) => `<button class="tab ${state.statsRange === v ? "active" : ""}" data-action="set-range" data-value="${v}">${l}</button>`).join("")}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <select id="export-range-select" style="min-width:180px;">${renderRangeOptions(state.exportRange)}</select>
+                <button class="btn btn-outline" data-action="export-pdf">PDF</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid cards-4" style="margin-bottom:16px;">${[
+            ["\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0438", records.length, "var(--gold)"],
+            ["\u041f\u0440\u043e\u0431\u043b\u0435\u043c\u0438", totalDirty, "var(--red)"],
+            ["\u0427\u0438\u0441\u0442\u0438", totalClean, "var(--green)"],
+            ["% \u041f\u0440\u043e\u0431\u043b\u0435\u043c", overall + "%", "var(--text)"],
+          ].map(([l, v, c]) => `<div class="panel stat"><div class="muted">${l}</div><strong style="color:${c};">${v}</strong></div>`).join("")}</div>
+
+          <div class="panel" style="margin-bottom:16px;border-left:4px solid ${barColor(overall)};"><strong>${trafficText}</strong><div class="muted" style="margin-top:6px;">\u041e\u0431\u0449\u0430 \u043e\u0446\u0435\u043d\u043a\u0430 \u0437\u0430 \u043f\u0435\u0440\u0438\u043e\u0434\u0430</div></div>
+
+          <div class="grid cards-2 cg-chart-grid" style="margin-bottom:16px;">
+            ${topIssue ? `<div class="panel"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.12em;">\u041d\u0430\u0439-\u0447\u0435\u0441\u0442 \u043f\u0440\u043e\u0431\u043b\u0435\u043c</div><h3 class="section-title" style="color:var(--red);">${topIssue[0]}</h3><div class="muted">${topIssue[1].issues}/${topIssue[1].total} \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 - ${pct(topIssue[1].issues, topIssue[1].total)}%</div></div>` : ""}
+            ${topLocation ? `<div class="panel"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.12em;">\u041d\u0430\u0439-\u043f\u0440\u043e\u0431\u043b\u0435\u043c\u043d\u0430 \u043b\u043e\u043a\u0430\u0446\u0438\u044f</div><h3 class="section-title" style="color:#fbbf24;">${topLocation[0]}</h3><div class="muted">${topLocation[1].issues} \u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0430</div></div>` : ""}
+          </div>
+
+          <div class="grid cards-2 cg-chart-grid">
+            <div class="panel"><h3 class="section-title">\u041f\u043e \u043b\u043e\u043a\u0430\u0446\u0438\u044f</h3>${renderBars(Object.entries(stats.byLocation))}</div>
+            <div class="panel"><h3 class="section-title">\u041f\u043e \u0435\u043b\u0435\u043c\u0435\u043d\u0442</h3>${renderBars(Object.entries(stats.byItem))}</div>
+          </div>
+        </div>`;
+      }
+
+      /* ── Charts Screen ──────────────────────────────────────────────────── */
+      function renderCharts() {
+        return `<div class="page">
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="toolbar">
+              <div>
+                <h3 class="section-title" style="margin:0;">Данни</h3>
+                <div class="muted" style="font-size:13px;margin-top:4px;">Данни от Google Sheets — актуални</div>
+              </div>
+              <button class="charts-refresh" data-action="refresh-charts">⟳ Обнови</button>
+            </div>
+          </div>
+          <div id="charts-container">
+            <div class="charts-loading"><div class="spinner"></div><span>Зарежда от Sheets…</span></div>
+          </div>
+        </div>`;
+      }
+
+      function parseCSV(text) {
+        const lines = text.trim().split(/\r?\n/);
+        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+        return lines.slice(1).filter(l => l.trim()).map(line => {
+          const cols = [];
+          let cur = '', inQ = false;
+          for (const ch of line) {
+            if (ch === '"') { inQ = !inQ; }
+            else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
+            else { cur += ch; }
+          }
+          cols.push(cur);
+          return Object.fromEntries(headers.map((h, i) => [h, (cols[i] || '').trim().replace(/^"|"$/g, '')]));
+        });
+      }
+
+      /* Намира колона по частично/case-insensitive съвпадение */
+      function colVal(row, ...candidates) {
+        const keys = Object.keys(row);
+        for (const cand of candidates) {
+          const match = keys.find(k => k.toUpperCase().includes(cand.toUpperCase()));
+          if (match && row[match] !== undefined) return row[match] || '';
+        }
+        return '';
+      }
+
+      async function fetchSheetsData() {
+        const SHEET_ID = '17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA';
+        // Опит 1: Google Visualization API (gviz/tq) — без CORS проблеми
+        try {
+          const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0`;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const text = await res.text();
+          // Robust JSONP strip: намираме първото { и последното }
+          const start = text.indexOf('{');
+          const end   = text.lastIndexOf('}');
+          if (start === -1 || end === -1) throw new Error('Неочакван формат на отговора');
+          const json = JSON.parse(text.slice(start, end + 1));
+          if (!json.table) throw new Error('Липсва table в отговора');
+          const cols = json.table.cols.map(c => (c.label || c.id || '').trim());
+          const rows = (json.table.rows || []).map(row => {
+            const obj = {};
+            cols.forEach((col, i) => {
+              const cell = row.c && row.c[i];
+              obj[col] = cell ? (cell.f != null ? String(cell.f) : cell.v != null ? String(cell.v) : '') : '';
+            });
+            return obj;
+          });
+          // Филтрираме редове без данни
+          return rows.filter(r => Object.values(r).some(v => v !== ''));
+        } catch (err) {
+          console.warn('gviz/tq неуспешен:', err.message, '— опитвам CSV');
+        }
+        // Опит 2: CSV export (изисква таблицата да е публично споделена)
+        const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
+        const res2 = await fetch(csvUrl);
+        if (!res2.ok) throw new Error('HTTP ' + res2.status + ' при CSV export');
+        const csv = await res2.text();
+        return parseCSV(csv);
+      }
+
+      /* Парсва дата от различни формати */
+      function parseChartDate(str) {
+        if (!str) return null;
+        let m = str.match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/);
+        if (m) return new Date(+m[3], +m[2]-1, +m[1]);
+        m = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+        const d = new Date(str);
+        return isNaN(d) ? null : d;
+      }
+      function fmtChartDate(d) {
+        return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0');
+      }
+
+      async function initChartsScreen() {
+        const container = document.getElementById('charts-container');
+        if (!container) return;
+
+        if (typeof Chart === 'undefined') {
+          container.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--red);">Chart.js не е заредена. Проверете интернет връзката.</div>`;
+          return;
+        }
+
+        container.innerHTML = '<div class="charts-loading"><div class="spinner"></div><span>Зарежда от Sheets…</span></div>';
+
+        let rows;
+        try {
+          rows = await fetchSheetsData();
+          if (rows.length > 0) {
+            console.log('[Charts] Колони:', Object.keys(rows[0]));
+            console.log('[Charts] Заредени редове:', rows.length);
+          }
+        } catch(e) {
+          container.innerHTML = `
+            <div class="panel" style="text-align:center;padding:60px 20px;">
+              <div style="font-size:32px;margin-bottom:16px;">&#9888;</div>
+              <div style="color:var(--red);font-weight:700;margin-bottom:8px;">Грешка при зареждане</div>
+              <div style="color:var(--muted);font-size:13px;">${e.message}</div>
+              <div style="margin-top:16px;font-size:12px;color:var(--muted);">Уверете се, че таблицата е споделена публично.</div>
+            </div>`;
+          return;
+        }
+        if (!rows || rows.length === 0) {
+          container.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--muted);">Няма данни в таблицата.</div>`;
+          return;
+        }
+
+        /* ── Агрегации ── */
+        const byInspector = {}, byIssue = {}, byLocation = {}, byDay = {}, byHour = {};
+        const byStatus = { 'ЧИСТА': 0, 'МРЪСНА': 0 };
+        const locationSet = new Set();
+
+        rows.forEach(r => {
+          const insp = colVal(r, 'ПРОВЕРЯВАЩ', 'INSPECTOR', 'EMPLOYEE', 'СЛУЖИТЕЛ', 'ИМЕ') || '?';
+          const rawLoc = colVal(r, 'ТИП', 'TYPE', 'ЛОКАЦИЯ', 'LOCATION', 'ЗАЛА') || '?';
+          const loc = rawLoc.replace('Кинозала - ', 'Зала ').replace('Тоалетна - ', 'Тоал. ');
+          const stat = (colVal(r, 'СТАТУС', 'STATUS', 'РЕЗУЛТАТ') || '').toUpperCase().trim();
+          const dateStr = colVal(r, 'ДАТА', 'DATE', 'TIMESTAMP', 'INSPECTED', 'ПРОВЕРКА');
+          const issues = colVal(r, 'ПРОБЛЕМИ', 'ISSUES', 'БЕЛЕЖКИ', 'NOTES');
+
+          locationSet.add(loc);
+          byInspector[insp] = (byInspector[insp] || 0) + 1;
+          byLocation[loc]   = (byLocation[loc]   || 0) + 1;
+
+          if (stat.includes('ЧИСТ')) byStatus['ЧИСТА']++;
+          else if (stat.includes('МРЪСН') || stat.includes('ПРОБЛЕМ')) byStatus['МРЪСНА']++;
+
+          const date = parseChartDate(dateStr);
+          if (date) {
+            const dayKey = fmtChartDate(date);
+            byDay[dayKey] = (byDay[dayKey] || 0) + 1;
+            const hour = date.getHours();
+            if (!isNaN(hour)) {
+              const hKey = String(hour).padStart(2,'0') + ':00';
+              byHour[hKey] = (byHour[hKey] || 0) + 1;
+            }
+          }
+
+          if (issues && issues !== '—' && issues !== '-') {
+            issues.split(/[,;]+/).forEach(iss => {
+              const k = iss.trim();
+              if (k && k !== '—' && k !== '-') byIssue[k] = (byIssue[k] || 0) + 1;
+            });
+          }
+        });
+
+        const total = rows.length;
+        const cleanCount   = byStatus['ЧИСТА'] || 0;
+        const problemCount = byStatus['МРЪСНА'] || 0;
+        const cleanPct   = total ? Math.round(cleanCount / total * 100) : 0;
+        const problemPct = total ? Math.round(problemCount / total * 100) : 0;
+
+        /* Дневен тренд (последни 30 дни) */
+        const dayKeys = Object.keys(byDay).sort((a,b) => {
+          const [da,ma] = a.split('.'); const [db,mb] = b.split('.');
+          return (ma+da).localeCompare(mb+db);
+        }).slice(-30);
+
+        /* Часово разпределение */
+        const hourLabels = [], hourData = [];
+        for (let h = 0; h < 24; h++) {
+          const hk = String(h).padStart(2,'0') + ':00';
+          hourLabels.push(hk);
+          hourData.push(byHour[hk] || 0);
+        }
+
+        const inspEntries = Object.entries(byInspector).sort((a,b) => b[1]-a[1]);
+        const issEntries  = Object.entries(byIssue).sort((a,b) => b[1]-a[1]).slice(0,10);
+        const locEntries  = Object.entries(byLocation).sort((a,b) => b[1]-a[1]);
+
+        /* ── HTML ── */
+        container.innerHTML = `
+          <div class="charts-stat-row">
+            <div class="charts-stat-pill">
+              <strong style="color:var(--gold);">${total}</strong>
+              <span>Общо проверки</span>
+            </div>
+            <div class="charts-stat-pill">
+              <strong style="color:var(--green);">${cleanPct}%</strong>
+              <span>Чисти</span>
+            </div>
+            <div class="charts-stat-pill">
+              <strong style="color:var(--red);">${problemCount}</strong>
+              <span>Проблемни</span>
+            </div>
+            <div class="charts-stat-pill">
+              <strong style="color:var(--blue);">${locationSet.size}</strong>
+              <span>Локации</span>
+            </div>
+          </div>
+
+          <!-- Ред 1: Дневен тренд + Статус -->
+          <div class="charts-grid">
+            <div class="chart-card">
+              <div class="chart-title">Проверки по дни</div>
+              <div class="chart-subtitle">Дневна активност (последни ${dayKeys.length} дни)</div>
+              <div class="chart-wrap" style="height:270px;"><canvas id="chart-daily"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title">Чисто vs Проблем</div>
+              <div class="chart-subtitle">Обща оценка на всички проверки</div>
+              <div class="chart-wrap" style="height:270px;"><canvas id="chart-status"></canvas></div>
+            </div>
+          </div>
+
+          <!-- Ред 2: Служители + Проблеми -->
+          <div class="charts-grid">
+            <div class="chart-card">
+              <div class="chart-title">Проверки по служител</div>
+              <div class="chart-subtitle">Брой проверки на всеки служител</div>
+              <div class="chart-wrap" style="height:${Math.max(220, inspEntries.length * 36)}px;"><canvas id="chart-inspector"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title">Топ проблеми</div>
+              <div class="chart-subtitle">Най-често срещани нередности</div>
+              <div class="chart-wrap" style="height:270px;" id="chart-issues-wrap"><canvas id="chart-issues"></canvas></div>
+            </div>
+          </div>
+
+          <!-- Ред 3: Локации + Часове -->
+          <div class="charts-grid">
+            <div class="chart-card">
+              <div class="chart-title">Проверки по локация</div>
+              <div class="chart-subtitle">Разпределение по зали и тоалетни</div>
+              <div class="chart-wrap" style="height:270px;"><canvas id="chart-location"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title">Активност по часове</div>
+              <div class="chart-subtitle">Разпределение в денонощието</div>
+              <div class="chart-wrap" style="height:270px;"><canvas id="chart-hourly"></canvas></div>
+            </div>
+          </div>
+
+          <!-- Таблица служители -->
+          <div class="chart-card" style="margin-bottom:16px;">
+            <div class="chart-title">Детайли по служители</div>
+            <div class="chart-subtitle">Брой проверки и процент от общите</div>
+            <table class="charts-table">
+              <thead><tr><th>#</th><th>Служител</th><th>Проверки</th><th>% от общо</th><th>Визуализация</th></tr></thead>
+              <tbody>
+                ${inspEntries.map(([name, count], i) => `<tr>
+                  <td style="color:var(--muted-2);">${i+1}</td>
+                  <td style="color:var(--text);font-weight:600;">${name}</td>
+                  <td>${count}</td>
+                  <td>${Math.round(count/total*100)}%</td>
+                  <td><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${Math.round(count/inspEntries[0][1]*100)}%;"></div></div></td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>`;
+
+        /* ── Chart.js глобални настройки ── */
+        Chart.defaults.color = '#8a97aa';
+        Chart.defaults.borderColor = 'rgba(255,255,255,.06)';
+        Chart.defaults.font.family = '"DM Sans","Segoe UI",sans-serif';
+        Chart.defaults.font.size = 12;
+        Chart.defaults.animation = { duration: 700, easing: 'easeOutQuart' };
+
+        const PALETTE = [
+          '#c87818','#62a9ff','#2dcc70','#ef5b5b',
+          '#fbbf24','#a78bfa','#38bdf8','#34d399',
+          '#f472b6','#fb923c'
+        ];
+
+        const tooltipDefaults = {
+          backgroundColor: 'rgba(15,20,28,.92)',
+          borderColor: 'rgba(255,255,255,.1)',
+          borderWidth: 1,
+          padding: { top:10, bottom:10, left:14, right:14 },
+          titleColor: '#e8edf4',
+          bodyColor: '#8a97aa',
+          cornerRadius: 12,
+          boxPadding: 6,
+        };
+
+        /* 1. Line chart — дневен тренд */
+        new Chart(document.getElementById('chart-daily'), {
+          type: 'line',
+          data: {
+            labels: dayKeys,
+            datasets: [{
+              data: dayKeys.map(k => byDay[k] || 0),
+              borderColor: '#c87818',
+              backgroundColor: 'rgba(200,120,24,.15)',
+              borderWidth: 2.5, fill: true, tension: 0.35,
+              pointRadius: 3, pointBackgroundColor: '#c87818',
+              pointBorderColor: '#c87818', pointHoverRadius: 6,
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.parsed.y} проверки` } }
+            },
+            scales: {
+              x: {
+                grid: { color: 'rgba(255,255,255,.04)' },
+                ticks: { maxRotation: 45, color: '#6b7a8d', font: { size: 10 }, maxTicksLimit: 15 },
+                border: { display: false }
+              },
+              y: {
+                grid: { color: 'rgba(255,255,255,.05)' },
+                ticks: { stepSize: 1, color: '#6b7a8d' },
+                border: { display: false }, beginAtZero: true
+              }
+            }
+          }
+        });
+
+        /* 2. Doughnut — Чисто vs Проблем с централен текст */
+        const centerTextPlugin = {
+          id: 'centerText',
+          afterDraw(chart) {
+            if (chart.canvas.id !== 'chart-status') return;
+            const { ctx, chartArea: { left, top, right, bottom } } = chart;
+            const cx = (left + right) / 2, cy = (top + bottom) / 2;
+            ctx.save();
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#2dcc70';
+            ctx.font = 'bold 32px "Oswald", sans-serif';
+            ctx.fillText(cleanPct + '%', cx, cy - 10);
+            ctx.fillStyle = '#6b7a8d';
+            ctx.font = '11px "DM Sans", sans-serif';
+            ctx.fillText('ЧИСТО', cx, cy + 14);
+            ctx.restore();
+          }
+        };
+        new Chart(document.getElementById('chart-status'), {
+          type: 'doughnut',
+          plugins: [centerTextPlugin],
+          data: {
+            labels: ['Чисто', 'Проблем'],
+            datasets: [{
+              data: [cleanCount, problemCount],
+              backgroundColor: ['rgba(45,204,112,.75)','rgba(239,91,91,.65)'],
+              borderColor: 'rgba(15,20,28,.6)',
+              borderWidth: 2, hoverOffset: 14, spacing: 3,
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, cutout: '72%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { boxWidth: 10, padding: 18, usePointStyle: true, pointStyle: 'circle', color: '#8a97aa', font: { size: 12 } }
+              },
+              tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.label}: ${ctx.parsed} (${total ? Math.round(ctx.parsed/total*100) : 0}%)` } }
+            }
+          }
+        });
+
+        /* 3. Horizontal bar — служители */
+        new Chart(document.getElementById('chart-inspector'), {
+          type: 'bar',
+          data: {
+            labels: inspEntries.map(e => e[0]),
+            datasets: [{
+              data: inspEntries.map(e => e[1]),
+              backgroundColor: inspEntries.map((_,i) => PALETTE[i % PALETTE.length] + 'bb'),
+              borderColor:     inspEntries.map((_,i) => PALETTE[i % PALETTE.length]),
+              borderWidth: 1, borderRadius: 8, borderSkipped: false,
+              barPercentage: 0.72,
+            }]
+          },
+          options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.parsed.x} проверки` } }
+            },
+            scales: {
+              x: {
+                grid: { color: 'rgba(255,255,255,.05)', lineWidth: 1 },
+                ticks: { stepSize: 1, color: '#6b7a8d' },
+                border: { display: false }
+              },
+              y: {
+                grid: { display: false },
+                ticks: { color: '#9ba8b9', font: { weight: '600' } },
+                border: { display: false }
+              }
+            }
+          }
+        });
+
+        /* 4. Doughnut — топ проблеми */
+        if (issEntries.length) {
+          new Chart(document.getElementById('chart-issues'), {
+            type: 'doughnut',
+            data: {
+              labels: issEntries.map(e => e[0]),
+              datasets: [{
+                data: issEntries.map(e => e[1]),
+                backgroundColor: PALETTE.slice(0, issEntries.length).map(c => c + 'bb'),
+                borderColor: 'rgba(15,20,28,.6)',
+                borderWidth: 2, hoverOffset: 12, spacing: 2,
+              }]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false, cutout: '65%',
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: { boxWidth: 8, padding: 12, usePointStyle: true, pointStyle: 'circle', color: '#8a97aa', font: { size: 10 } }
+                },
+                tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.label}: ${ctx.parsed}` } }
+              }
+            }
+          });
+        } else {
+          document.getElementById('chart-issues-wrap').innerHTML =
+            '<div class="chart-empty">Няма регистрирани проблеми</div>';
+        }
+
+        /* 5. Vertical bar — локации */
+        new Chart(document.getElementById('chart-location'), {
+          type: 'bar',
+          data: {
+            labels: locEntries.map(e => e[0]),
+            datasets: [{
+              data: locEntries.map(e => e[1]),
+              backgroundColor: 'rgba(98,169,255,.5)',
+              borderColor: '#62a9ff', borderWidth: 1,
+              borderRadius: 8, borderSkipped: false, barPercentage: 0.65,
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.parsed.y} проверки` } }
+            },
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { maxRotation: 45, color: '#6b7a8d', font: { size: 10 } },
+                border: { display: false }
+              },
+              y: {
+                grid: { color: 'rgba(255,255,255,.05)' },
+                ticks: { stepSize: 1, color: '#6b7a8d' },
+                border: { display: false }, beginAtZero: true
+              }
+            }
+          }
+        });
+
+        /* 6. Bar chart — часово разпределение */
+        new Chart(document.getElementById('chart-hourly'), {
+          type: 'bar',
+          data: {
+            labels: hourLabels,
+            datasets: [{
+              data: hourData,
+              backgroundColor: 'rgba(167,139,250,.45)',
+              borderColor: '#a78bfa', borderWidth: 1,
+              borderRadius: 6, borderSkipped: false, barPercentage: 0.8,
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: { ...tooltipDefaults, callbacks: { label: ctx => `  ${ctx.parsed.y} проверки в ${ctx.label}` } }
+            },
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { color: '#6b7a8d', font: { size: 10 }, maxTicksLimit: 12 },
+                border: { display: false }
+              },
+              y: {
+                grid: { color: 'rgba(255,255,255,.05)' },
+                ticks: { stepSize: 1, color: '#6b7a8d' },
+                border: { display: false }, beginAtZero: true
+              }
+            }
+          }
+        });
+      }
+
       function renderInspection() {
         const config = getConfig(state.inspectionType);
         const filledCount = config.items.filter((i) => isFilled(state.itemState[i.id])).length;
