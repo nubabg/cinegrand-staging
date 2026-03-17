@@ -970,9 +970,24 @@
 
       function showToast(msg, type = "success") {
         state.toast = { msg, type };
-        render();
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => { state.toast = null; render(); }, 4000);
+        /* На charts екрана не правим пълен render — вмъкваме toast директно */
+        if (state.screen === "charts" && _chartsLoading === false) {
+          let toastEl = document.getElementById("live-toast");
+          if (!toastEl) {
+            toastEl = document.createElement("div");
+            toastEl.id = "live-toast";
+            document.body.appendChild(toastEl);
+          }
+          toastEl.className = "toast " + type;
+          toastEl.setAttribute("role", "status");
+          toastEl.textContent = msg;
+          toastEl.style.display = "block";
+          toastTimer = setTimeout(() => { toastEl.style.display = "none"; state.toast = null; }, 4000);
+        } else {
+          render();
+          toastTimer = setTimeout(() => { state.toast = null; render(); }, 4000);
+        }
       }
 
       /* ── Google Sheets Sync ── */
@@ -1517,7 +1532,7 @@
       let _chartsLoading = false;
       async function initChartsScreen() {
         if (_chartsLoading) return;
-        const container = document.getElementById('charts-container');
+        let container = document.getElementById('charts-container');
         if (!container) return;
 
         if (typeof Chart === 'undefined') {
@@ -1536,7 +1551,8 @@
         let rows;
         try {
           rows = await fetchSheetsData();
-          if (state.screen !== "charts") { _chartsLoading = false; return; }
+          container = document.getElementById('charts-container');
+          if (!container || state.screen !== "charts") { _chartsLoading = false; return; }
           if (rows.length > 0) {
             console.log('[Charts] Колони:', Object.keys(rows[0]));
             console.log('[Charts] Заредени редове:', rows.length);
