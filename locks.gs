@@ -11,7 +11,7 @@
  */
 
 var LOCK_SHEET_NAME = "Locks";
-var LOCK_TIMEOUT_MIN = 45;
+var LOCK_TIMEOUT_MIN = 10;
 var LOCK_SPREADSHEET_ID = "ПОСТАВИ_ТУКА_ID_НА_LOCKS_ТАБЛИЦАТА";
 
 function getLockSheet_() {

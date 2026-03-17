@@ -622,7 +622,8 @@
 
       /* ── Location Inspection Locks ── */
       const LOCK_SESSION_KEY = "cg_lock_session";
-      const LOCK_TIMEOUT_MIN = 45;
+      const LOCK_WHITELISTED_KEY = "cg_ip_whitelisted";
+      const LOCK_TIMEOUT_MIN = 10;
 
       function getQRCooldownRemaining(type, loc) {
         try {
@@ -654,8 +655,8 @@
             headers: { "Content-Type": "text/plain;charset=UTF-8" },
             body: JSON.stringify({ action: "acquireLock", type, location, sessionId }),
           });
-          if (!res.ok) return { success: false, error: "HTTP " + res.status };
-          return await res.json();
+          if (!res.ok) return { success: true, offline: true };
+          try { return await res.json(); } catch (_) { return { success: true, offline: true }; }
         } catch (err) {
           console.warn("[Lock] acquireLock failed:", err.message);
           return { success: true, offline: true };
@@ -695,12 +696,15 @@
       }
 
       function showLocationLocked(location, errorMsg) {
+        const msg = errorMsg
+          ? escapeHtml(errorMsg)
+          : (escapeHtml(location) + " вече се проверява от друг потребител. Опитайте след ~" + LOCK_TIMEOUT_MIN + " мин.");
         document.getElementById("app").innerHTML = `
           <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
             <div style="text-align:center;max-width:400px;">
               <div style="width:72px;height:72px;border-radius:50%;background:rgba(239,91,91,.15);border:1px solid rgba(239,91,91,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:32px;">🔒</div>
               <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;">ЛОКАЦИЯТА Е ЗАЕТА</div>
-              <div style="color:var(--muted);font-size:14px;line-height:1.6;">${errorMsg || (escapeHtml(location) + " вече се проверява от друг потребител. Опитайте след ~" + LOCK_TIMEOUT_MIN + " мин.")}</div>
+              <div style="color:var(--muted);font-size:14px;line-height:1.6;">${msg}</div>
             </div>
           </div>`;
       }
@@ -782,6 +786,7 @@
           const { ip } = await res.json();
           isWhitelistedIP = ACCESS_ALLOWED_IPS.includes(ip);
         } catch (_) {}
+        sessionStorage.setItem(LOCK_WHITELISTED_KEY, isWhitelistedIP ? "1" : "0");
 
         const params = new URLSearchParams(window.location.search || (window.location.hash.startsWith("#") ? window.location.hash.slice(1) : ""));
         /* QR достъп — URL съдържа QR параметри */
@@ -1053,7 +1058,11 @@
         const sessionId = generateSessionId();
         const lockResult = await acquireLock(type, loc, sessionId);
         if (!lockResult.success) {
-          showToast(lockResult.error || (loc + " вече се проверява."), "error");
+          const locName = escapeHtml(loc);
+          const msg = lockResult.minutesLeft
+            ? locName + " се проверява в момента. Ще можете да започнете след ~" + lockResult.minutesLeft + " мин."
+            : locName + " се проверява в момента. След приключване на проверката ще можете да започнете.";
+          showToast(msg, "error");
           return false;
         }
         state.currentSessionId = sessionId;
@@ -2067,9 +2076,7 @@
           const oldLoc = state.location;
           if (newLoc === oldLoc) return;
           if (state.currentSessionId && !isQROnlySession()) {
-            await releaseLock(state.currentSessionId);
-            state.currentSessionId = null;
-            sessionStorage.removeItem(LOCK_SESSION_KEY);
+            const oldSid = state.currentSessionId;
             const sessionId = generateSessionId();
             const lockResult = await acquireLock(state.inspectionType, newLoc, sessionId);
             if (!lockResult.success) {
@@ -2077,6 +2084,7 @@
               e.target.value = oldLoc;
               return;
             }
+            await releaseLock(oldSid);
             state.currentSessionId = sessionId;
             sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
           }
@@ -2100,7 +2108,7 @@
         if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection")) return;
         if (action === "go-home") { cleanupSessionLock(); state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
-        if (action === "go-charts") { state.screen = "charts"; render(); initChartsScreen(); return; }
+        if (action === "go-charts") { cleanupSessionLock(); state.screen = "charts"; render(); initChartsScreen(); return; }
         if (action === "refresh-charts") { initChartsScreen(); return; }
 
         /* Inspection item status — targeted update, no full re-render */
@@ -2197,26 +2205,20 @@
             try { history.replaceState({}, "", window.location.origin + window.location.pathname); } catch (_) {}
           }
         } else if (sessionStorage.getItem(QR_MODE_KEY) === "1") {
-          /* QR сесия след reload (pull-to-refresh) — възстанови inspection екрана */
+          /* QR сесия след reload (pull-to-refresh) — винаги re-acquire lock */
           const savedType = sessionStorage.getItem(QR_TYPE_KEY) || "hall";
           const savedLoc  = sessionStorage.getItem(QR_LOC_KEY)  || "";
           const config = getConfig(savedType);
           const decodedLoc = decodeURIComponent(savedLoc.replace(/\+/g, "%20"));
           const resolvedLoc = config.locations.includes(decodedLoc) ? decodedLoc : config.locations[0];
-          /* Re-acquire lock on reload (previous lock may still be valid via sessionStorage) */
-          const prevSid = sessionStorage.getItem(LOCK_SESSION_KEY);
-          if (prevSid) {
-            state.currentSessionId = prevSid;
-          } else {
-            const sessionId = generateSessionId();
-            const lockResult = await acquireLock(savedType, resolvedLoc, sessionId);
-            if (!lockResult.success) {
-              showLocationLocked(resolvedLoc, lockResult.error);
-              return;
-            }
-            state.currentSessionId = sessionId;
-            sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
+          const sessionId = generateSessionId();
+          const lockResult = await acquireLock(savedType, resolvedLoc, sessionId);
+          if (!lockResult.success) {
+            showLocationLocked(resolvedLoc, lockResult.error);
+            return;
           }
+          state.currentSessionId = sessionId;
+          sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
           state.openedFromQR = true;
           Object.assign(state, { inspectionType: savedType, location: resolvedLoc, inspector: "", itemState: {}, notes: "", showValidation: false, screen: "inspection" });
         }
@@ -2241,11 +2243,7 @@
         /* Whitelisted IP-та се пропускат — могат да работят отвсякъде */
         setInterval(async function() {
           if (sessionStorage.getItem(QR_MODE_KEY) !== "1") return;
-          try {
-            const ipRes = await fetch("https://api.ipify.org?format=json");
-            const { ip } = await ipRes.json();
-            if (ACCESS_ALLOWED_IPS.includes(ip)) return;
-          } catch (_) {}
+          if (sessionStorage.getItem(LOCK_WHITELISTED_KEY) === "1") return;
           const pos = await getGeolocation();
           if (!pos || !isNearCinema(pos.lat, pos.lng)) {
             const sid = state.currentSessionId || sessionStorage.getItem(LOCK_SESSION_KEY);
