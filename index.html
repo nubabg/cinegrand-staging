@@ -1062,7 +1062,7 @@
 
       function pct(issues, total) { return total > 0 ? Math.round((issues / total) * 100) : 0; }
       function isFilled(v) { return v === STATUS.CLEAN || v === STATUS.DIRTY; }
-      function dirtyItems(record) { return record.items.filter((i) => i.status === STATUS.DIRTY); }
+      function dirtyItems(record) { return (record && record.items || []).filter((i) => i && i.status === STATUS.DIRTY); }
 
       function escapeHtml(v) {
         return String(v || "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
@@ -1079,9 +1079,12 @@
       function recordsForRange(range) {
         const now = new Date();
         return state.records.filter((r) => {
-          const d = new Date(r.timestamp);
-          if (range === "today") return d.toDateString() === now.toDateString();
-          return now - d < 7 * 86400000;
+          try {
+            const d = new Date(r && r.timestamp);
+            if (isNaN(d.getTime())) return false;
+            if (range === "today") return d.toDateString() === now.toDateString();
+            return now - d < 7 * 86400000;
+          } catch (_) { return false; }
         });
       }
 
@@ -1296,7 +1299,7 @@
         if (!/^[\u0400-\u04FF ]+$/.test(state.inspector.trim())) { showToast("Името трябва да е само на кирилица, без специални символи.", "error"); return; }
         if (!allFilled) { showToast("Всички точки трябва да бъдат попълнени.", "error"); render(); return; }
         _submitBusy = true;
-
+        try {
         const record = {
           id: Date.now(),
           type: state.inspectionType,
@@ -1330,7 +1333,6 @@
         if (sessionStorage.getItem(QR_MODE_KEY) === "1") {
           setQRCooldown(state.inspectionType, state.location);
           state.openedFromQR = false;
-          _submitBusy = false;
           setTimeout(() => {
             sessionStorage.removeItem(QR_SESSION_KEY);
             sessionStorage.removeItem(QR_MODE_KEY);
@@ -1340,9 +1342,11 @@
           }, 1200);
           return;
         }
-        _submitBusy = false;
         state.screen = "home";
         render();
+        } finally {
+          _submitBusy = false;
+        }
       }
 
       /* ── Export ── */
@@ -1570,9 +1574,10 @@
       }
 
       function parseCSV(text) {
-        const lines = text.trim().split(/\r?\n/);
+        const lines = (text || '').trim().split(/\r?\n/).filter(line => line.trim());
+        if (lines.length === 0) return [];
         const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-        return lines.slice(1).filter(l => l.trim()).map(line => {
+        return lines.slice(1).filter(l => l && l.trim()).map(line => {
           const cols = [];
           let cur = '', inQ = false;
           for (const ch of line) {
@@ -1587,6 +1592,7 @@
 
       /* Намира колона по частично/case-insensitive съвпадение */
       function colVal(row, ...candidates) {
+        if (!row || typeof row !== 'object') return '';
         const keys = Object.keys(row);
         for (const cand of candidates) {
           const match = keys.find(k => k.toUpperCase().includes(cand.toUpperCase()));
@@ -1611,13 +1617,14 @@
           if (!json.table) throw new Error('Липсва table');
           const cols = json.table.cols.map(c => (c.label || c.id || '').trim());
           return (json.table.rows || []).map(row => {
+            if (!row || !row.c) return null;
             const obj = {};
             cols.forEach((col, i) => {
-              const cell = row.c && row.c[i];
+              const cell = row.c[i];
               obj[col] = cell ? (cell.f != null ? String(cell.f) : cell.v != null ? String(cell.v) : '') : '';
             });
             return obj;
-          }).filter(r => Object.values(r).some(v => v !== ''));
+          }).filter(r => r && Object.values(r).some(v => v !== ''));
         }
 
         async function tryCsv() {
@@ -1733,6 +1740,7 @@
         const normalized = [];
         rows.forEach(r => {
           try {
+            if (!r || typeof r !== 'object') { skipped++; return; }
             const id = colVal(r, '№', 'ID', 'НОМЕР', 'ЗАПИС', 'A') || '';
             const insp = (colVal(r, 'ПРОВЕРЯВАЩ', 'INSPECTOR', 'EMPLOYEE', 'СЛУЖИТЕЛ', 'ИМЕ') || '').trim();
             const rawLoc = (colVal(r, 'ТИП', 'TYPE', 'ЛОКАЦИЯ', 'LOCATION', 'ЗАЛА') || '').trim();
@@ -1875,9 +1883,9 @@
               <div class="chart-wrap" style="min-height:240px;">
                 ${issEntries.length ? issEntries.map(([name, count], i) => {
                   const pctOfTotal = totalIssues ? Math.round(count/totalIssues*100) : 0;
-                  const maxIss = Math.max(...issEntries.map(([,v]) => v));
+                  const maxIss = Math.max(1, ...issEntries.map(([,v]) => v));
                   const severity = count >= maxIss * 0.7 ? 'high' : count >= maxIss * 0.3 ? 'med' : 'low';
-                  const barPct = maxIss ? Math.round(count/maxIss*100) : 0;
+                  const barPct = Math.round(count/maxIss*100);
                   return `<div class="issue-item" title="${escapeHtml(name)}: ${count} пъти (${pctOfTotal}% от всички проблеми)"><span class="issue-severity ${severity}"></span><span style="flex:1;">${escapeHtml(name)}</span><span class="issue-pct">${pctOfTotal}%</span><span class="issue-count">${count}</span><div class="charts-bar-bg" style="width:80px;height:6px;"><div class="charts-bar-fill charts-bar-fill--red" style="width:${barPct}%;"></div></div></div>`;
                 }).join('') : '<div class="chart-empty">Няма регистрирани проблеми</div>'}
               </div>
@@ -1917,13 +1925,16 @@
             <table class="charts-table">
               <thead><tr><th>#</th><th>Служител</th><th>Проверки</th><th>% от общо</th><th>Визуализация</th></tr></thead>
               <tbody>
-                ${inspEntries.map(([name, count], i) => `<tr>
+                ${inspEntries.map(([name, count], i) => {
+                  const maxC = (inspEntries[0] && inspEntries[0][1]) || 1;
+                  return `<tr>
                   <td style="color:var(--muted-2);">${i+1}</td>
                   <td style="color:var(--text);font-weight:600;">${escapeHtml(name)}</td>
                   <td>${count}</td>
-                  <td>${Math.round(count/total*100)}%</td>
-                  <td><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${Math.round(count/inspEntries[0][1]*100)}%;"></div></div></td>
-                </tr>`).join('')}
+                  <td>${total ? Math.round(count/total*100) : 0}%</td>
+                  <td><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${Math.round(count/maxC*100)}%;"></div></div></td>
+                </tr>`;
+                }).join('')}
               </tbody>
             </table>
           </div>`;

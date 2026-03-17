@@ -12,8 +12,13 @@ function doPost(e) {
 
     if (data.action === "acquireLock") return handleAcquireLock_(data);
     if (data.action === "releaseLock") return handleReleaseLock_(data);
+    if (data.action === "acquireLockFirstFree") return handleAcquireLockFirstFree_(data);
 
     var record = data.record;
+    if (!record || typeof record !== 'object') {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: 'Invalid record' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
 
     var ss = SpreadsheetApp.openById("17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA");
     var sheet = ss.getSheetByName("ИНФО") || ss.getSheetByName("Sheet1") || ss.getSheets()[0];
@@ -38,18 +43,16 @@ function doPost(e) {
     var issuesText = issues.length > 0 ? issues.join(", ") : "—";
     var notes = record.notes || "—";
 
-    var date = new Date(record.timestamp);
+    var date = record.timestamp ? new Date(record.timestamp) : new Date();
     var dateStr = Utilities.formatDate(date, "Europe/Sofia", "dd.MM.yyyy HH:mm");
 
-    var typeText = record.type === "hall"
-      ? "Кинозала - " + record.location
-      : "Тоалетна - " + record.location;
+    var typeText = (record.type === "hall" ? "Кинозала" : "Тоалетна") + " - " + (record.location || "?");
 
     // Записване на данните
     sheet.getRange(nextRow, 1).setValue(recordNumber);
     sheet.getRange(nextRow, 2).setValue(dateStr);
     sheet.getRange(nextRow, 3).setValue(typeText);
-    sheet.getRange(nextRow, 4).setValue(record.inspector);
+    sheet.getRange(nextRow, 4).setValue(record.inspector || "—");
     sheet.getRange(nextRow, 5).setValue(status);
     sheet.getRange(nextRow, 6).setValue(issuesText);
     sheet.getRange(nextRow, 7).setValue(notes);
