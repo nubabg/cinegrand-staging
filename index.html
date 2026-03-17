@@ -1530,9 +1530,11 @@
 
       let _activeCharts = [];
       let _chartsLoading = false;
-      async function initChartsScreen() {
+      let _cachedChartRows = null;
+
+      async function initChartsScreen(forceRefresh) {
         if (_chartsLoading) return;
-        let container = document.getElementById('charts-container');
+        const container = document.getElementById('charts-container');
         if (!container) return;
 
         if (typeof Chart === 'undefined') {
@@ -1540,9 +1542,15 @@
           return;
         }
 
-        _chartsLoading = true;
+        /* Ако има кеширани данни и не е ръчен refresh — рисувай директно */
+        if (_cachedChartRows && !forceRefresh) {
+          buildChartsFromData(container, _cachedChartRows);
+          return;
+        }
 
-        /* Унищожи предишни chart инстанции */
+        _chartsLoading = true;
+        _chartsRendered = false;
+
         _activeCharts.forEach(c => { try { c.destroy(); } catch(_){} });
         _activeCharts = [];
 
@@ -1551,28 +1559,38 @@
         let rows;
         try {
           rows = await fetchSheetsData();
-          container = document.getElementById('charts-container');
-          if (!container || state.screen !== "charts") { _chartsLoading = false; return; }
-          if (rows.length > 0) {
-            console.log('[Charts] Колони:', Object.keys(rows[0]));
-            console.log('[Charts] Заредени редове:', rows.length);
-          }
         } catch(e) {
-          container.innerHTML = `
-            <div class="panel" style="text-align:center;padding:60px 20px;">
-              <div style="font-size:32px;margin-bottom:16px;">&#9888;</div>
-              <div style="color:var(--red);font-weight:700;margin-bottom:8px;">Грешка при зареждане</div>
-              <div style="color:var(--muted);font-size:13px;">${escapeHtml(e.message)}</div>
-              <div style="margin-top:16px;font-size:12px;color:var(--muted);">Уверете се, че таблицата е споделена публично.</div>
-            </div>`;
-          _chartsLoading = false;
-          return;
+          /* При грешка: ако има кеш, покажи него; иначе грешка */
+          if (_cachedChartRows) {
+            rows = _cachedChartRows;
+          } else {
+            const c2 = document.getElementById('charts-container');
+            if (c2) c2.innerHTML = `
+              <div class="panel" style="text-align:center;padding:60px 20px;">
+                <div style="font-size:32px;margin-bottom:16px;">&#9888;</div>
+                <div style="color:var(--red);font-weight:700;margin-bottom:8px;">Грешка при зареждане</div>
+                <div style="color:var(--muted);font-size:13px;">${escapeHtml(e.message)}</div>
+              </div>`;
+            _chartsLoading = false;
+            return;
+          }
         }
+
+        _chartsLoading = false;
         if (!rows || rows.length === 0) {
-          container.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--muted);">Няма данни в таблицата.</div>`;
-          _chartsLoading = false;
+          const c2 = document.getElementById('charts-container');
+          if (c2) c2.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--muted);">Няма данни в таблицата.</div>`;
           return;
         }
+
+        _cachedChartRows = rows;
+        const c2 = document.getElementById('charts-container');
+        if (c2 && state.screen === "charts") buildChartsFromData(c2, rows);
+      }
+
+      function buildChartsFromData(container, rows) {
+        _activeCharts.forEach(c => { try { c.destroy(); } catch(_){} });
+        _activeCharts = [];
 
         /* ── Агрегации ── */
         const byInspector = {}, byIssue = {}, byLocation = {}, byDay = {}, byHour = {};
@@ -1948,7 +1966,6 @@
           }
         }));
         _chartsRendered = true;
-        _chartsLoading = false;
       }
 
       function renderInspection() {
@@ -2183,7 +2200,7 @@
         if (action === "go-home") { cleanupSessionLock(); state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
         if (action === "go-charts") { cleanupSessionLock(); state.screen = "charts"; render(); initChartsScreen(); return; }
-        if (action === "refresh-charts") { _chartsRendered = false; initChartsScreen(); return; }
+        if (action === "refresh-charts") { _chartsRendered = false; initChartsScreen(true); return; }
 
         /* Inspection item status — targeted update, no full re-render */
         if (action === "set-item") {
