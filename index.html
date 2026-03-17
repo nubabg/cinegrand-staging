@@ -429,13 +429,6 @@
       }
 
       /* ── Charts Screen ── */
-      .charts-refresh {
-        background: rgba(200,120,24,.12); color: var(--gold);
-        border: 1px solid rgba(200,120,24,.28); border-radius: 12px;
-        padding: 9px 18px; cursor: pointer; font-size: 13px; font-weight: 600;
-        transition: background .15s, transform .1s;
-      }
-      .charts-refresh:hover { background: rgba(200,120,24,.22); transform: scale(1.04); }
       .charts-loading {
         display: flex; align-items: center; justify-content: center;
         gap: 14px; padding: 80px 20px; color: var(--muted); font-size: 15px;
@@ -1417,9 +1410,8 @@
             <div class="toolbar">
               <div>
                 <h3 class="section-title" style="margin:0;">Данни</h3>
-                <div class="muted" style="font-size:13px;margin-top:4px;">Данни от Google Sheets — актуални</div>
+                <div class="muted" style="font-size:13px;margin-top:4px;">Данни от Google Sheets — актуални при презареждане на страницата</div>
               </div>
-              <button class="charts-refresh" data-action="refresh-charts">⟳ Обнови</button>
             </div>
           </div>
           <div id="charts-container">
@@ -2209,7 +2201,6 @@
         if (action === "go-home") { cleanupSessionLock(); state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
         if (action === "go-charts") { cleanupSessionLock(); state.screen = "charts"; render(); initChartsScreen(); return; }
-        if (action === "refresh-charts") { initChartsScreen(true); return; }
 
         /* Inspection item status — targeted update, no full re-render */
         if (action === "set-item") {
