@@ -746,7 +746,7 @@
          след като deploy-неш Google Apps Script-а.
          Виж инструкциите в документа за настройка.
          ══════════════════════════════════════════════════ */
-      const SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxq3eE1B1UvvqDAJ-jHarX6IYRh3aZnKuzJOMdPszvWvQ-FG3cyiUJZP6MZ3nelSnfyVA/exec";
+      const SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzB9lp5istU4JVRtMpjCg_G_DuYRTqx24tcyXzBBEQR5D2cf1odX4mfBBNE-8xdSpzs9g/exec";
       const SHEETS_SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA/edit?usp=drive_web&ouid=105876940936518374708";
 
       const QR_DEFAULT_URL = "https://cginspection.org/";
@@ -2417,7 +2417,8 @@
             if (data && data.action === 'refresh') window.location.reload();
           } catch (_) {}
         }
-        setInterval(checkRefresh, 45000);
+        checkRefresh(); // първа проверка веднага
+        setInterval(checkRefresh, 15000); // после на всеки 15 сек
       })();
     </script>
   </body>
