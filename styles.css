@@ -27,13 +27,6 @@ body {
     radial-gradient(circle at 80% 0%, rgba(13, 148, 255, 0.2), transparent 55%);
   filter: blur(80px);
   opacity: 0.6;
-  animation: globalBloom 10s ease-in-out infinite;
-}
-
-@keyframes globalBloom {
-  0%   { opacity: 0.4; transform: scale(1); }
-  50%  { opacity: 0.75; transform: scale(1.06); }
-  100% { opacity: 0.4; transform: scale(1); }
 }
 
 main {
