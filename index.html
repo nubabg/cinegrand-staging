@@ -1542,7 +1542,9 @@
       }
 
       let _activeCharts = [];
+      let _chartsLoading = false;
       async function initChartsScreen() {
+        if (_chartsLoading) return;
         const container = document.getElementById('charts-container');
         if (!container) return;
 
@@ -1550,6 +1552,8 @@
           container.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--red);">Chart.js не е заредена. Проверете интернет връзката.</div>`;
           return;
         }
+
+        _chartsLoading = true;
 
         /* Унищожи предишни chart инстанции */
         _activeCharts.forEach(c => { try { c.destroy(); } catch(_){} });
@@ -1572,10 +1576,12 @@
               <div style="color:var(--muted);font-size:13px;">${e.message}</div>
               <div style="margin-top:16px;font-size:12px;color:var(--muted);">Уверете се, че таблицата е споделена публично.</div>
             </div>`;
+          _chartsLoading = false;
           return;
         }
         if (!rows || rows.length === 0) {
           container.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--muted);">Няма данни в таблицата.</div>`;
+          _chartsLoading = false;
           return;
         }
 
@@ -1952,6 +1958,7 @@
             }
           }
         }));
+        _chartsLoading = false;
       }
 
       function renderInspection() {
