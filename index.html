@@ -2405,6 +2405,25 @@
           }
         }, GEO_RECHECK_MS);
       });
+
+      /* ── Refresh signal: при промяна на version.json всички отворени табове се презареждат ── */
+      (function() {
+        let _lastVersion = null;
+        async function checkRefresh() {
+          try {
+            const res = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' });
+            if (!res.ok) return;
+            const data = await res.json();
+            const v = data.t || data.version || JSON.stringify(data);
+            if (_lastVersion !== null && _lastVersion !== v) {
+              window.location.reload();
+            }
+            _lastVersion = v;
+          } catch (_) {}
+        }
+        checkRefresh();
+        setInterval(checkRefresh, 45000);
+      })();
     </script>
   </body>
 </html>
