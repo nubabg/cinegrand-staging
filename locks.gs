@@ -3,14 +3,19 @@
  *  Location Inspection Locks — Google Apps Script
  *  Добави този код към съществуващия Apps Script проект.
  *  Листът "Locks" се създава автоматично при първо използване.
+ *
+ *  ВАЖНО: Замени LOCK_SPREADSHEET_ID с ID-то на ОТДЕЛНАТА
+ *  таблица за locks (НЕ таблицата с данни от проверки).
+ *  ID-то е дългият текст между /d/ и /edit в URL-то.
  * ═══════════════════════════════════════════════════════════════
  */
 
 var LOCK_SHEET_NAME = "Locks";
 var LOCK_TIMEOUT_MIN = 45;
+var LOCK_SPREADSHEET_ID = "ПОСТАВИ_ТУКА_ID_НА_LOCKS_ТАБЛИЦАТА";
 
 function getLockSheet_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = SpreadsheetApp.openById(LOCK_SPREADSHEET_ID);
   var sheet = ss.getSheetByName(LOCK_SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(LOCK_SHEET_NAME);
