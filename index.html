@@ -44,7 +44,6 @@
       button, input, select, textarea { font: inherit; }
 
       #app { position: relative; z-index: 1; }
-      #modals { position: relative; z-index: 100; }
       .app-shell { min-height: 100vh; padding: 24px; }
       .workspace { width: min(1280px, 100%); margin: 0 auto; }
 
@@ -138,7 +137,6 @@
         color: var(--gold-2); border-color: rgba(200,120,24,.26);
         background: rgba(200,120,24,.10);
       }
-      .nav-btn.cooldown { opacity: 0.7; cursor: not-allowed; pointer-events: none; }
 
       .page { padding: 8px 0 24px; }
       .grid { display: grid; gap: 16px; }
@@ -429,265 +427,45 @@
       @media (max-width: 900px) {
         .item-row { grid-template-columns: 1fr; }
       }
-
-      /* ── Charts Screen ── */
-      .charts-loading {
-        display: flex; align-items: center; justify-content: center;
-        gap: 14px; padding: 80px 20px; color: var(--muted); font-size: 15px;
-      }
-      .charts-loading .spinner {
-        width: 36px; height: 36px; border-radius: 50%;
-        border: 3px solid var(--border); border-top-color: var(--gold);
-        animation: spin .8s linear infinite;
-      }
-      .charts-stat-row {
-        display: grid; grid-template-columns: repeat(4, 1fr);
-        gap: 12px; margin-bottom: 20px;
-      }
-      .charts-stat-pill {
-        display: flex; flex-direction: column; align-items: center;
-        gap: 4px; padding: 20px 16px;
-        background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015));
-        border: 1px solid rgba(255,255,255,.07); border-radius: 18px;
-        text-align: center;
-      }
-      .charts-stat-pill strong { font-family: "Oswald", sans-serif; font-size: 36px; line-height: 1; }
-      .charts-stat-pill span  { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; }
-      .charts-grid {
-        display: grid; grid-template-columns: repeat(2, 1fr);
-        gap: 16px; margin-bottom: 16px;
-      }
-      @media (max-width: 860px) {
-        .charts-grid { grid-template-columns: 1fr; }
-        .charts-stat-row { grid-template-columns: repeat(2, 1fr); }
-      }
-      .chart-card.full-width { grid-column: 1 / -1; }
-      .charts-table {
-        width: 100%; border-collapse: collapse; font-size: 13px;
-      }
-      .charts-table th {
-        text-align: left; padding: 10px 12px;
-        font-family: "Oswald", sans-serif; font-weight: 600;
-        font-size: 11px; text-transform: uppercase; letter-spacing: .1em;
-        color: var(--muted); border-bottom: 1px solid rgba(255,255,255,.08);
-      }
-      .charts-table td {
-        padding: 10px 12px;
-        border-bottom: 1px solid rgba(255,255,255,.04);
-        color: var(--muted);
-      }
-      .charts-table tr:last-child td { border-bottom: none; }
-      .charts-table tr:hover td { background: rgba(255,255,255,.02); }
-      .charts-bar-bg {
-        background: rgba(255,255,255,.06); border-radius: 6px; height: 8px; width: 100%; max-width: 200px;
-      }
-      .charts-bar-fill {
-        background: var(--gold); border-radius: 6px; height: 100%;
-      }
-      .charts-bar-fill--green { background: var(--green); }
-      .charts-bar-fill--red { background: var(--red); }
-      .charts-bar-fill--blue { background: var(--blue); }
-      .charts-bar-fill--purple { background: #a78bfa; }
-      .charts-html-list { display: flex; flex-direction: column; gap: 12px; }
-      .charts-html-row { display: flex; align-items: center; gap: 12px; font-size: 13px; padding: 4px 0; border-radius: 8px; transition: background .15s ease; }
-      .charts-html-row:hover { background: rgba(255,255,255,.02); }
-      .charts-html-row span:first-child { min-width: 90px; color: var(--muted); flex-shrink: 0; }
-      .charts-html-row span:last-child { min-width: 32px; text-align: right; font-weight: 600; color: var(--text); }
-      .charts-html-row .charts-bar-bg { flex: 1; max-width: none; height: 10px; }
-      /* KPI cards */
-      .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 16px; }
-      .kpi-card { padding: 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,.06); background: linear-gradient(160deg, rgba(255,255,255,.03), transparent); transition: transform .15s ease, border-color .15s ease; }
-      .kpi-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.1); }
-      .kpi-card .kpi-value { font-family: "Oswald", sans-serif; font-size: 28px; font-weight: 700; line-height: 1.1; }
-      .kpi-card .kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-top: 4px; }
-      .kpi-card .kpi-badge { font-size: 9px; padding: 2px 6px; border-radius: 6px; margin-top: 6px; display: inline-block; }
-      @media (max-width: 900px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
-      @media (max-width: 500px) { .kpi-row { grid-template-columns: 1fr; } }
-      /* Donut */
-      .charts-donut-wrap { display: flex; align-items: center; justify-content: center; gap: 24px; flex-wrap: wrap; min-height: 180px; }
-      .charts-donut { width: 140px; height: 140px; border-radius: 50%; position: relative; flex-shrink: 0; }
-      .charts-donut-center { position: absolute; inset: 50%; transform: translate(-50%, -50%); width: 70%; height: 70%; background: var(--panel-2); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-      /* Vertical bars (time-series) */
-      .charts-vertical-wrap { display: flex; align-items: flex-end; gap: 12px; height: 200px; padding: 0 8px; }
-      .charts-vertical-col { flex: 1; min-width: 36px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-      .daily-bar-track { width: 100%; height: 150px; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(255,255,255,.06); border-radius: 8px 8px 0 0; overflow: hidden; }
-      .daily-bar-fill { width: 100%; min-height: 8px; border-radius: 6px 6px 0 0; background: var(--gold); transition: height .25s ease; }
-      /* Hourly histogram */
-      .hourly-histogram { display: flex; align-items: flex-end; gap: 4px; height: 200px; padding: 0 4px; }
-      .hourly-col { flex: 1; min-width: 14px; display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; }
-      .hourly-bar-track { width: 100%; height: 160px; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(255,255,255,.04); border-radius: 4px 4px 0 0; overflow: visible; }
-      .hourly-bar-fill { width: 100%; min-height: 2px; border-radius: 4px 4px 0 0; background: rgba(167,139,250,.7); transition: height .25s ease; }
-      .hourly-label { font-size: 9px; color: var(--muted-2); }
-      .hourly-value { font-size: 9px; font-weight: 700; color: var(--text); }
-      /* Leaderboard */
-      .leaderboard-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; margin-bottom: 6px; transition: background .15s ease; }
-      .leaderboard-item:hover { background: rgba(255,255,255,.03); }
-      .leaderboard-rank { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
-      .leaderboard-rank.top1 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1a1a1a; }
-      .leaderboard-rank.top2 { background: linear-gradient(135deg, #94a3b8, #64748b); color: #fff; }
-      .leaderboard-rank.top3 { background: linear-gradient(135deg, #b45309, #92400e); color: #fef3c7; }
-      .leaderboard-rank.other { background: rgba(255,255,255,.08); color: var(--muted); }
-      .leaderboard-avatar { width: 36px; height: 36px; border-radius: 10px; background: rgba(200,120,24,.2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: var(--gold); flex-shrink: 0; }
-      .leaderboard-bar { flex: 1; height: 10px; background: rgba(255,255,255,.06); border-radius: 6px; overflow: hidden; }
-      .leaderboard-bar-fill { height: 100%; border-radius: 6px; transition: width .25s ease; }
-      /* Issue analysis */
-      .issue-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; margin-bottom: 6px; border-left: 3px solid var(--red); background: rgba(239,91,91,.06); transition: background .15s ease; }
-      .issue-item:hover { background: rgba(239,91,91,.1); }
-      .issue-severity { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-      .issue-severity.high { background: var(--red); }
-      .issue-severity.med { background: var(--gold); }
-      .issue-severity.low { background: var(--muted); }
-      .issue-count { font-weight: 700; color: var(--red); min-width: 24px; text-align: right; }
-      .issue-pct { font-size: 11px; color: var(--muted); }
-      /* Grouped distribution */
-      .zone-group { margin-bottom: 16px; }
-      .zone-group-title { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,.06); }
-      .zone-item { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 13px; }
-      .zone-item .charts-bar-bg { flex: 1; max-width: none; height: 8px; }
-      /* Heatmap */
-      .heatmap-grid { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; padding: 12px 0; }
-      .heatmap-cell { aspect-ratio: 1; min-height: 20px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; transition: transform .15s ease; }
-      .heatmap-cell:hover { transform: scale(1.08); }
-      .heatmap-cell.has-data { color: rgba(255,255,255,.95); }
-      .heatmap-cell.empty { background: rgba(255,255,255,.04); color: transparent; }
-      .heatmap-legend { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 8px; }
-      .chart-card {
-        background: linear-gradient(160deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,.015) 100%);
-        border: 1px solid rgba(255,255,255,.07); border-radius: 20px;
-        padding: 20px 20px 16px; position: relative; overflow: hidden;
-        transition: transform .15s ease, border-color .15s ease;
-      }
-      .chart-card:hover { border-color: rgba(255,255,255,.1); }
-      .chart-card::before {
-        content: ''; position: absolute; inset: 0; border-radius: 20px;
-        background: linear-gradient(135deg, rgba(200,120,24,.06) 0%, transparent 60%);
-        pointer-events: none;
-      }
-      .chart-card.card-donut::before { background: linear-gradient(135deg, rgba(45,204,112,.08) 0%, transparent 60%); }
-      .chart-card.card-issues::before { background: linear-gradient(135deg, rgba(239,91,91,.06) 0%, transparent 60%); }
-      .chart-card.card-time::before { background: linear-gradient(135deg, rgba(167,139,250,.08) 0%, transparent 60%); }
-      .chart-title {
-        font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 3px;
-        font-family: "Oswald", sans-serif; letter-spacing: .04em;
-      }
-      .chart-subtitle {
-        font-size: 11px; color: var(--muted); margin-bottom: 16px;
-        text-transform: uppercase; letter-spacing: .1em;
-      }
-      .chart-wrap { position: relative; }
-      .chart-empty {
-        display: flex; align-items: center; justify-content: center;
-        height: 100%; color: var(--muted); font-size: 13px;
-      }
-
-      /* ── Bloom Background Effect (PC + мобилни + таблети) ── */
+      /* ── Bloom Background Effect ── */
       .bloom-layer {
         position: fixed; inset: 0;
         pointer-events: none; z-index: 0; overflow: hidden;
-        min-height: 100vh; min-height: 100dvh;
-        -webkit-backface-visibility: hidden; backface-visibility: hidden;
-        transform: translateZ(0); -webkit-transform: translateZ(0);
       }
       .bloom-orb {
         position: absolute; border-radius: 50%;
-        filter: blur(90px); -webkit-filter: blur(90px);
-        animation: bloomPulse 8s ease-in-out infinite;
+        filter: blur(100px);
+        animation: bloomPulse 10s ease-in-out infinite;
         will-change: opacity, transform;
-        -webkit-backface-visibility: hidden; backface-visibility: hidden;
-        transform: translateZ(0); -webkit-transform: translateZ(0);
       }
       .bloom-orb--gold {
-        width: 55vw; height: 55vw; top: -12%; left: -10%;
-        background: radial-gradient(circle, rgba(200,120,24,.35), rgba(200,120,24,.12) 40%, transparent 70%);
-        animation: bloomPulse 9s ease-in-out infinite, bloomHue1 12s linear infinite;
-        animation-delay: 0s, 0s;
+        width: 50vw; height: 50vw; top: -10%; left: -8%;
+        background: radial-gradient(circle, rgba(200,120,24,.18), transparent 70%);
+        animation-duration: 11s; animation-delay: 0s;
       }
       .bloom-orb--blue {
-        width: 45vw; height: 45vw; top: 12%; right: -10%;
-        background: radial-gradient(circle, rgba(98,169,255,.28), rgba(98,169,255,.08) 40%, transparent 70%);
-        animation: bloomPulse 10s ease-in-out infinite, bloomHue2 14s linear infinite;
-        animation-delay: -3s, -2s;
+        width: 40vw; height: 40vw; top: 15%; right: -8%;
+        background: radial-gradient(circle, rgba(98,169,255,.12), transparent 70%);
+        animation-duration: 13s; animation-delay: -4s;
       }
       .bloom-orb--red {
-        width: 42vw; height: 42vw; bottom: 8%; left: 20%;
-        background: radial-gradient(circle, rgba(239,91,91,.22), rgba(239,91,91,.06) 40%, transparent 70%);
-        animation: bloomPulse 11s ease-in-out infinite, bloomHue3 16s linear infinite;
-        animation-delay: -5s, -4s;
+        width: 35vw; height: 35vw; bottom: 10%; left: 25%;
+        background: radial-gradient(circle, rgba(239,91,91,.08), transparent 70%);
+        animation-duration: 15s; animation-delay: -7s;
       }
       .bloom-orb--gold2 {
-        width: 35vw; height: 35vw; bottom: 15%; right: 2%;
-        background: radial-gradient(circle, rgba(200,120,24,.25), rgba(200,120,24,.08) 40%, transparent 70%);
-        animation: bloomPulse 7s ease-in-out infinite, bloomHue4 10s linear infinite;
-        animation-delay: -2s, -1s;
-      }
-      .bloom-orb--purple {
-        width: 38vw; height: 38vw; top: 50%; left: 50%;
-        margin-left: -19vw; margin-top: -19vw;
-        background: radial-gradient(circle, rgba(167,139,250,.2), rgba(167,139,250,.05) 40%, transparent 70%);
-        animation: bloomPulse 9.5s ease-in-out infinite, bloomHue5 13s linear infinite;
-        animation-delay: -6s, -3s;
-      }
-      /* Bloom за таблети и телефони — по-малък blur (мобилните го рендират по-добре), по-ярки цветове */
-      @media (max-width: 1024px) {
-        .bloom-orb { filter: blur(60px); -webkit-filter: blur(60px); }
-        .bloom-orb--gold { background: radial-gradient(circle, rgba(200,120,24,.45), rgba(200,120,24,.2) 40%, transparent 70%); }
-        .bloom-orb--blue { background: radial-gradient(circle, rgba(98,169,255,.38), rgba(98,169,255,.15) 40%, transparent 70%); }
-        .bloom-orb--red { background: radial-gradient(circle, rgba(239,91,91,.35), rgba(239,91,91,.12) 40%, transparent 70%); }
-        .bloom-orb--gold2 { background: radial-gradient(circle, rgba(200,120,24,.4), rgba(200,120,24,.18) 40%, transparent 70%); }
-        .bloom-orb--purple { background: radial-gradient(circle, rgba(167,139,250,.3), rgba(167,139,250,.12) 40%, transparent 70%); }
-      }
-      @media (max-width: 768px) {
-        .bloom-orb { filter: blur(50px); -webkit-filter: blur(50px); }
-        .bloom-orb--gold { background: radial-gradient(circle, rgba(200,120,24,.5), rgba(200,120,24,.25) 40%, transparent 70%); }
-        .bloom-orb--blue { background: radial-gradient(circle, rgba(98,169,255,.45), rgba(98,169,255,.2) 40%, transparent 70%); }
-        .bloom-orb--red { background: radial-gradient(circle, rgba(239,91,91,.42), rgba(239,91,91,.18) 40%, transparent 70%); }
-        .bloom-orb--gold2 { background: radial-gradient(circle, rgba(200,120,24,.48), rgba(200,120,24,.22) 40%, transparent 70%); }
-        .bloom-orb--purple { background: radial-gradient(circle, rgba(167,139,250,.38), rgba(167,139,250,.18) 40%, transparent 70%); }
+        width: 28vw; height: 28vw; bottom: 20%; right: 5%;
+        background: radial-gradient(circle, rgba(200,120,24,.10), transparent 70%);
+        animation-duration: 12s; animation-delay: -2s;
       }
       @keyframes bloomPulse {
-        0%   { opacity: 0.55; transform: scale(1) translate(0, 0); }
-        25%  { opacity: 1; transform: scale(1.18) translate(4vw, -3vw); }
-        50%  { opacity: 0.9; transform: scale(1.1) translate(-5vw, 4vw); }
-        75%  { opacity: 1; transform: scale(1.15) translate(3vw, 5vw); }
-        100% { opacity: 0.55; transform: scale(1) translate(0, 0); }
-      }
-      @keyframes bloomHue1 {
-        0%, 100% { filter: blur(90px) hue-rotate(0deg) saturate(1.2); }
-        50% { filter: blur(90px) hue-rotate(15deg) saturate(1.4); }
-      }
-      @keyframes bloomHue2 {
-        0%, 100% { filter: blur(90px) hue-rotate(0deg) saturate(1.1); }
-        50% { filter: blur(90px) hue-rotate(-20deg) saturate(1.3); }
-      }
-      @keyframes bloomHue3 {
-        0%, 100% { filter: blur(90px) hue-rotate(0deg) saturate(1.15); }
-        50% { filter: blur(90px) hue-rotate(10deg) saturate(1.35); }
-      }
-      @keyframes bloomHue4 {
-        0%, 100% { filter: blur(90px) hue-rotate(0deg) saturate(1.1); }
-        50% { filter: blur(90px) hue-rotate(-12deg) saturate(1.3); }
-      }
-      @keyframes bloomHue5 {
-        0%, 100% { filter: blur(90px) hue-rotate(0deg) saturate(1.2); }
-        50% { filter: blur(90px) hue-rotate(25deg) saturate(1.4); }
-      }
-      @media (max-width: 1024px) {
-        @keyframes bloomHue1 { 0%, 100% { filter: blur(60px) hue-rotate(0deg) saturate(1.2); } 50% { filter: blur(60px) hue-rotate(15deg) saturate(1.4); } }
-        @keyframes bloomHue2 { 0%, 100% { filter: blur(60px) hue-rotate(0deg) saturate(1.1); } 50% { filter: blur(60px) hue-rotate(-20deg) saturate(1.3); } }
-        @keyframes bloomHue3 { 0%, 100% { filter: blur(60px) hue-rotate(0deg) saturate(1.15); } 50% { filter: blur(60px) hue-rotate(10deg) saturate(1.35); } }
-        @keyframes bloomHue4 { 0%, 100% { filter: blur(60px) hue-rotate(0deg) saturate(1.1); } 50% { filter: blur(60px) hue-rotate(-12deg) saturate(1.3); } }
-        @keyframes bloomHue5 { 0%, 100% { filter: blur(60px) hue-rotate(0deg) saturate(1.2); } 50% { filter: blur(60px) hue-rotate(25deg) saturate(1.4); } }
-      }
-      @media (max-width: 768px) {
-        @keyframes bloomHue1 { 0%, 100% { filter: blur(50px) hue-rotate(0deg) saturate(1.2); } 50% { filter: blur(50px) hue-rotate(15deg) saturate(1.4); } }
-        @keyframes bloomHue2 { 0%, 100% { filter: blur(50px) hue-rotate(0deg) saturate(1.1); } 50% { filter: blur(50px) hue-rotate(-20deg) saturate(1.3); } }
-        @keyframes bloomHue3 { 0%, 100% { filter: blur(50px) hue-rotate(0deg) saturate(1.15); } 50% { filter: blur(50px) hue-rotate(10deg) saturate(1.35); } }
-        @keyframes bloomHue4 { 0%, 100% { filter: blur(50px) hue-rotate(0deg) saturate(1.1); } 50% { filter: blur(50px) hue-rotate(-12deg) saturate(1.3); } }
-        @keyframes bloomHue5 { 0%, 100% { filter: blur(50px) hue-rotate(0deg) saturate(1.2); } 50% { filter: blur(50px) hue-rotate(25deg) saturate(1.4); } }
+        0%   { opacity: 0.4; transform: scale(1); }
+        50%  { opacity: 0.85; transform: scale(1.1); }
+        100% { opacity: 0.4; transform: scale(1); }
       }
 
       @media print {
-        .bloom-layer, .app-shell, .broom-fun { display: none !important; }
+        .app-shell, .broom-fun { display: none !important; }
         #qr-modal-backdrop { position: static !important; background: #fff !important; padding: 20px !important; width: 100% !important; min-height: 100vh !important; }
         .qr-modal { box-shadow: none !important; border: 1px solid #ddd !important; max-width: 100% !important; }
       }
@@ -699,10 +477,8 @@
       <span class="bloom-orb bloom-orb--blue"></span>
       <span class="bloom-orb bloom-orb--red"></span>
       <span class="bloom-orb bloom-orb--gold2"></span>
-      <span class="bloom-orb bloom-orb--purple"></span>
     </div>
     <div id="app"></div>
-    <div id="modals"></div>
     <div class="broom-fun" aria-hidden="true">
       <span class="broom-dust"></span><span class="broom-dust"></span><span class="broom-dust"></span>
       <span class="broom-dust"></span><span class="broom-dust"></span><span class="broom-dust"></span>
@@ -746,7 +522,7 @@
          след като deploy-неш Google Apps Script-а.
          Виж инструкциите в документа за настройка.
          ══════════════════════════════════════════════════ */
-      const SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzB9lp5istU4JVRtMpjCg_G_DuYRTqx24tcyXzBBEQR5D2cf1odX4mfBBNE-8xdSpzs9g/exec";
+      const SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwqOpU1wZ_k8I7aXgDHcsV2_UroQrTg13R0zQnOQUrwso3H6jDd1GUykW75-OViIAUPSQ/exec";
       const SHEETS_SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA/edit?usp=drive_web&ouid=105876940936518374708";
 
       const QR_DEFAULT_URL = "https://cginspection.org/";
@@ -762,11 +538,6 @@
       const QR_COOLDOWN_KEY = "cg_qr_cooldown";
       const QR_COOLDOWN_MS = 10 * 60 * 1000; /* 10 минути */
 
-      /* ── Location Inspection Locks ── */
-      const LOCK_SESSION_KEY = "cg_lock_session";
-      const LOCK_WHITELISTED_KEY = "cg_ip_whitelisted";
-      const LOCK_TIMEOUT_MIN = 10;
-
       function getQRCooldownRemaining(type, loc) {
         try {
           const data = JSON.parse(localStorage.getItem(QR_COOLDOWN_KEY) || "{}");
@@ -781,89 +552,6 @@
           data[type + "_" + loc] = Date.now();
           localStorage.setItem(QR_COOLDOWN_KEY, JSON.stringify(data));
         } catch (_) {}
-      }
-
-      /* ── Location Lock helpers ── */
-      let _lockBusy = false;
-      let _lockAcquiredAt = 0;
-      const LOCK_TIMEOUT_MS = LOCK_TIMEOUT_MIN * 60 * 1000;
-
-      function generateSessionId() {
-        if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
-        return Date.now().toString(36) + "-" + Math.random().toString(36).substr(2, 9);
-      }
-
-      function isLockExpired() {
-        return _lockAcquiredAt > 0 && (Date.now() - _lockAcquiredAt >= LOCK_TIMEOUT_MS);
-      }
-
-      async function acquireLock(type, location, sessionId) {
-        if (!isSheetsConfigured()) return { success: true };
-        try {
-          const res = await fetch(SHEETS_WEB_APP_URL, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=UTF-8" },
-            body: JSON.stringify({ action: "acquireLock", type, location, sessionId }),
-          });
-          if (!res.ok) return { success: true, offline: true };
-          try { return await res.json(); } catch (_) { return { success: true, offline: true }; }
-        } catch (err) {
-          console.warn("[Lock] acquireLock failed:", err.message);
-          return { success: true, offline: true };
-        }
-      }
-
-      async function releaseLock(sessionId) {
-        if (!sessionId || !isSheetsConfigured()) return;
-        try {
-          await fetch(SHEETS_WEB_APP_URL, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=UTF-8" },
-            body: JSON.stringify({ action: "releaseLock", sessionId }),
-          });
-        } catch (err) {
-          console.warn("[Lock] releaseLock failed:", err.message);
-        }
-      }
-
-      function releaseLockBeacon(sessionId) {
-        if (!sessionId || !isSheetsConfigured()) return;
-        const payload = JSON.stringify({ action: "releaseLock", sessionId });
-        try {
-          fetch(SHEETS_WEB_APP_URL, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=UTF-8" },
-            body: payload,
-            keepalive: true,
-          }).catch(() => {});
-        } catch (_) {}
-        try {
-          const blob = new Blob([payload], { type: "text/plain;charset=UTF-8" });
-          navigator.sendBeacon(SHEETS_WEB_APP_URL, blob);
-        } catch (_) {}
-      }
-
-      function cleanupSessionLock() {
-        if (state.currentSessionId) {
-          releaseLock(state.currentSessionId);
-          state.currentSessionId = null;
-          _lockAcquiredAt = 0;
-        }
-        sessionStorage.removeItem(LOCK_SESSION_KEY);
-      }
-
-      function showLocationLocked(location, errorMsg) {
-        const msg = errorMsg
-          ? escapeHtml(errorMsg)
-          : (escapeHtml(location) + " вече се проверява от друг потребител. Опитайте след ~" + LOCK_TIMEOUT_MIN + " мин.");
-        document.getElementById("app").innerHTML = `
-          <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
-            <div style="text-align:center;max-width:400px;">
-              <div style="width:72px;height:72px;border-radius:50%;background:rgba(239,91,91,.15);border:1px solid rgba(239,91,91,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:32px;">🔒</div>
-              <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;">ЛОКАЦИЯТА Е ЗАЕТА</div>
-              <div style="color:var(--muted);font-size:14px;line-height:1.6;">${msg}</div>
-            </div>
-          </div>`;
       }
 
       /* ── Geolocation Access Control ── */
@@ -936,27 +624,16 @@
       }
 
       async function checkAccess() {
-        /* IP проверка — whitelisted IP-та имат достъп отвсякъде */
-        let isWhitelistedIP = false;
-        try {
-          const res = await fetch("https://api.ipify.org?format=json");
-          const { ip } = await res.json();
-          isWhitelistedIP = ACCESS_ALLOWED_IPS.includes(ip);
-        } catch (_) {}
-        sessionStorage.setItem(LOCK_WHITELISTED_KEY, isWhitelistedIP ? "1" : "0");
-
         const params = new URLSearchParams(window.location.search || (window.location.hash.startsWith("#") ? window.location.hash.slice(1) : ""));
         /* QR достъп — URL съдържа QR параметри */
         if (params.get("open") === "inspection") {
           const type = params.get("type") || "";
           const loc = params.get("location") || "";
           if (getQRCooldownRemaining(type, loc) > 0) return false;
-          if (!isWhitelistedIP) {
-            /* Геолокация — трябва да е в киното (само за не-whitelisted IP) */
-            updateLoadingText("Проверка на локация…");
-            const pos = await getGeolocation();
-            if (!pos || !isNearCinema(pos.lat, pos.lng)) return "outside";
-          }
+          /* Геолокация — трябва да е в киното */
+          updateLoadingText("Проверка на локация…");
+          const pos = await getGeolocation();
+          if (!pos || !isNearCinema(pos.lat, pos.lng)) return "outside";
           sessionStorage.setItem(QR_SESSION_KEY, String(Date.now()));
           sessionStorage.setItem(QR_MODE_KEY, "1");
           sessionStorage.setItem(QR_TYPE_KEY, type);
@@ -967,12 +644,10 @@
         const sessionTs = parseInt(sessionStorage.getItem(QR_SESSION_KEY) || "0", 10);
         if (sessionTs) {
           if (Date.now() - sessionTs < QR_SESSION_TTL_MS) {
-            if (!isWhitelistedIP) {
-              /* Геолокация при reload на QR сесия (само за не-whitelisted IP) */
-              updateLoadingText("Проверка на локация…");
-              const pos = await getGeolocation();
-              if (!pos || !isNearCinema(pos.lat, pos.lng)) return "outside";
-            }
+            /* Геолокация при reload на QR сесия */
+            updateLoadingText("Проверка на локация…");
+            const pos = await getGeolocation();
+            if (!pos || !isNearCinema(pos.lat, pos.lng)) return "outside";
             return true;
           }
           sessionStorage.removeItem(QR_SESSION_KEY);
@@ -980,8 +655,12 @@
           sessionStorage.removeItem(QR_TYPE_KEY);
           sessionStorage.removeItem(QR_LOC_KEY);
         }
-        /* Whitelisted IP без QR — пълен достъп */
-        if (isWhitelistedIP) return true;
+        /* IP проверка — офис компютри (без геолокация) */
+        try {
+          const res = await fetch("https://api.ipify.org?format=json");
+          const { ip } = await res.json();
+          if (ACCESS_ALLOWED_IPS.includes(ip)) return true;
+        } catch (_) {}
         return false;
       }
 
@@ -1034,7 +713,6 @@
         showPassword: false,
         toast: null,
         openedFromQR: false,
-        currentSessionId: null,
       };
 
       try { state.records = JSON.parse(localStorage.getItem(STORAGE_KEYS.records) || "[]"); }
@@ -1042,11 +720,6 @@
 
       /* ── Toast timer (clean, no property on function) ── */
       let toastTimer = null;
-
-      /* ── Charts button cooldown (prevents spam / chart bugs) ── */
-      const CHARTS_COOLDOWN_SEC = 15;
-      let chartsCooldownUntil = 0;
-      let chartsCooldownInterval = null;
 
       /* ── Helpers ── */
       const app = document.getElementById("app");
@@ -1062,7 +735,7 @@
 
       function pct(issues, total) { return total > 0 ? Math.round((issues / total) * 100) : 0; }
       function isFilled(v) { return v === STATUS.CLEAN || v === STATUS.DIRTY; }
-      function dirtyItems(record) { return (record && record.items || []).filter((i) => i && i.status === STATUS.DIRTY); }
+      function dirtyItems(record) { return record.items.filter((i) => i.status === STATUS.DIRTY); }
 
       function escapeHtml(v) {
         return String(v || "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
@@ -1079,12 +752,9 @@
       function recordsForRange(range) {
         const now = new Date();
         return state.records.filter((r) => {
-          try {
-            const d = new Date(r && r.timestamp);
-            if (isNaN(d.getTime())) return false;
-            if (range === "today") return d.toDateString() === now.toDateString();
-            return now - d < 7 * 86400000;
-          } catch (_) { return false; }
+          const d = new Date(r.timestamp);
+          if (range === "today") return d.toDateString() === now.toDateString();
+          return now - d < 7 * 86400000;
         });
       }
 
@@ -1217,89 +887,14 @@
         render();
       }
 
-      async function acquireLockFirstFree(type, locations, sessionId) {
-        if (!isSheetsConfigured()) return { success: true, location: locations[0] };
-        try {
-          const res = await fetch(SHEETS_WEB_APP_URL, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=UTF-8" },
-            body: JSON.stringify({ action: "acquireLockFirstFree", type, locations, sessionId }),
-          });
-          if (!res.ok) return { success: true, location: locations[0], offline: true };
-          try { return await res.json(); } catch (_) { return { success: true, location: locations[0], offline: true }; }
-        } catch (err) {
-          console.warn("[Lock] acquireLockFirstFree failed:", err.message);
-          return { success: true, location: locations[0], offline: true };
-        }
-      }
-
-      async function startInspectionWithLock(type, locationOverride) {
-        if (_lockBusy) return false;
-        _lockBusy = true;
-        try {
-          /* Ако вече има активен lock, освободи го */
-          if (state.currentSessionId) {
-            await releaseLock(state.currentSessionId);
-            state.currentSessionId = null;
-            _lockAcquiredAt = 0;
-            sessionStorage.removeItem(LOCK_SESSION_KEY);
-          }
-          const config = getConfig(type);
-          if (locationOverride) {
-            const sessionId = generateSessionId();
-            const lockResult = await acquireLock(type, locationOverride, sessionId);
-            if (!lockResult.success) {
-              showLocationLocked(locationOverride, lockResult.error);
-              return false;
-            }
-            state.currentSessionId = sessionId;
-            _lockAcquiredAt = Date.now();
-            sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
-            startInspection(type, locationOverride);
-            return true;
-          }
-          /* Non-QR: 1 заявка — сървърът намира първата свободна локация */
-          const sessionId = generateSessionId();
-          const result = await acquireLockFirstFree(type, config.locations, sessionId);
-          if (!result.success) {
-            if (result.allLocked) {
-              showToast("Всички " + config.shortTitle.toLowerCase() + " се проверяват в момента. Опитайте след няколко минути.", "error");
-              return false;
-            }
-            /* Сървърна грешка — пропусни lock, отвори формата */
-            console.warn("[Lock] acquireLockFirstFree error:", result.error);
-            startInspection(type);
-            return true;
-          }
-          state.currentSessionId = sessionId;
-          _lockAcquiredAt = Date.now();
-          sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
-          startInspection(type, result.location);
-          return true;
-        } finally {
-          _lockBusy = false;
-        }
-      }
-
-      let _submitBusy = false;
       async function submitInspection() {
-        if (_submitBusy) return;
-        if (!state.currentSessionId) {
-          showToast("Няма активно заключване. Моля изберете локация отново.", "error");
-          return;
-        }
-        if (isLockExpired()) {
-          showToast("Времето за проверка изтече (" + LOCK_TIMEOUT_MIN + " мин). Моля сканирайте QR кода отново.", "error");
-          return;
-        }
         const config = getConfig(state.inspectionType);
         state.showValidation = true;
         const allFilled = config.items.every((i) => isFilled(state.itemState[i.id]));
         if (!state.inspector.trim()) { showToast("Моля въведи своето пълно име.", "error"); return; }
         if (!/^[\u0400-\u04FF ]+$/.test(state.inspector.trim())) { showToast("Името трябва да е само на кирилица, без специални символи.", "error"); return; }
         if (!allFilled) { showToast("Всички точки трябва да бъдат попълнени.", "error"); render(); return; }
-        _submitBusy = true;
-        try {
+
         const record = {
           id: Date.now(),
           type: state.inspectionType,
@@ -1312,13 +907,6 @@
         state.records = [record, ...state.records];
         cleanupOldRecords(); /* Изчистване на стари записи >7 дни */
         persist();
-        /* Release location lock */
-        if (state.currentSessionId) {
-          releaseLock(state.currentSessionId);
-          state.currentSessionId = null;
-          _lockAcquiredAt = 0;
-          sessionStorage.removeItem(LOCK_SESSION_KEY);
-        }
         showToast(`Проверката на „${state.location}" е записана.`);
         if (isSheetsConfigured()) {
           const syncResult = await syncRecord(record);
@@ -1344,9 +932,6 @@
         }
         state.screen = "home";
         render();
-        } finally {
-          _submitBusy = false;
-        }
       }
 
       /* ── Export ── */
@@ -1427,14 +1012,13 @@
           state.screen !== "home" ? `<button class="nav-btn" data-action="go-home" aria-label="Начална страница">Начало</button>` : "",
           `<button class="nav-btn" data-action="open-qr" aria-label="QR кодове за печат">QR кодове</button>`,
           `<a class="nav-btn${isSheetsConfigured() ? ' state' : ''}" href="${SHEETS_SPREADSHEET_URL}" target="_blank" rel="noopener" aria-label="Отвори Sheets таблица">${isSheetsConfigured() ? "Sheets ✓" : "Sheets ✗"}</a>`,
-          `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''} ${chartsCooldownUntil > Date.now() ? 'cooldown' : ''}" data-action="go-charts" aria-label="Данни от Sheets" ${chartsCooldownUntil > Date.now() ? 'disabled' : ''}>&#128202; ${chartsCooldownUntil > Date.now() ? "Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : "Данни"}</button>`,
         ].filter(Boolean).join("");
 
         return `
           <div class="product-strip">
             <div class="product-strip-left">
               <span class="brand-badge" aria-hidden="true">CG</span>
-              <div class="brand-meta"><strong>Cine Grand</strong><span>Hygiene Control Platform</span></div>
+              <div class="brand-meta"><strong>Cine Grand</strong><span>Control Platform</span></div>
             </div>
           </div>
           <div class="topbar-shell">
@@ -1527,11 +1111,11 @@
                 <td>${fmt(r.timestamp)}</td>
                 <td style="display:flex;align-items:center;gap:6px;">
                   <span style="font-size:14px;">${r.type === "hall" ? "🎬" : "🚿"}</span>
-                  ${escapeHtml(r.location)}
+                  ${r.location}
                 </td>
-                <td class="muted">${escapeHtml(r.inspector)}</td>
+                <td class="muted">${r.inspector}</td>
                 <td><span class="pill ${issues.length ? "bad" : "ok"}">${issues.length ? `✗ ${issues.length} \u043f\u0440\u043e\u0431\u043b\u0435\u043c\u0430` : "✓ \u0427\u0438\u0441\u0442\u043e"}</span></td>
-                <td class="muted">${issues.length ? issues.map((i) => escapeHtml(i.label)).join(", ") : "—"}</td>
+                <td class="muted">${issues.length ? issues.map((i) => i.label).join(", ") : "—"}</td>
                 <td><div style="display:flex;gap:8px;align-items:center;">
                   <span>${sync === "synced" ? "✓" : sync === "sent" ? "↑" : sync === "syncing" ? "⟳" : sync === "error" ? "✗" : "—"}</span>
                   ${(sync === "error" || (!sync && isSheetsConfigured())) ? `<button class="btn btn-outline" data-action="retry-sync" data-id="${r.id}" style="padding:4px 8px;">retry</button>` : ""}
@@ -1556,391 +1140,6 @@
           ${records.length ? renderRecentTable(records, false) : `<div class="panel" style="text-align:center;color:var(--muted);padding:60px 20px;">\u041d\u044f\u043c\u0430 \u0437\u0430\u043f\u0438\u0441\u0438 \u043f\u043e \u0442\u0435\u043a\u0443\u0449\u0438\u0442\u0435 \u0444\u0438\u043b\u0442\u0440\u0438.</div>`}
         </div>`;
       }
-      /* ── Charts Screen ──────────────────────────────────────────────────── */
-      function renderCharts() {
-        return `<div class="page">
-          <div class="panel" style="margin-bottom:16px;">
-            <div class="toolbar">
-              <div>
-                <h3 class="section-title" style="margin:0;">Данни</h3>
-                <div class="muted" style="font-size:13px;margin-top:4px;">Данни от Google Sheets — актуални при презареждане на страницата</div>
-              </div>
-            </div>
-          </div>
-          <div id="charts-container">
-            <div class="charts-loading"><div class="spinner"></div><span>Зарежда от Sheets…</span></div>
-          </div>
-        </div>`;
-      }
-
-      function parseCSV(text) {
-        const lines = (text || '').trim().split(/\r?\n/).filter(line => line.trim());
-        if (lines.length === 0) return [];
-        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-        return lines.slice(1).filter(l => l && l.trim()).map(line => {
-          const cols = [];
-          let cur = '', inQ = false;
-          for (const ch of line) {
-            if (ch === '"') { inQ = !inQ; }
-            else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
-            else { cur += ch; }
-          }
-          cols.push(cur);
-          return Object.fromEntries(headers.map((h, i) => [h, (cols[i] || '').trim().replace(/^"|"$/g, '')]));
-        });
-      }
-
-      /* Намира колона по частично/case-insensitive съвпадение */
-      function colVal(row, ...candidates) {
-        if (!row || typeof row !== 'object') return '';
-        const keys = Object.keys(row);
-        for (const cand of candidates) {
-          const match = keys.find(k => k.toUpperCase().includes(cand.toUpperCase()));
-          if (match && row[match] !== undefined) return row[match] || '';
-        }
-        return '';
-      }
-
-      async function fetchSheetsData() {
-        const SHEET_ID = '17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA';
-        const cacheBust = '_cb=' + Date.now();
-
-        async function tryGviz() {
-          const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0&${cacheBust}`;
-          const res = await fetch(url);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          const text = await res.text();
-          const start = text.indexOf('{');
-          const end   = text.lastIndexOf('}');
-          if (start === -1 || end === -1) throw new Error('Неочакван формат');
-          const json = JSON.parse(text.slice(start, end + 1));
-          if (!json.table) throw new Error('Липсва table');
-          const cols = json.table.cols.map(c => (c.label || c.id || '').trim());
-          return (json.table.rows || []).map(row => {
-            if (!row || !row.c) return null;
-            const obj = {};
-            cols.forEach((col, i) => {
-              const cell = row.c[i];
-              obj[col] = cell ? (cell.f != null ? String(cell.f) : cell.v != null ? String(cell.v) : '') : '';
-            });
-            return obj;
-          }).filter(r => r && Object.values(r).some(v => v !== ''));
-        }
-
-        async function tryCsv() {
-          const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0&${cacheBust}`;
-          const res = await fetch(url);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return parseCSV(await res.text());
-        }
-
-        /* Опит 1: gviz, Опит 2: gviz retry, Опит 3: CSV */
-        for (let attempt = 0; attempt < 2; attempt++) {
-          try { return await tryGviz(); } catch (e) {
-            console.warn('[Charts] gviz опит ' + (attempt + 1) + ':', e.message);
-            if (attempt === 0) await new Promise(r => setTimeout(r, 500));
-          }
-        }
-        try { return await tryCsv(); } catch (e) {
-          console.warn('[Charts] CSV:', e.message);
-          throw e;
-        }
-      }
-
-      /* Парсва дата от различни формати */
-      function parseChartDate(str) {
-        if (!str) return null;
-        let m = str.match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/);
-        if (m) return new Date(+m[3], +m[2]-1, +m[1]);
-        m = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-        if (m) return new Date(+m[1], +m[2]-1, +m[3]);
-        const d = new Date(str);
-        return isNaN(d) ? null : d;
-      }
-      function fmtChartDate(d) {
-        return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0');
-      }
-
-      let _chartsLoading = false;
-      let _cachedChartRows = null;
-      let _chartsFetchVersion = 0;
-
-      async function initChartsScreen(skipFetch) {
-        if (_chartsLoading && !skipFetch) return;
-        const container = document.getElementById('charts-container');
-        if (!container) return;
-
-        /* При навигация (бутон Данни): само показвай кеш, НИКОГА не fetch-вай. Данните се обновяват само при F5. */
-        if (skipFetch) {
-          if (_cachedChartRows && _cachedChartRows.length > 0) {
-            buildChartsFromData(container, _cachedChartRows);
-          } else {
-            container.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--muted);">
-              <div style="font-size:28px;margin-bottom:12px;">&#128202;</div>
-              <div style="font-weight:600;margin-bottom:8px;">Презареди страницата (F5)</div>
-              <div style="font-size:13px;">за да заредиш данните от Google Sheets.</div>
-            </div>`;
-          }
-          return;
-        }
-
-        /* Ако има кеширани данни — рисувай директно (само при page load) */
-        if (_cachedChartRows) {
-          buildChartsFromData(container, _cachedChartRows);
-          return;
-        }
-
-        _chartsLoading = true;
-        const thisVersion = ++_chartsFetchVersion;
-        console.log('[Charts] Fetching data (v' + thisVersion + ')…');
-
-        /* Don't destroy charts during loading — keep them visible */
-        if (!_cachedChartRows) {
-          container.innerHTML = '<div class="charts-loading"><div class="spinner"></div><span>Зарежда от Sheets…</span></div>';
-        }
-
-        let rows;
-        try {
-          rows = await fetchSheetsData();
-          console.log('[Charts] Fetched', rows ? rows.length : 0, 'raw rows (v' + thisVersion + ')');
-        } catch(e) {
-          console.warn('[Charts] Fetch failed (v' + thisVersion + '):', e.message);
-          _chartsLoading = false;
-          if (thisVersion !== _chartsFetchVersion) return;
-          if (_cachedChartRows) return; /* Keep showing cached data */
-          const c2 = document.getElementById('charts-container');
-          if (c2) c2.innerHTML = `
-            <div class="panel" style="text-align:center;padding:60px 20px;">
-              <div style="font-size:32px;margin-bottom:16px;">&#9888;</div>
-              <div style="color:var(--red);font-weight:700;margin-bottom:8px;">Грешка при зареждане</div>
-              <div style="color:var(--muted);font-size:13px;">${escapeHtml(e.message)}</div>
-            </div>`;
-          return;
-        }
-
-        _chartsLoading = false;
-        if (thisVersion !== _chartsFetchVersion) return;
-
-        if (!rows || rows.length === 0) {
-          if (_cachedChartRows) return; /* Keep showing cached data */
-          const c2 = document.getElementById('charts-container');
-          if (c2) c2.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--muted);">Няма данни в таблицата.</div>`;
-          return;
-        }
-
-        _cachedChartRows = rows;
-        const c2 = document.getElementById('charts-container');
-        if (c2 && state.screen === "charts") buildChartsFromData(c2, rows);
-      }
-
-      function buildChartsFromData(container, rows) {
-
-        /* ── Normalize rows ── */
-        let skipped = 0;
-        const normalized = [];
-        rows.forEach(r => {
-          try {
-            if (!r || typeof r !== 'object') { skipped++; return; }
-            const id = colVal(r, '№', 'ID', 'НОМЕР', 'ЗАПИС', 'A') || '';
-            const insp = (colVal(r, 'ПРОВЕРЯВАЩ', 'INSPECTOR', 'EMPLOYEE', 'СЛУЖИТЕЛ', 'ИМЕ') || '').trim();
-            const rawLoc = (colVal(r, 'ТИП', 'TYPE', 'ЛОКАЦИЯ', 'LOCATION', 'ЗАЛА') || '').trim();
-            const stat = (colVal(r, 'СТАТУС', 'STATUS', 'РЕЗУЛТАТ') || '').trim();
-            const dateStr = (colVal(r, 'ДАТА', 'DATE', 'TIMESTAMP', 'INSPECTED', 'ПРОВЕРКА') || '').trim();
-            const issues = (colVal(r, 'ПРОБЛЕМИ', 'ISSUES') || '').trim();
-            if (!insp && !rawLoc && !stat) { skipped++; return; }
-            const loc = rawLoc.replace('Кинозала - ', 'Зала ').replace('Тоалетна - ', 'Тоал. ');
-            const statUp = stat.toUpperCase();
-            const status = statUp.includes('ЧИСТ') ? 'ЧИСТА'
-              : (statUp.includes('МРЪСН') || statUp.includes('ПРОБЛЕМ')) ? 'МРЪСНА' : '';
-            const date = parseChartDate(dateStr);
-            normalized.push({ id, inspector: insp || '?', location: loc || '?', status, date,
-              dateKey: date ? fmtChartDate(date) : null,
-              hour: date ? date.getHours() : null,
-              issues: issues && issues !== '—' && issues !== '-' ? issues : '' });
-          } catch (_) { skipped++; }
-        });
-        console.log('[Charts] Normalized:', normalized.length, 'rows, skipped:', skipped);
-
-        /* ── Derive aggregations from normalized data ── */
-        const byInspector = {}, byIssue = {}, byLocation = {}, byDay = {}, byHour = {};
-        const byStatus = { 'ЧИСТА': 0, 'МРЪСНА': 0 };
-        const locationSet = new Set();
-
-        normalized.forEach(r => {
-          locationSet.add(r.location);
-          byInspector[r.inspector] = (byInspector[r.inspector] || 0) + 1;
-          byLocation[r.location]   = (byLocation[r.location]   || 0) + 1;
-          if (r.status === 'ЧИСТА') byStatus['ЧИСТА']++;
-          else if (r.status === 'МРЪСНА') byStatus['МРЪСНА']++;
-          if (r.dateKey) byDay[r.dateKey] = (byDay[r.dateKey] || 0) + 1;
-          if (r.hour !== null) {
-            const hKey = String(r.hour).padStart(2,'0') + ':00';
-            byHour[hKey] = (byHour[hKey] || 0) + 1;
-          }
-          if (r.issues) {
-            r.issues.split(/[,;]+/).forEach(iss => {
-              const k = iss.trim();
-              if (k) byIssue[k] = (byIssue[k] || 0) + 1;
-            });
-          }
-        });
-
-        const total = normalized.length;
-        const cleanCount   = byStatus['ЧИСТА'] || 0;
-        const problemCount = byStatus['МРЪСНА'] || 0;
-        const cleanPct   = total ? Math.round(cleanCount / total * 100) : 0;
-        const problemPct = total ? Math.round(problemCount / total * 100) : 0;
-
-        /* Дневен тренд (последни 30 дни) */
-        const dayKeys = Object.keys(byDay).sort((a,b) => {
-          const [da,ma] = a.split('.'); const [db,mb] = b.split('.');
-          return (ma+da).localeCompare(mb+db);
-        }).slice(-30);
-
-        /* Часово разпределение */
-        const hourLabels = [], hourData = [];
-        for (let h = 0; h < 24; h++) {
-          const hk = String(h).padStart(2,'0') + ':00';
-          hourLabels.push(hk);
-          hourData.push(byHour[hk] || 0);
-        }
-
-        const inspEntries = Object.entries(byInspector).sort((a,b) => b[1]-a[1]);
-        const issEntries  = Object.entries(byIssue).sort((a,b) => b[1]-a[1]).slice(0,10);
-        const locEntries  = Object.entries(byLocation).sort((a,b) => b[1]-a[1]);
-
-        const maxDay = Math.max(1, ...dayKeys.map(k => byDay[k] || 0));
-        const maxInsp = Math.max(1, inspEntries[0]?.[1] || 1);
-        const maxLoc = Math.max(1, ...locEntries.map(([,v]) => v));
-        const maxHour = Math.max(1, ...hourData);
-        const lastDay = dayKeys.length ? dayKeys[dayKeys.length - 1] : '—';
-        const lastDayCount = lastDay !== '—' ? (byDay[lastDay] || 0) : 0;
-        const totalIssues = issEntries.reduce((s, [,v]) => s + v, 0);
-        const hallLocs = locEntries.filter(([l]) => l.startsWith('Зала'));
-        const toiletLocs = locEntries.filter(([l]) => l.startsWith('Тоал'));
-        const getInitials = (n) => (n || '').split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
-
-        /* ── Dashboard с визуално разнообразие: KPI, Donut, Leaderboard, Issue, Zone, Heatmap ── */
-        container.innerHTML = `
-          <!-- Ред 1: KPI cards -->
-          <div class="kpi-row" style="margin-bottom:16px;">
-            <div class="kpi-card"><div class="kpi-value" style="color:var(--gold);">${total}</div><div class="kpi-label">Общо проверки</div><div class="kpi-badge" style="background:rgba(200,120,24,.15);color:var(--gold);">активност</div></div>
-            <div class="kpi-card"><div class="kpi-value" style="color:var(--green);">${cleanPct}%</div><div class="kpi-label">Чисто</div><div class="kpi-badge" style="background:rgba(45,204,112,.15);color:var(--green);">${cleanCount} проверки</div></div>
-            <div class="kpi-card"><div class="kpi-value" style="color:var(--red);">${problemCount}</div><div class="kpi-label">Проблеми</div><div class="kpi-badge" style="background:rgba(239,91,91,.15);color:var(--red);">${totalIssues} общо</div></div>
-            <div class="kpi-card"><div class="kpi-value" style="color:var(--blue);">${inspEntries.length}</div><div class="kpi-label">Служители</div><div class="kpi-badge" style="background:rgba(98,169,255,.15);color:var(--blue);">активни</div></div>
-            <div class="kpi-card"><div class="kpi-value" style="color:#a78bfa;">${lastDay}</div><div class="kpi-label">Последна активност</div><div class="kpi-badge" style="background:rgba(167,139,250,.15);color:#a78bfa;">${lastDayCount} проверки</div></div>
-          </div>
-
-          <!-- Ред 2: Donut + Daily activity -->
-          <div class="charts-grid">
-            <div class="chart-card card-donut">
-              <div class="chart-title">Чисто vs Проблем</div>
-              <div class="chart-subtitle">Обща оценка на всички проверки</div>
-              <div class="chart-wrap" style="min-height:240px;">
-                <div class="charts-donut-wrap">
-                  <div class="charts-donut" style="background:conic-gradient(var(--green) 0% ${cleanPct}%, var(--red) ${cleanPct}% 100%);">
-                    <div class="charts-donut-center" style="background:var(--panel-2);"><span style="font-size:32px;font-weight:700;color:var(--green);">${cleanPct}%</span><span style="font-size:10px;color:var(--muted);">ЧИСТО</span></div>
-                  </div>
-                  <div style="display:flex;flex-direction:column;gap:10px;">
-                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:12px;height:12px;border-radius:50%;background:var(--green);"></span><span>Чисто: ${cleanCount}</span></div>
-                    <div style="display:flex;align-items:center;gap:8px;"><span style="width:12px;height:12px;border-radius:50%;background:var(--red);"></span><span>Проблем: ${problemCount}</span></div>
-                  </div>
-                </div>
-                <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);">${total} проверки общо · ${cleanCount} чисто / ${problemCount} проблем</div>
-              </div>
-            </div>
-            <div class="chart-card card-time">
-              <div class="chart-title">Проверки по дни</div>
-              <div class="chart-subtitle">Дневна активност (последни ${dayKeys.length} дни)</div>
-              <div class="chart-wrap" style="min-height:220px;">
-                <div class="charts-vertical-wrap">${dayKeys.map(k => {
-                  const v = byDay[k] || 0;
-                  const barH = maxDay ? Math.max(12, Math.round(150 * v / maxDay)) : 0;
-                  return `<div class="charts-vertical-col" title="${k}: ${v} проверки"><div class="daily-bar-track"><div class="daily-bar-fill" style="height:${barH}px;"></div></div><span style="font-size:11px;color:var(--muted);">${k}</span><span style="font-weight:600;font-size:13px;">${v}</span></div>`;
-                }).join('')}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Ред 3: Leaderboard + Issue analysis -->
-          <div class="charts-grid">
-            <div class="chart-card">
-              <div class="chart-title">Проверки по служител</div>
-              <div class="chart-subtitle">Ранкинг по брой проверки</div>
-              <div class="chart-wrap" style="min-height:240px;">
-                <div>${inspEntries.map(([name, count], i) => {
-                  const pct = Math.round(count/maxInsp*100);
-                  const rankCls = i === 0 ? 'top1' : i === 1 ? 'top2' : i === 2 ? 'top3' : 'other';
-                  const colors = ['#c87818','#62a9ff','#2dcc70','#a78bfa','#38bdf8'];
-                  const col = colors[i % colors.length];
-                  return `<div class="leaderboard-item"><span class="leaderboard-rank ${rankCls}">${i+1}</span><span class="leaderboard-avatar">${getInitials(name)}</span><span style="flex:1;font-weight:600;">${escapeHtml(name)}</span><div class="leaderboard-bar"><div class="leaderboard-bar-fill" style="width:${pct}%;background:${col};"></div></div><span style="font-weight:700;min-width:28px;">${count}</span></div>`;
-                }).join('')}</div>
-              </div>
-            </div>
-            <div class="chart-card card-issues">
-              <div class="chart-title">Топ проблеми</div>
-              <div class="chart-subtitle">Най-често срещани нередности</div>
-              <div class="chart-wrap" style="min-height:240px;">
-                ${issEntries.length ? issEntries.map(([name, count], i) => {
-                  const pctOfTotal = totalIssues ? Math.round(count/totalIssues*100) : 0;
-                  const maxIss = Math.max(1, ...issEntries.map(([,v]) => v));
-                  const severity = count >= maxIss * 0.7 ? 'high' : count >= maxIss * 0.3 ? 'med' : 'low';
-                  const barPct = Math.round(count/maxIss*100);
-                  return `<div class="issue-item" title="${escapeHtml(name)}: ${count} пъти (${pctOfTotal}% от всички проблеми)"><span class="issue-severity ${severity}"></span><span style="flex:1;">${escapeHtml(name)}</span><span class="issue-pct">${pctOfTotal}%</span><span class="issue-count">${count}</span><div class="charts-bar-bg" style="width:80px;height:6px;"><div class="charts-bar-fill charts-bar-fill--red" style="width:${barPct}%;"></div></div></div>`;
-                }).join('') : '<div class="chart-empty">Няма регистрирани проблеми</div>'}
-              </div>
-            </div>
-          </div>
-
-          <!-- Ред 4: Zone distribution + Hourly heatmap -->
-          <div class="charts-grid">
-            <div class="chart-card">
-              <div class="chart-title">Проверки по локация</div>
-              <div class="chart-subtitle">Разпределение по зали и тоалетни</div>
-              <div class="chart-wrap" style="min-height:240px;">
-                ${hallLocs.length ? `<div class="zone-group"><div class="zone-group-title">🎬 Кинозали</div>${hallLocs.map(([loc, count]) => { const pct = maxLoc ? Math.round(count/maxLoc*100) : 0; return `<div class="zone-item"><span style="min-width:100px;">${escapeHtml(loc)}</span><div class="charts-bar-bg"><div class="charts-bar-fill charts-bar-fill--blue" style="width:${pct}%;"></div></div><span style="font-weight:600;">${count}</span></div>`; }).join('')}</div>` : ''}
-                ${toiletLocs.length ? `<div class="zone-group"><div class="zone-group-title">🚿 Тоалетни</div>${toiletLocs.map(([loc, count]) => { const pct = maxLoc ? Math.round(count/maxLoc*100) : 0; return `<div class="zone-item"><span style="min-width:100px;">${escapeHtml(loc)}</span><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${pct}%;background:#38bdf8;"></div></div><span style="font-weight:600;">${count}</span></div>`; }).join('')}</div>` : ''}
-                ${!hallLocs.length && !toiletLocs.length ? '<div class="chart-empty">Няма данни по локации</div>' : ''}
-              </div>
-            </div>
-            <div class="chart-card card-time">
-              <div class="chart-title">Активност по часове</div>
-              <div class="chart-subtitle">Разпределение в денонощието (0–23 ч)</div>
-              <div class="chart-wrap" style="min-height:240px;">
-                <div class="hourly-histogram">${hourLabels.map((label, i) => {
-                  const v = hourData[i] || 0;
-                  const barH = maxHour ? Math.max(4, Math.round(160 * v / maxHour)) : 0;
-                  const peak = maxHour && v === Math.max(...hourData) && v > 0;
-                  return `<div class="hourly-col" title="${label}: ${v} проверки"><div class="hourly-bar-track"><div class="hourly-bar-fill" style="height:${barH}px;${peak ? 'background:var(--gold);box-shadow:0 0 8px rgba(200,120,24,.5);' : ''}"></div></div>${v > 0 ? `<span class="hourly-value">${v}</span>` : ''}</div>`;
-                }).join('')}</div>
-                <div class="heatmap-legend"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Детайли по служители -->
-          <div class="chart-card" style="margin-bottom:16px;">
-            <div class="chart-title">Детайли по служители</div>
-            <div class="chart-subtitle">Брой проверки и процент от общите</div>
-            <table class="charts-table">
-              <thead><tr><th>#</th><th>Служител</th><th>Проверки</th><th>% от общо</th><th>Визуализация</th></tr></thead>
-              <tbody>
-                ${inspEntries.map(([name, count], i) => {
-                  const maxC = (inspEntries[0] && inspEntries[0][1]) || 1;
-                  return `<tr>
-                  <td style="color:var(--muted-2);">${i+1}</td>
-                  <td style="color:var(--text);font-weight:600;">${escapeHtml(name)}</td>
-                  <td>${count}</td>
-                  <td>${total ? Math.round(count/total*100) : 0}%</td>
-                  <td><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${Math.round(count/maxC*100)}%;"></div></div></td>
-                </tr>`;
-                }).join('')}
-              </tbody>
-            </table>
-          </div>`;
-        console.log('[Charts] Rendered', rows.length, 'rows (HTML)');
-      }
-
       function renderInspection() {
         const config = getConfig(state.inspectionType);
         const filledCount = config.items.filter((i) => isFilled(state.itemState[i.id])).length;
@@ -1966,7 +1165,7 @@
 
           <div class="panel" style="margin-bottom:16px;">
             <div class="grid cards-2">
-              <div class="field"><label>Локация *${!state.currentSessionId && !isQROnlySession() ? ' <span style="color:var(--red);font-size:11px;">(няма заключване)</span>' : ""}</label><select id="location-select" ${isQROnlySession() ? "disabled" : ""}>${config.locations.map((l) => `<option value="${l}" ${l === state.location ? "selected" : ""}>${l}</option>`).join("")}</select></div>
+              <div class="field"><label>Локация *</label><select id="location-select">${config.locations.map((l) => `<option value="${l}" ${l === state.location ? "selected" : ""}>${l}</option>`).join("")}</select></div>
               <div class="field"><label>Проверяващ *</label><input id="inspector-input" value="${escapeHtml(state.inspector)}" placeholder="Пълно име…" />${state.showValidation && !state.inspector.trim() ? `<div style="color:var(--red);font-size:12px;">Задължително поле</div>` : state.showValidation && !/^[\u0400-\u04FF ]+$/.test(state.inspector.trim()) ? `<div style="color:var(--red);font-size:12px;">Само кирилица, без специални символи</div>` : ""}</div>
             </div>
             <div class="muted" style="font-size:13px;">Дата и час: ${fmt(new Date().toISOString())}</div>
@@ -2081,9 +1280,7 @@
           </div>`;
       }
 
-      let _modalTrapHandler = null;
       function setupModalFocusTrap() {
-        if (_modalTrapHandler) document.removeEventListener("keydown", _modalTrapHandler);
         const modal = document.getElementById("modal-delete");
         if (!modal) return;
         const focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
@@ -2091,11 +1288,10 @@
         const last = focusable[focusable.length - 1];
         const prevActive = document.activeElement;
         if (first) first.focus();
-        _modalTrapHandler = function(e) {
+        function onKeyDown(e) {
           if (e.key === "Escape") {
             state.showDeleteModal = false; state.deleteErr = ""; state.deletePass = ""; render();
-            document.removeEventListener("keydown", _modalTrapHandler);
-            _modalTrapHandler = null;
+            document.removeEventListener("keydown", onKeyDown);
             if (prevActive && prevActive.focus) prevActive.focus();
             return;
           }
@@ -2105,62 +1301,26 @@
           } else {
             if (document.activeElement === last) { e.preventDefault(); if (first) first.focus(); }
           }
-        };
-        document.addEventListener("keydown", _modalTrapHandler);
+        }
+        document.addEventListener("keydown", onKeyDown);
       }
 
-
-      function updateModals() {
-        const el = document.getElementById('modals');
-        if (el) el.innerHTML = renderModals();
-        if (state.showDeleteModal) setupModalFocusTrap();
-      }
 
       function render() {
         const content =
           state.screen === "home" ? renderHome() :
           state.screen === "inspection" ? renderInspection() :
           state.screen === "history" ? renderHistory() :
-          state.screen === "charts" ? renderCharts() :
           renderHome();
-        app.innerHTML = renderShell(content);
-        updateModals();
+        app.innerHTML = renderShell(content) + renderModals();
         bindInputs();
-        /* Charts: HTML визуализации (без Chart.js) — синхронно от кеш */
-        if (state.screen === "charts" && _cachedChartRows && _cachedChartRows.length > 0) {
-          const c = document.getElementById('charts-container');
-          if (c) buildChartsFromData(c, _cachedChartRows);
-        }
+        if (state.showDeleteModal) setupModalFocusTrap();
       }
 
       function bindInputs() {
         const el = (id) => document.getElementById(id);
         const bind = (id, event, fn) => { const e = el(id); if (e) e["on" + event] = fn; };
-        bind("location-select", "change", async (e) => {
-          const newLoc = e.target.value;
-          const oldLoc = state.location;
-          if (newLoc === oldLoc) return;
-          if (_lockBusy) { e.target.value = oldLoc; return; }
-          if (!isQROnlySession()) {
-            const oldSid = state.currentSessionId;
-            const sessionId = generateSessionId();
-            const lockResult = await acquireLock(state.inspectionType, newLoc, sessionId);
-            if (!lockResult.success) {
-              const locName = escapeHtml(newLoc);
-              const msg = lockResult.minutesLeft
-                ? locName + " се проверява в момента. Опитайте след ~" + lockResult.minutesLeft + " мин."
-                : locName + " се проверява. Изберете друга локация.";
-              showToast(msg, "error");
-              e.target.value = oldLoc;
-              return;
-            }
-            if (oldSid) await releaseLock(oldSid);
-            state.currentSessionId = sessionId;
-            _lockAcquiredAt = Date.now();
-            sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
-          }
-          state.location = newLoc;
-        });
+        bind("location-select", "change", (e) => { state.location = e.target.value; });
         bind("inspector-input", "input", (e) => { const filtered = e.target.value.replace(/[^\u0400-\u04FF ]/g, ""); e.target.value = filtered; state.inspector = filtered; });
         bind("notes-input", "input", (e) => { state.notes = e.target.value; });
         bind("delete-pass-input", "input", (e) => { state.deletePass = e.target.value; state.deleteErr = ""; });
@@ -2177,41 +1337,10 @@
 
         /* Navigation — blocked for QR-only sessions */
         if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection")) return;
-        if (action === "go-home") { cleanupSessionLock(); state.screen = "home"; render(); return; }
+        if (action === "go-home") { state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
-        if (action === "go-charts") {
-          if (Date.now() < chartsCooldownUntil) {
-            showToast("Моля да не спамиш. След няколко секунди опитай пак.", "error");
-            return;
-          }
-          chartsCooldownUntil = Date.now() + CHARTS_COOLDOWN_SEC * 1000;
-          if (!chartsCooldownInterval) {
-            chartsCooldownInterval = setInterval(() => {
-              if (Date.now() >= chartsCooldownUntil) {
-                chartsCooldownUntil = 0;
-                clearInterval(chartsCooldownInterval);
-                chartsCooldownInterval = null;
-              }
-              /* Само обновяваме текста на бутона — НИКОГА не render(), за да не мига QR модал и останалите прозорци */
-              const btn = document.querySelector('[data-action="go-charts"]');
-              if (btn) {
-                const inCooldown = chartsCooldownUntil > Date.now();
-                btn.innerHTML = inCooldown ? "&#128202; Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : "&#128202; Данни";
-                btn.classList.toggle('cooldown', inCooldown);
-                btn.disabled = inCooldown;
-              }
-            }, 1000);
-          }
-          cleanupSessionLock();
-          if (state.screen === "charts") {
-            /* Вече сме на Данни — не презареждаме, данните остават; само обновяваме бутона */
-            const btn = document.querySelector('[data-action="go-charts"]');
-            if (btn) { btn.classList.add('cooldown'); btn.disabled = true; btn.innerHTML = "&#128202; Данни (" + CHARTS_COOLDOWN_SEC + ")"; }
-            return;
-          }
-          state.screen = "charts"; render();
-          return;
-        }
+
+
 
         /* Inspection item status — targeted update, no full re-render */
         if (action === "set-item") {
@@ -2227,7 +1356,7 @@
         }
 
         if (action === "submit-inspection") { await submitInspection(); return; }
-        if (action === "start-inspection") { await startInspectionWithLock(btn.dataset.type); return; }
+        if (action === "start-inspection") { startInspection(btn.dataset.type); return; }
 
         /* Sync */
         if (action === "retry-sync") {
@@ -2237,10 +1366,7 @@
         }
 
         /* Delete modal */
-        if (action === "close-delete") {
-          if (_modalTrapHandler) { document.removeEventListener("keydown", _modalTrapHandler); _modalTrapHandler = null; }
-          state.showDeleteModal = false; state.deleteErr = ""; state.deletePass = ""; render(); return;
-        }
+        if (action === "close-delete") { state.showDeleteModal = false; state.deleteErr = ""; state.deletePass = ""; render(); return; }
         if (action === "toggle-pass") { state.showPassword = !state.showPassword; render(); return; }
         if (action === "confirm-delete") {
           if (state.deletePass !== DELETE_PASSWORD) { state.deleteErr = "Грешна парола. Опитай отново."; render(); return; }
@@ -2256,9 +1382,9 @@
         /* Export */
         if (action === "export-pdf") { exportPdf(); return; }
 
-        /* QR modal — само updateModals(), не презареждаме съдържанието, данните остават */
-        if (action === "open-qr") { state.showQRModal = true; updateModals(); return; }
-        if (action === "close-qr") { state.showQRModal = false; updateModals(); return; }
+        /* QR modal */
+        if (action === "open-qr") { state.showQRModal = true; render(); return; }
+        if (action === "close-qr") { state.showQRModal = false; render(); return; }
       });
 
       document.addEventListener("keydown", (e) => {
@@ -2268,54 +1394,16 @@
           render();
         } else if (state.showQRModal) {
           state.showQRModal = false;
-          updateModals();
-        }
-      });
-
-      /* ── Release lock on page close / re-acquire on return ── */
-      function _releaseLockOnExit() {
-        const sid = state.currentSessionId || sessionStorage.getItem(LOCK_SESSION_KEY);
-        if (sid) releaseLockBeacon(sid);
-      }
-      window.addEventListener("beforeunload", _releaseLockOnExit);
-
-      document.addEventListener("visibilitychange", async () => {
-        if (document.visibilityState === "hidden") {
-          _releaseLockOnExit();
-        } else if (document.visibilityState === "visible") {
-          if (state.screen === "inspection" && state.currentSessionId) {
-            const sid = generateSessionId();
-            const type = state.inspectionType;
-            const loc = state.location;
-            const result = await acquireLock(type, loc, sid);
-            if (result.success) {
-              state.currentSessionId = sid;
-              _lockAcquiredAt = Date.now();
-              sessionStorage.setItem(LOCK_SESSION_KEY, sid);
-            } else {
-              showToast(loc + " е заета от друг. Данните ще се запишат, но залата вече не е заключена.", "error");
-              state.currentSessionId = null;
-              _lockAcquiredAt = 0;
-              sessionStorage.removeItem(LOCK_SESSION_KEY);
-            }
-          }
+          render();
         }
       });
 
       /* ── Initial Render ── */
       cleanupOldRecords();
       showAccessLoading();
-      checkAccess().then(async (allowed) => {
+      checkAccess().then((allowed) => {
         if (allowed === "outside") { showOutsideCinema(); return; }
         if (!allowed) { showAccessDenied(); return; }
-        /* Preload charts data — единствено при зареждане на страницата (F5). Бутонът Данни само показва кеша. */
-        fetchSheetsData().then(r => {
-          _cachedChartRows = r;
-          if (state.screen === "charts") {
-            const c = document.getElementById('charts-container');
-            if (c && r && r.length) buildChartsFromData(c, r);
-          }
-        }).catch(() => {});
         /* Обработи URL параметри от QR сканиране */
         const search = window.location.search || "";
         const hash = window.location.hash || "";
@@ -2324,40 +1412,20 @@
           const type = params.get("type");
           const loc = params.get("location");
           if ((type === "hall" || type === "bathroom") && loc) {
+            state.openedFromQR = true;
             const decodedLoc = decodeURIComponent(loc.replace(/\+/g, "%20"));
             const config = getConfig(type);
             const resolvedLoc = config.locations.includes(decodedLoc) ? decodedLoc : config.locations[0];
-            /* Acquire location lock before showing the form */
-            updateLoadingText("Заключване на локация…");
-            const sessionId = generateSessionId();
-            const lockResult = await acquireLock(type, resolvedLoc, sessionId);
-            if (!lockResult.success) {
-              showLocationLocked(resolvedLoc, lockResult.error);
-              return;
-            }
-            state.currentSessionId = sessionId;
-            _lockAcquiredAt = Date.now();
-            sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
-            state.openedFromQR = true;
             Object.assign(state, { inspectionType: type, location: resolvedLoc, inspector: "", itemState: {}, notes: "", showValidation: false, screen: "inspection" });
             try { history.replaceState({}, "", window.location.origin + window.location.pathname); } catch (_) {}
           }
         } else if (sessionStorage.getItem(QR_MODE_KEY) === "1") {
-          /* QR сесия след reload (pull-to-refresh) — винаги re-acquire lock */
+          /* QR сесия след reload (pull-to-refresh) — възстанови inspection екрана */
           const savedType = sessionStorage.getItem(QR_TYPE_KEY) || "hall";
           const savedLoc  = sessionStorage.getItem(QR_LOC_KEY)  || "";
           const config = getConfig(savedType);
           const decodedLoc = decodeURIComponent(savedLoc.replace(/\+/g, "%20"));
           const resolvedLoc = config.locations.includes(decodedLoc) ? decodedLoc : config.locations[0];
-          const sessionId = generateSessionId();
-          const lockResult = await acquireLock(savedType, resolvedLoc, sessionId);
-          if (!lockResult.success) {
-            showLocationLocked(resolvedLoc, lockResult.error);
-            return;
-          }
-          state.currentSessionId = sessionId;
-          _lockAcquiredAt = Date.now();
-          sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
           state.openedFromQR = true;
           Object.assign(state, { inspectionType: savedType, location: resolvedLoc, inspector: "", itemState: {}, notes: "", showValidation: false, screen: "inspection" });
         }
@@ -2367,10 +1435,6 @@
           if (sessionStorage.getItem(QR_MODE_KEY) !== "1") return;
           const sessionTs = parseInt(sessionStorage.getItem(QR_SESSION_KEY) || "0", 10);
           if (!sessionTs || Date.now() - sessionTs >= QR_SESSION_TTL_MS) {
-            const sid = state.currentSessionId || sessionStorage.getItem(LOCK_SESSION_KEY);
-            if (sid) releaseLockBeacon(sid);
-            state.currentSessionId = null;
-            sessionStorage.removeItem(LOCK_SESSION_KEY);
             sessionStorage.removeItem(QR_SESSION_KEY);
             sessionStorage.removeItem(QR_MODE_KEY);
             sessionStorage.removeItem(QR_TYPE_KEY);
@@ -2378,36 +1442,11 @@
             window.location.replace(QR_REDIRECT_URL);
           }
         }, 60 * 1000);
-        /* Проверка за изтичане на lock (всяка минута) */
-        setInterval(function() {
-          if (!_lockAcquiredAt || state.screen !== "inspection") return;
-          const elapsed = Date.now() - _lockAcquiredAt;
-          const remaining = LOCK_TIMEOUT_MS - elapsed;
-          if (remaining <= 0) {
-            showToast("Времето за проверка изтече. Моля сканирайте QR кода отново.", "error");
-            state.currentSessionId = null;
-            _lockAcquiredAt = 0;
-            sessionStorage.removeItem(LOCK_SESSION_KEY);
-            if (isQROnlySession()) {
-              setTimeout(() => window.location.replace(QR_REDIRECT_URL), 2000);
-            } else {
-              state.screen = "home"; render();
-            }
-          } else if (remaining <= 120000 && remaining > 60000) {
-            showToast("Остават по-малко от 2 мин за тази проверка.", "error");
-          }
-        }, 60 * 1000);
         /* Периодична проверка на геолокация за QR сесии (всеки 5 минути) */
-        /* Whitelisted IP-та се пропускат — могат да работят отвсякъде */
         setInterval(async function() {
           if (sessionStorage.getItem(QR_MODE_KEY) !== "1") return;
-          if (sessionStorage.getItem(LOCK_WHITELISTED_KEY) === "1") return;
           const pos = await getGeolocation();
           if (!pos || !isNearCinema(pos.lat, pos.lng)) {
-            const sid = state.currentSessionId || sessionStorage.getItem(LOCK_SESSION_KEY);
-            if (sid) releaseLockBeacon(sid);
-            state.currentSessionId = null;
-            sessionStorage.removeItem(LOCK_SESSION_KEY);
             sessionStorage.removeItem(QR_SESSION_KEY);
             sessionStorage.removeItem(QR_MODE_KEY);
             sessionStorage.removeItem(QR_TYPE_KEY);
@@ -2416,7 +1455,6 @@
           }
         }, GEO_RECHECK_MS);
       });
-
     </script>
   </body>
 </html>
