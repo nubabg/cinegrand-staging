@@ -464,6 +464,25 @@
         100% { opacity: 0.4; transform: scale(1); }
       }
 
+      /* ── Low Performance Mode ── */
+      body.low-perf .bloom-layer { display: none; }
+      body.low-perf .broom-fun { display: none; }
+      body.low-perf .live-dot { animation: none; box-shadow: none; }
+      body.low-perf .topbar { backdrop-filter: none; }
+      body.low-perf .card-pick { transition: none; }
+      body.low-perf .card-pick:hover { transform: none; box-shadow: var(--shadow); }
+      body.low-perf .btn, body.low-perf .nav-btn, body.low-perf .status-btn, body.low-perf .tab { transition: none; }
+      body.low-perf .btn:hover, body.low-perf .nav-btn:hover, body.low-perf .status-btn:hover, body.low-perf .tab:hover { transform: none; }
+      body.low-perf .modal { animation: none; }
+      body.low-perf .modal-backdrop { animation: none; }
+      body.low-perf .toast { animation: none; }
+      body.low-perf .item-row { transition: none; }
+      body.low-perf .bar-fill { transition: none; }
+      body.low-perf .progress > div { transition: none; }
+      body.low-perf body {
+        background: var(--bg) !important;
+      }
+
       @media print {
         .app-shell, .broom-fun { display: none !important; }
         #qr-modal-backdrop { position: static !important; background: #fff !important; padding: 20px !important; width: 100% !important; min-height: 100vh !important; }
@@ -515,6 +534,15 @@
       const STATUS = { CLEAN: "clean", DIRTY: "dirty" };
       const DELETE_PASSWORD = "CineGrand2025";
       const STORAGE_KEYS = { records: "cg_v4_records", sync: "cg_sync_hist", qrBaseUrl: "cg_qr_base_url" };
+      const PERF_KEY = "cg_low_perf";
+
+      function applyPerfMode() {
+        const on = localStorage.getItem(PERF_KEY) === "1";
+        document.body.classList.toggle("low-perf", on);
+        const btn = document.querySelector("[data-action='toggle-perf']");
+        if (btn) btn.style.opacity = on ? "1" : "0.5";
+      }
+      applyPerfMode();
       const LOCAL_RETENTION_DAYS = 7; /* Локални записи се пазят 7 дни */
 
       /* ══════════════════════════════════════════════════
@@ -1027,6 +1055,7 @@
               <div class="topbar-meta">
                 <span class="meta-chip">Парк Център София</span>
                 <span class="meta-chip">Контрол на хигиена</span>
+                <button class="btn btn-outline" style="padding:8px 11px;font-size:13px;" data-action="toggle-perf" title="Включи/изключи ефекти за по-добра производителност" aria-label="Режим на производителност">⚡</button>
               </div>
             </div>
           </div>`;
@@ -1315,6 +1344,7 @@
         app.innerHTML = renderShell(content) + renderModals();
         bindInputs();
         if (state.showDeleteModal) setupModalFocusTrap();
+        applyPerfMode();
       }
 
       function bindInputs() {
@@ -1337,6 +1367,12 @@
 
         /* Navigation — blocked for QR-only sessions */
         if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection")) return;
+        if (action === "toggle-perf") {
+          const next = localStorage.getItem(PERF_KEY) === "1" ? "0" : "1";
+          localStorage.setItem(PERF_KEY, next);
+          applyPerfMode();
+          return;
+        }
         if (action === "go-home") { state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
 
