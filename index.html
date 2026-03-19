@@ -737,34 +737,24 @@
       const HALL_GOLD_ICON = `
         <svg viewBox="0 0 96 96" width="40" height="40" aria-hidden="true">
           <defs>
-            <linearGradient id="goldBody" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#fff3b4"></stop>
-              <stop offset="28%" stop-color="#f7d56f"></stop>
-              <stop offset="58%" stop-color="#bf7d1f"></stop>
-              <stop offset="82%" stop-color="#7d470f"></stop>
-              <stop offset="100%" stop-color="#f2ca67"></stop>
-            </linearGradient>
-            <linearGradient id="goldTop" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#8f5716"></stop>
-              <stop offset="42%" stop-color="#f8dc86"></stop>
-              <stop offset="74%" stop-color="#7a4811"></stop>
-              <stop offset="100%" stop-color="#fceaa6"></stop>
-            </linearGradient>
-            <linearGradient id="goldDark" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#a5661b"></stop>
-              <stop offset="100%" stop-color="#593207"></stop>
-            </linearGradient>
+            <clipPath id="clapClipSm">
+              <rect x="8" y="8" width="80" height="20"/>
+            </clipPath>
           </defs>
-          <g transform="translate(10 12)">
-            <path d="M10 26h48c5.5 0 10 4.5 10 10v26c0 5.5-4.5 10-10 10H10C4.5 72 0 67.5 0 62V36c0-5.5 4.5-10 10-10Z" fill="url(#goldBody)" stroke="#f8d67e" stroke-width="1.8"/>
-            <path d="M6 22h50c3.8 0 7 2.5 8 6l2.4 8.2H9.2L4 27.6c-.9-1.5.2-5.6 2-5.6Z" fill="url(#goldTop)"/>
-            <path d="M4 22.5h10l7 11.7H11zM21 22.5h10l7 11.7H28zM38 22.5h10l7 11.7H45z" fill="#1d1710" opacity=".9"/>
-            <path d="M8 9h40c3.8 0 7.2 2.1 9 5.5l5.4 10.3c.8 1.5-.3 3.2-2 3.2H20.4c-2 0-3.8-.8-5-2.3L5.2 14.9C3.6 12.7 5.1 9 8 9Z" fill="url(#goldTop)" stroke="#f8d67e" stroke-width="1.8"/>
-            <path d="M10.2 10.8h8.6l7 11.1h-8.6zM25.8 10.8h8.6l7 11.1h-8.6zM41.4 10.8H50l7 11.1h-8.6z" fill="#201910" opacity=".92"/>
-            <circle cx="8.5" cy="24.2" r="3.3" fill="url(#goldDark)" stroke="#f3cf72" stroke-width="1.2"/>
-            <circle cx="19.2" cy="24.9" r="2.2" fill="#f3cf72" opacity=".9"/>
-            <path d="M10 43h48M10 54h48M25 36v19M42 36v19" stroke="#8d5a1a" stroke-width="1.8" stroke-linecap="round" opacity=".72"/>
+          <rect x="8" y="34" width="80" height="54" rx="5" fill="#1e1e1e" stroke="#505050" stroke-width="1.5"/>
+          <line x1="9" y1="48" x2="87" y2="48" stroke="#363636" stroke-width="1"/>
+          <line x1="9" y1="60" x2="87" y2="60" stroke="#363636" stroke-width="1"/>
+          <line x1="9" y1="72" x2="87" y2="72" stroke="#363636" stroke-width="1"/>
+          <line x1="30" y1="35" x2="30" y2="87" stroke="#363636" stroke-width="1"/>
+          <rect x="6" y="26" width="84" height="10" rx="2" fill="#282828" stroke="#505050" stroke-width="1.5"/>
+          <rect x="8" y="8" width="80" height="20" fill="#eeeeee"/>
+          <g clip-path="url(#clapClipSm)">
+            <polygon points="8,28 20,28 40,8 28,8" fill="#111111"/>
+            <polygon points="32,28 44,28 64,8 52,8" fill="#111111"/>
+            <polygon points="56,28 68,28 88,8 76,8" fill="#111111"/>
+            <polygon points="80,28 88,28 88,20" fill="#111111"/>
           </g>
+          <rect x="8" y="8" width="80" height="20" fill="none" stroke="#333333" stroke-width="1.5"/>
         </svg>`;
       const BATHROOMS = [
         "Дамска тоалетна",
@@ -2258,7 +2248,7 @@
           iconWrap.style.alignItems = "center";
           iconWrap.style.minHeight = "46px";
           iconWrap.style.marginBottom = "8px";
-          iconWrap.style.filter = "drop-shadow(0 3px 8px rgba(200,120,24,.2))";
+          iconWrap.style.filter = "drop-shadow(0 3px 8px rgba(0,0,0,.4))";
           iconWrap.style.pointerEvents = "none";
           iconWrap.dataset.goldApplied = "1";
         });
@@ -2271,34 +2261,24 @@
         const hallIcon = `
           <svg viewBox="0 0 128 128" width="52" height="52" aria-hidden="true">
             <defs>
-              <linearGradient id="goldBody" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#fff0b8"></stop>
-                <stop offset="26%" stop-color="#f0c56a"></stop>
-                <stop offset="55%" stop-color="#c48727"></stop>
-                <stop offset="78%" stop-color="#8f5b14"></stop>
-                <stop offset="100%" stop-color="#f8d67e"></stop>
-              </linearGradient>
-              <linearGradient id="goldTop" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#9a651d"></stop>
-                <stop offset="35%" stop-color="#f7d87c"></stop>
-                <stop offset="70%" stop-color="#7a4911"></stop>
-                <stop offset="100%" stop-color="#fce7a3"></stop>
-              </linearGradient>
-              <linearGradient id="goldDark" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#a96a1d"></stop>
-                <stop offset="100%" stop-color="#5f370a"></stop>
-              </linearGradient>
+              <clipPath id="clapClipLg">
+                <rect x="10" y="10" width="108" height="26"/>
+              </clipPath>
             </defs>
-            <g transform="translate(10 16)">
-              <path d="M12 28h78c6.6 0 12 5.4 12 12v33c0 6.6-5.4 12-12 12H12C5.4 85 0 79.6 0 73V40c0-6.6 5.4-12 12-12Z" fill="url(#goldBody)" stroke="#f8d67e" stroke-width="2"/>
-              <path d="M5 21h77c4 0 7.5 2.7 8.5 6.5L94 42H13l-8.3-13.1C1.9 24.4 3.7 21 5 21Z" fill="url(#goldTop)"/>
-              <path d="M3 21.5h14l10 16H13zM27 21.5h14l10 16H37zM51 21.5h14l10 16H61zM75 21.5h14l9 16H85z" fill="#1d1710" opacity=".9"/>
-              <path d="M8 8.5h63c3.9 0 7.4 2.2 9.2 5.6l6.4 12.4c.8 1.6-.3 3.5-2.1 3.5H21.7c-2 0-3.8-.9-5-2.4L5.6 14.8C3.7 12.5 5.3 8.5 8 8.5Z" fill="url(#goldTop)" stroke="#f8d67e" stroke-width="2"/>
-              <path d="M11.5 10.5h11l10 15H21zM31 10.5h11l10 15H40.5zM50.5 10.5h11l10 15H60z" fill="#201910" opacity=".92"/>
-              <circle cx="8.5" cy="24.5" r="4.5" fill="url(#goldDark)" stroke="#f3cf72" stroke-width="1.5"/>
-              <circle cx="22.5" cy="25.5" r="3.3" fill="#f3cf72" opacity=".9"/>
-              <path d="M14 51h74M14 65h74M36 42v23M60 42v23" stroke="#8d5a1a" stroke-width="2.3" stroke-linecap="round" opacity=".72"/>
+            <rect x="10" y="45" width="108" height="73" rx="6" fill="#1e1e1e" stroke="#505050" stroke-width="2"/>
+            <line x1="11" y1="61" x2="117" y2="61" stroke="#363636" stroke-width="1.2"/>
+            <line x1="11" y1="77" x2="117" y2="77" stroke="#363636" stroke-width="1.2"/>
+            <line x1="11" y1="93" x2="117" y2="93" stroke="#363636" stroke-width="1.2"/>
+            <line x1="40" y1="46" x2="40" y2="117" stroke="#363636" stroke-width="1.2"/>
+            <rect x="8" y="34" width="112" height="13" rx="3" fill="#282828" stroke="#505050" stroke-width="2"/>
+            <rect x="10" y="10" width="108" height="26" fill="#eeeeee"/>
+            <g clip-path="url(#clapClipLg)">
+              <polygon points="10,36 26,36 52,10 36,10" fill="#111111"/>
+              <polygon points="42,36 58,36 84,10 68,10" fill="#111111"/>
+              <polygon points="74,36 90,36 116,10 100,10" fill="#111111"/>
+              <polygon points="106,36 118,36 118,24" fill="#111111"/>
             </g>
+            <rect x="10" y="10" width="108" height="26" fill="none" stroke="#333333" stroke-width="2"/>
           </svg>`;
         return `
           <div style="padding:24px;max-width:480px;margin:0 auto;">
@@ -2313,7 +2293,7 @@
                   style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:18px 12px 16px;cursor:pointer;text-align:center;color:var(--text);font-size:14px;font-weight:600;transition:background .15s,border-color .15s,transform .15s;"
                   onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.borderColor='var(--gold)'"
                   onmouseout="this.style.background='rgba(255,255,255,.04)';this.style.borderColor='var(--border)'">
-                  <div style="display:flex;justify-content:center;align-items:center;min-height:58px;margin-bottom:8px;filter:drop-shadow(0 4px 10px rgba(200,120,24,.18));">${isHall ? hallIcon : '<span style="font-size:30px;">🚿</span>'}</div>
+                  <div style="display:flex;justify-content:center;align-items:center;min-height:58px;margin-bottom:8px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4));">${isHall ? hallIcon : '<span style="font-size:30px;">🚿</span>'}</div>
                   <div>${escapeHtml(loc)}</div>
                 </button>
               `).join("")}
