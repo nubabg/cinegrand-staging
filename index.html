@@ -2248,10 +2248,26 @@
       }
 
 
+      function decorateHallSelectionIcons() {
+        if (state.screen !== "select-hall" || state.inspectionType !== "hall") return;
+        document.querySelectorAll('[data-action="select-hall-location"] > div:first-child').forEach((iconWrap) => {
+          if (iconWrap.dataset.goldApplied === "1") return;
+          iconWrap.innerHTML = `<span style="display:flex;justify-content:center;align-items:center;pointer-events:none;">${HALL_GOLD_ICON}</span>`;
+          iconWrap.style.display = "flex";
+          iconWrap.style.justifyContent = "center";
+          iconWrap.style.alignItems = "center";
+          iconWrap.style.minHeight = "46px";
+          iconWrap.style.marginBottom = "8px";
+          iconWrap.style.filter = "drop-shadow(0 3px 8px rgba(200,120,24,.2))";
+          iconWrap.style.pointerEvents = "none";
+          iconWrap.dataset.goldApplied = "1";
+        });
+      }
+
       function renderHallSelect() {
         const config = getConfig(state.inspectionType);
         const isHall = state.inspectionType === "hall";
-        const icon = isHall ? HALL_GOLD_ICON : '<span style="font-size:30px;">🚿</span>';
+        const icon = isHall ? "🎬" : "🚿";
         const title = isHall ? "Избор на Зала" : "Избор на Тоалетна";
         return `
           <div style="padding:24px;max-width:480px;margin:0 auto;">
@@ -2263,10 +2279,10 @@
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;">
               ${config.locations.map((loc) => `
                 <button data-action="select-hall-location" data-location="${escapeHtml(loc)}"
-                  style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:16px 12px 15px;cursor:pointer;text-align:center;color:var(--text);font-size:14px;font-weight:600;transition:background .15s,border-color .15s,transform .15s;"
+                  style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:20px 12px;cursor:pointer;text-align:center;color:var(--text);font-size:14px;font-weight:600;transition:background .15s,border-color .15s;"
                   onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.borderColor='var(--gold)'"
                   onmouseout="this.style.background='rgba(255,255,255,.04)';this.style.borderColor='var(--border)'">
-                  <div style="display:flex;justify-content:center;align-items:center;min-height:46px;margin-bottom:8px;filter:drop-shadow(0 3px 8px rgba(200,120,24,.2));pointer-events:none;">${icon}</div>
+                  <div style="font-size:28px;margin-bottom:8px;">${icon}</div>
                   <div>${escapeHtml(loc)}</div>
                 </button>
               `).join("")}
@@ -2303,6 +2319,7 @@
         app.innerHTML = renderShell(content);
         updateModals();
         bindInputs();
+        decorateHallSelectionIcons();
         /* Charts: HTML визуализации (без Chart.js) — синхронно от кеш */
         if (state.screen === "charts" && _cachedChartRows && _cachedChartRows.length > 0) {
           const c = document.getElementById('charts-container');
