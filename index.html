@@ -2219,8 +2219,39 @@
       function renderHallSelect() {
         const config = getConfig(state.inspectionType);
         const isHall = state.inspectionType === "hall";
-        const icon = isHall ? "🎬" : "🚿";
         const title = isHall ? "Избор на Зала" : "Избор на Тоалетна";
+        const hallIcon = `
+          <svg viewBox="0 0 96 96" width="40" height="40" aria-hidden="true">
+            <defs>
+              <linearGradient id="goldBody" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#fff3b4"></stop>
+                <stop offset="28%" stop-color="#f7d56f"></stop>
+                <stop offset="58%" stop-color="#bf7d1f"></stop>
+                <stop offset="82%" stop-color="#7d470f"></stop>
+                <stop offset="100%" stop-color="#f2ca67"></stop>
+              </linearGradient>
+              <linearGradient id="goldTop" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#8f5716"></stop>
+                <stop offset="42%" stop-color="#f8dc86"></stop>
+                <stop offset="74%" stop-color="#7a4811"></stop>
+                <stop offset="100%" stop-color="#fceaa6"></stop>
+              </linearGradient>
+              <linearGradient id="goldDark" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#a5661b"></stop>
+                <stop offset="100%" stop-color="#593207"></stop>
+              </linearGradient>
+            </defs>
+            <g transform="translate(10 12)">
+              <path d="M10 26h48c5.5 0 10 4.5 10 10v26c0 5.5-4.5 10-10 10H10C4.5 72 0 67.5 0 62V36c0-5.5 4.5-10 10-10Z" fill="url(#goldBody)" stroke="#f8d67e" stroke-width="1.8"/>
+              <path d="M6 22h50c3.8 0 7 2.5 8 6l2.4 8.2H9.2L4 27.6c-.9-1.5.2-5.6 2-5.6Z" fill="url(#goldTop)"/>
+              <path d="M4 22.5h10l7 11.7H11zM21 22.5h10l7 11.7H28zM38 22.5h10l7 11.7H45z" fill="#1d1710" opacity=".9"/>
+              <path d="M8 9h40c3.8 0 7.2 2.1 9 5.5l5.4 10.3c.8 1.5-.3 3.2-2 3.2H20.4c-2 0-3.8-.8-5-2.3L5.2 14.9C3.6 12.7 5.1 9 8 9Z" fill="url(#goldTop)" stroke="#f8d67e" stroke-width="1.8"/>
+              <path d="M10.2 10.8h8.6l7 11.1h-8.6zM25.8 10.8h8.6l7 11.1h-8.6zM41.4 10.8H50l7 11.1h-8.6z" fill="#201910" opacity=".92"/>
+              <circle cx="8.5" cy="24.2" r="3.3" fill="url(#goldDark)" stroke="#f3cf72" stroke-width="1.2"/>
+              <circle cx="19.2" cy="24.9" r="2.2" fill="#f3cf72" opacity=".9"/>
+              <path d="M10 43h48M10 54h48M25 36v19M42 36v19" stroke="#8d5a1a" stroke-width="1.8" stroke-linecap="round" opacity=".72"/>
+            </g>
+          </svg>`;
         return `
           <div style="padding:24px;max-width:480px;margin:0 auto;">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
@@ -2231,10 +2262,10 @@
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;">
               ${config.locations.map((loc) => `
                 <button data-action="select-hall-location" data-location="${escapeHtml(loc)}"
-                  style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:20px 12px;cursor:pointer;text-align:center;color:var(--text);font-size:14px;font-weight:600;transition:background .15s,border-color .15s;"
+                  style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:16px 12px 15px;cursor:pointer;text-align:center;color:var(--text);font-size:14px;font-weight:600;transition:background .15s,border-color .15s,transform .15s;"
                   onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.borderColor='var(--gold)'"
                   onmouseout="this.style.background='rgba(255,255,255,.04)';this.style.borderColor='var(--border)'">
-                  <div style="font-size:28px;margin-bottom:8px;">${icon}</div>
+                  <div style="display:flex;justify-content:center;align-items:center;min-height:46px;margin-bottom:8px;filter:drop-shadow(0 3px 8px rgba(200,120,24,.2));">${isHall ? hallIcon : '<span style="font-size:30px;">🚿</span>'}</div>
                   <div>${escapeHtml(loc)}</div>
                 </button>
               `).join("")}
