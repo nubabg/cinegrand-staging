@@ -1766,7 +1766,7 @@
                 <h3 class="section-title" style="margin:0;">Данни</h3>
                 <div class="muted" style="font-size:13px;margin-top:4px;">Данни от Google Sheets</div>
               </div>
-              <button class="btn btn-secondary" id="charts-refresh-btn" onclick="(async function(){const btn=document.getElementById('charts-refresh-btn');if(btn){btn.disabled=true;btn.textContent='Зарежда…';}window._cachedChartRows=null;window._chartsLoading=false;await initChartsScreen(false);if(btn){btn.disabled=false;btn.textContent='⟳ Обнови';}})()">⟳ Обнови</button>
+              <button class="btn btn-secondary" id="charts-refresh-btn" onclick="refreshChartsData()">⟳ Обнови</button>
             </div>
           </div>
           <div id="charts-container">
@@ -1868,6 +1868,15 @@
       let _chartsLoading = false;
       let _cachedChartRows = null;
       let _chartsFetchVersion = 0;
+
+      async function refreshChartsData() {
+        const btn = document.getElementById('charts-refresh-btn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Зарежда…'; }
+        _cachedChartRows = null;
+        _chartsLoading = false;
+        await initChartsScreen(false);
+        if (btn) { btn.disabled = false; btn.textContent = '⟳ Обнови'; }
+      }
 
       async function initChartsScreen(skipFetch) {
         if (_chartsLoading && !skipFetch) return;
