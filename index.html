@@ -232,22 +232,29 @@
       .card-pick:hover { transform: translateY(-4px); box-shadow: 0 24px 48px rgba(0,0,0,.4); }
 
       .card-head {
-        padding: 22px 22px 28px; min-height: 240px; position: relative;
+        padding: 16px 18px 20px; min-height: 160px; position: relative;
         display: flex; flex-direction: column; justify-content: flex-end;
       }
       .card-text-icon {
-        position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+        position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
         font-family: "Oswald", sans-serif; font-weight: 700;
-        font-size: 44px; letter-spacing: .06em; text-transform: uppercase;
+        font-size: 36px; letter-spacing: .06em; text-transform: uppercase;
         background: linear-gradient(135deg, var(--gold), var(--gold-2));
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         background-clip: text; opacity: .32; pointer-events: none;
-        line-height: 1.1; text-align: center; max-width: 160px;
+        line-height: 1.1; text-align: center; max-width: 130px;
       }
 
+      .btn-back {
+        background: rgba(12,7,0,.88); border: 1px solid rgba(201,162,39,.38);
+        border-radius: 999px; color: var(--gold); padding: 7px 14px 7px 10px;
+        font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+        transition: background .15s, border-color .15s; line-height: 1;
+      }
+      .btn-back:hover { background: rgba(201,162,39,.1); border-color: rgba(201,162,39,.65); }
 
       .card-body {
-        padding: 18px 20px 20px;
+        padding: 14px 16px 16px;
         background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
       }
 
@@ -1641,7 +1648,7 @@
                 <div class="panel card-pick" data-action="start-inspection" data-type="${key}">
                   <div class="card-head" style="background:linear-gradient(160deg, rgba(255,255,255,.03), rgba(0,0,0,.1)), radial-gradient(circle at top right, ${key === "hall" ? "rgba(201,162,39,.22)" : "rgba(96,165,250,.20)"}, transparent 40%);">
                     <span class="card-text-icon">${key === "hall" ? "КИНО ЗАЛА" : "WC"}</span>
-                    <div style="font-size:28px;font-weight:700;position:relative;z-index:1;">${cfg.shortTitle}</div>
+                    <div style="font-size:22px;font-weight:700;position:relative;z-index:1;">${cfg.shortTitle}</div>
                     <div class="muted" style="position:relative;z-index:1;">${key === "hall" ? "Зали 1–6" : "Тоалетни"}</div>
                   </div>
                   <div class="card-body">
@@ -1652,7 +1659,7 @@
                 <div class="panel card-pick" data-action="start-changing-room" style="grid-column:1/-1;">
                   <div class="card-head" style="background:linear-gradient(160deg, rgba(255,255,255,.03), rgba(0,0,0,.1)), radial-gradient(circle at top right, rgba(139,92,246,.22), transparent 40%);">
                     <span class="card-text-icon">СЪБЛЕКАЛНИ</span>
-                    <div style="font-size:28px;font-weight:700;position:relative;z-index:1;">Почистване на съблекалня</div>
+                    <div style="font-size:22px;font-weight:700;position:relative;z-index:1;">Почистване на съблекалня</div>
                     <div class="muted" style="position:relative;z-index:1;">Мъжка / Женска</div>
                   </div>
                   <div class="card-body">
@@ -2307,7 +2314,7 @@
         return `
           <div style="padding:24px;max-width:480px;margin:0 auto;">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
-              <button data-action="go-home" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='none'">←</button>
+              <button class="btn-back" data-action="go-home">← Назад</button>
               <h2 style="font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;margin:0;">${title}</h2>
             </div>
             <div style="color:var(--muted);font-size:13px;margin-bottom:20px;">Избери ${isHall ? "залата" : "тоалетната"}, която ще проверяваш:</div>
@@ -2474,7 +2481,7 @@
         return `
           <div style="padding:14px 16px;max-width:480px;margin:0 auto;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-              <button data-action="go-home" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='none'">←</button>
+              <button class="btn-back" data-action="go-home">← Назад</button>
               <h2 style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;letter-spacing:.06em;margin:0;">Избор на Съблекалня</h2>
             </div>
             <div style="color:var(--muted);font-size:12px;margin-bottom:12px;">Избери съблекалнята, която ще почистваш:</div>
@@ -2507,7 +2514,7 @@
           return `
             <div style="padding:14px 16px;max-width:480px;margin:0 auto;">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-                <button data-action="cr-back-select" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;">←</button>
+                <button class="btn-back" data-action="cr-back-select">← Назад</button>
                 <h2 style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
               </div>
               <div style="text-align:center;padding:32px 0;color:var(--muted);">
@@ -2522,7 +2529,7 @@
           return `
             <div style="padding:14px 16px;max-width:480px;margin:0 auto;">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-                <button data-action="cr-back-select" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;">←</button>
+                <button class="btn-back" data-action="cr-back-select">← Назад</button>
                 <h2 style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
               </div>
               <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:12px 16px;color:#f87171;font-size:13px;margin-bottom:12px;">
@@ -2537,7 +2544,7 @@
           return `
             <div style="padding:14px 16px;max-width:480px;margin:0 auto;">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-                <button data-action="cr-back-select" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;">←</button>
+                <button class="btn-back" data-action="cr-back-select">← Назад</button>
                 <h2 style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
               </div>
               <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;color:var(--muted);">
@@ -2631,7 +2638,7 @@
         return `
           <div style="padding:14px 16px;max-width:480px;margin:0 auto;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-              <button data-action="cr-back-select" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='none'">←</button>
+              <button class="btn-back" data-action="cr-back-select">← Назад</button>
               <h2 style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
             </div>
 
