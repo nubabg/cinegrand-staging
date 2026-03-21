@@ -2452,7 +2452,7 @@
               body: JSON.stringify(payload),
             });
             const j = await r.json().catch(() => ({}));
-            ok = r.ok || j.success;
+            ok = j.success === true;
           } catch (_) {
             /* fallback no-cors */
             await fetch(SHEETS_WEB_APP_URL, {
