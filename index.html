@@ -2402,7 +2402,7 @@
               const row = {
                 dateStr:     dateStr,
                 date:        d,
-                sheetRow:    i + 2,
+                sheetRow:    i + 1,
                 maleEntry:   cells[1] ? String(cells[1].v || "").trim() : "",
                 femaleEntry: cells[2] ? String(cells[2].v || "").trim() : "",
               };
@@ -2472,25 +2472,25 @@
       /* ── Render: select Мъжка / Женска ── */
       function renderChangingRoomSelect() {
         return `
-          <div style="padding:24px;max-width:480px;margin:0 auto;">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+          <div style="padding:14px 16px;max-width:480px;margin:0 auto;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
               <button data-action="go-home" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='none'">←</button>
-              <h2 style="font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;margin:0;">Избор на Съблекалня</h2>
+              <h2 style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;letter-spacing:.06em;margin:0;">Избор на Съблекалня</h2>
             </div>
-            <div style="color:var(--muted);font-size:13px;margin-bottom:20px;">Избери съблекалнята, която ще почистваш:</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div style="color:var(--muted);font-size:12px;margin-bottom:12px;">Избери съблекалнята, която ще почистваш:</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
               <button data-action="select-cr-type" data-crtype="male"
-                style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:28px 12px 22px;cursor:pointer;text-align:center;color:var(--text);font-size:15px;font-weight:600;transition:background .15s,border-color .15s;"
+                style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:16px 10px 14px;cursor:pointer;text-align:center;color:var(--text);font-size:14px;font-weight:600;transition:background .15s,border-color .15s;"
                 onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.borderColor='var(--gold)'"
                 onmouseout="this.style.background='rgba(255,255,255,.04)';this.style.borderColor='var(--border)'">
-                <div style="font-size:36px;margin-bottom:12px;">🚹</div>
+                <div style="font-size:28px;margin-bottom:8px;">🚹</div>
                 <div>Мъжка съблекалня</div>
               </button>
               <button data-action="select-cr-type" data-crtype="female"
-                style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:28px 12px 22px;cursor:pointer;text-align:center;color:var(--text);font-size:15px;font-weight:600;transition:background .15s,border-color .15s;"
+                style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:16px 10px 14px;cursor:pointer;text-align:center;color:var(--text);font-size:14px;font-weight:600;transition:background .15s,border-color .15s;"
                 onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.borderColor='var(--gold)'"
                 onmouseout="this.style.background='rgba(255,255,255,.04)';this.style.borderColor='var(--border)'">
-                <div style="font-size:36px;margin-bottom:12px;">🚺</div>
+                <div style="font-size:28px;margin-bottom:8px;">🚺</div>
                 <div>Женска съблекалня</div>
               </button>
             </div>
@@ -2505,13 +2505,13 @@
         /* Loading */
         if (state.crLoading) {
           return `
-            <div style="padding:24px;max-width:480px;margin:0 auto;">
-              <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
+            <div style="padding:14px 16px;max-width:480px;margin:0 auto;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
                 <button data-action="cr-back-select" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;">←</button>
-                <h2 style="font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
+                <h2 style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
               </div>
-              <div style="text-align:center;padding:48px 0;color:var(--muted);">
-                <div style="width:36px;height:36px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--gold);animation:spin .8s linear infinite;margin:0 auto 16px;"></div>
+              <div style="text-align:center;padding:32px 0;color:var(--muted);">
+                <div style="width:28px;height:28px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--gold);animation:spin .8s linear infinite;margin:0 auto 12px;"></div>
                 Зареждане на график…
               </div>
             </div>`;
@@ -2520,12 +2520,12 @@
         /* Error */
         if (state.crError) {
           return `
-            <div style="padding:24px;max-width:480px;margin:0 auto;">
-              <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
+            <div style="padding:14px 16px;max-width:480px;margin:0 auto;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
                 <button data-action="cr-back-select" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;">←</button>
-                <h2 style="font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
+                <h2 style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
               </div>
-              <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:12px;padding:18px 20px;color:#f87171;margin-bottom:16px;">
+              <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:12px 16px;color:#f87171;font-size:13px;margin-bottom:12px;">
                 ⚠ ${escapeHtml(state.crError)}
               </div>
               <button class="btn btn-outline" data-action="cr-reload" style="width:100%;">Опитай отново</button>
@@ -2535,14 +2535,14 @@
         /* No future date */
         if (!state.crData) {
           return `
-            <div style="padding:24px;max-width:480px;margin:0 auto;">
-              <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
+            <div style="padding:14px 16px;max-width:480px;margin:0 auto;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
                 <button data-action="cr-back-select" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;">←</button>
-                <h2 style="font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
+                <h2 style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
               </div>
-              <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:28px;text-align:center;color:var(--muted);">
-                <div style="font-size:32px;margin-bottom:12px;">📅</div>
-                <div style="font-size:15px;">Няма планирано почистване</div>
+              <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;color:var(--muted);">
+                <div style="font-size:26px;margin-bottom:8px;">📅</div>
+                <div style="font-size:14px;">Няма планирано почистване</div>
               </div>
             </div>`;
         }
@@ -2567,61 +2567,61 @@
         let actionArea = "";
         if (alreadyDone) {
           actionArea = `
-            <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:16px 18px;color:var(--muted);font-size:14px;">
+            <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:11px 14px;color:var(--muted);font-size:13px;">
               ✓ Почистването е отчетено от: <strong style="color:var(--text);">${escapeHtml(myEntry)}</strong>
             </div>`;
         } else if (!isToday) {
           actionArea = `
-            <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:16px 18px;color:var(--muted);font-size:13px;text-align:center;">
+            <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--muted);font-size:12px;text-align:center;">
               Може да се отчита само в деня на почистването.
             </div>`;
         } else if (state.crStep === "idle") {
           actionArea = `
-            <button class="btn btn-gold" data-action="cr-start" style="width:100%;font-size:15px;padding:14px;">
+            <button class="btn btn-gold" data-action="cr-start" style="width:100%;font-size:14px;padding:12px;">
               Започни почистване
             </button>`;
         } else if (state.crStep === "started") {
           actionArea = `
-            <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:20px;">
-              <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Въведи твоето име:</div>
+            <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:14px;">
+              <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Въведи твоето име:</div>
               <input id="cr-name-input" type="text" value="${escapeHtml(state.crName)}"
                 placeholder="Само на кирилица"
-                style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.05);border:1px solid ${state.crNameErr ? "rgba(239,68,68,.6)" : "var(--border)"};border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;outline:none;margin-bottom:${state.crNameErr ? "6px" : "14px"};">
-              ${state.crNameErr ? `<div style="color:#f87171;font-size:12px;margin-bottom:10px;">${escapeHtml(state.crNameErr)}</div>` : ""}
-              <button class="btn btn-gold" data-action="cr-submit" style="width:100%;font-size:14px;padding:12px;">
+                style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.05);border:1px solid ${state.crNameErr ? "rgba(239,68,68,.6)" : "var(--border)"};border-radius:8px;padding:8px 10px;color:var(--text);font-size:14px;outline:none;margin-bottom:${state.crNameErr ? "5px" : "10px"};">
+              ${state.crNameErr ? `<div style="color:#f87171;font-size:11px;margin-bottom:8px;">${escapeHtml(state.crNameErr)}</div>` : ""}
+              <button class="btn btn-gold" data-action="cr-submit" style="width:100%;font-size:14px;padding:11px;">
                 Завърши и запиши
               </button>
             </div>`;
         } else if (state.crStep === "submitting") {
           actionArea = `
-            <div style="text-align:center;padding:20px;color:var(--muted);font-size:14px;">
-              <div style="width:28px;height:28px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--gold);animation:spin .8s linear infinite;margin:0 auto 12px;"></div>
+            <div style="text-align:center;padding:16px;color:var(--muted);font-size:13px;">
+              <div style="width:24px;height:24px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--gold);animation:spin .8s linear infinite;margin:0 auto 10px;"></div>
               Записване…
             </div>`;
         } else if (state.crStep === "done") {
           actionArea = `
-            <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:16px 18px;color:var(--muted);font-size:14px;text-align:center;">
+            <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:11px 14px;color:var(--muted);font-size:13px;text-align:center;">
               ✓ Записано успешно!
             </div>`;
         }
 
         /* Schedule preview — all future rows (loaded from crData.allRows if available) */
         const scheduleSection = state.crData.allRows && state.crData.allRows.length > 1 ? `
-          <div style="margin-top:20px;">
-            <div style="font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">График (само четене)</div>
+          <div style="margin-top:14px;">
+            <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">График (само четене)</div>
             <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
-              <table style="width:100%;border-collapse:collapse;font-size:13px;">
+              <table style="width:100%;border-collapse:collapse;font-size:12px;">
                 <thead><tr style="background:rgba(255,255,255,.04);">
-                  <th style="padding:8px 12px;text-align:left;color:var(--muted);font-weight:600;">Дата</th>
-                  <th style="padding:8px 12px;text-align:left;color:var(--muted);font-weight:600;">🚹 Мъжка</th>
-                  <th style="padding:8px 12px;text-align:left;color:var(--muted);font-weight:600;">🚺 Женска</th>
+                  <th style="padding:6px 10px;text-align:left;color:var(--muted);font-weight:600;">Дата</th>
+                  <th style="padding:6px 10px;text-align:left;color:var(--muted);font-weight:600;">🚹 Мъжка</th>
+                  <th style="padding:6px 10px;text-align:left;color:var(--muted);font-weight:600;">🚺 Женска</th>
                 </tr></thead>
                 <tbody>
                   ${state.crData.allRows.map((r, idx) => `
                     <tr style="border-top:1px solid var(--border);${idx === 0 ? "background:rgba(201,162,39,.06);" : ""}">
-                      <td style="padding:8px 12px;color:${idx === 0 ? "var(--gold)" : "var(--text)"};">${escapeHtml(r.dateStr)}</td>
-                      <td style="padding:8px 12px;color:var(--muted);">${r.maleEntry ? "✓ " + escapeHtml(r.maleEntry) : "—"}</td>
-                      <td style="padding:8px 12px;color:var(--muted);">${r.femaleEntry ? "✓ " + escapeHtml(r.femaleEntry) : "—"}</td>
+                      <td style="padding:6px 10px;color:${idx === 0 ? "var(--gold)" : "var(--text)"};">${escapeHtml(r.dateStr)}</td>
+                      <td style="padding:6px 10px;color:var(--muted);">${r.maleEntry ? "✓ " + escapeHtml(r.maleEntry) : "—"}</td>
+                      <td style="padding:6px 10px;color:var(--muted);">${r.femaleEntry ? "✓ " + escapeHtml(r.femaleEntry) : "—"}</td>
                     </tr>`).join("")}
                 </tbody>
               </table>
@@ -2629,16 +2629,16 @@
           </div>` : "";
 
         return `
-          <div style="padding:24px;max-width:480px;margin:0 auto;">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+          <div style="padding:14px 16px;max-width:480px;margin:0 auto;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
               <button data-action="cr-back-select" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='none'">←</button>
-              <h2 style="font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
+              <h2 style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
             </div>
 
             <!-- Date card -->
-            <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:16px;">
-              <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Следващо почистване</div>
-              <div style="font-size:26px;font-weight:700;font-family:'Oswald',sans-serif;letter-spacing:.04em;margin-bottom:10px;">${escapeHtml(dateStr)}</div>
+            <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+              <div style="font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Следващо почистване</div>
+              <div style="font-size:20px;font-weight:700;font-family:'Oswald',sans-serif;letter-spacing:.04em;margin-bottom:8px;">${escapeHtml(dateStr)}</div>
               ${statusPill}
             </div>
 
