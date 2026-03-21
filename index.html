@@ -3077,13 +3077,71 @@
     <div id="cg-map-placeholder" style="display:none;width:1px;height:1px;"></div>
     <script>
       (function() {
-        var _cache = null;
-        var _loading = false;
         var PLACE_ID = 'ChIJSwfBtwaFqkARCbgjdIFdbVY';
         var MAPS_URL = 'https://www.google.com/maps/place/?q=place_id:' + PLACE_ID;
+        var LS_KEY   = 'cg_reviews_v2';
+        var _memCache = null; // in-memory for current session
+        var _loading  = false;
 
+        /* ── Sofia timezone helpers ── */
+        function toSofiaDate(ms) {
+          // Returns a Date whose .getHours()/.getDate() etc. reflect Sofia local time
+          return new Date(new Date(ms).toLocaleString('en-US', { timeZone: 'Europe/Sofia' }));
+        }
+
+        function sofiaHour(ms) {
+          return toSofiaDate(ms).getHours();
+        }
+
+        /* Returns the UTC ms of the most-recent scheduled refresh before a given time */
+        function lastRefreshPointBefore(nowMs) {
+          var s = toSofiaDate(nowMs);
+          var h = s.getHours();
+
+          // Build base: today's midnight in Sofia, expressed in the same
+          // "Sofia-as-local" coordinate system used by toSofiaDate()
+          var base = new Date(s);
+          base.setHours(0, 0, 0, 0);
+
+          var refreshSofia;
+          if (h >= 18) {
+            refreshSofia = new Date(base); refreshSofia.setHours(18);
+          } else if (h >= 12) {
+            refreshSofia = new Date(base); refreshSofia.setHours(12);
+          } else {
+            // Before noon → last refresh was yesterday 18:00
+            refreshSofia = new Date(base);
+            refreshSofia.setDate(refreshSofia.getDate() - 1);
+            refreshSofia.setHours(18);
+          }
+
+          // Convert back to real UTC:
+          // toSofiaDate shifts by (sofiaOffset − browserOffset).
+          // The same shift applies symmetrically when going back.
+          var nowSofia = toSofiaDate(nowMs);
+          var shift = nowSofia.getTime() - nowMs; // (sofiaOffset − browserOffset) in ms
+          return refreshSofia.getTime() - shift;
+        }
+
+        /* Is the localStorage cache still valid for this period? */
+        function isCacheValid(entry) {
+          if (!entry || !entry.cachedAt || !entry.place) return false;
+          var nowMs = Date.now();
+          return entry.cachedAt >= lastRefreshPointBefore(nowMs);
+        }
+
+        /* localStorage helpers */
+        function lsLoad() {
+          try { return JSON.parse(localStorage.getItem(LS_KEY)); } catch(e) { return null; }
+        }
+        function lsSave(place) {
+          try { localStorage.setItem(LS_KEY, JSON.stringify({ place: place, cachedAt: Date.now() })); } catch(e) {}
+        }
+
+        /* ── Rendering ── */
         function stars(n) {
-          return '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
+          n = Math.round(n);
+          return '★'.repeat(n) + '☆'.repeat(5 - n);
         }
         function initials(name) {
           if (!name) return '?';
@@ -3091,61 +3149,114 @@
           if (parts.length === 1) return parts[0][0].toUpperCase();
           return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
         }
-        function buildHtml(data) {
-          var reviews = (data.reviews || []).slice().sort(function(a, b) { return b.time - a.time; }).slice(0, 5);
-          var overallHtml = '';
-          if (data.rating) {
-            overallHtml = '<div class="cg-overall">'
-              + '<div class="cg-overall-num">' + data.rating.toFixed(1) + '</div>'
-              + '<div><div class="cg-overall-stars">' + stars(data.rating) + '</div>'
-              + (data.user_ratings_total ? '<div class="cg-overall-count">' + data.user_ratings_total + ' ревюта в Google</div>' : '')
-              + '</div></div>';
-          }
+        function buildHtml(place) {
+          // Sort all reviews newest-first and take top 5
+          var reviews = (place.reviews || [])
+            .slice()
+            .sort(function(a, b) { return b.time - a.time; })
+            .slice(0, 5);
+
+          var overallHtml = place.rating
+            ? '<div class="cg-overall">'
+              + '<div class="cg-overall-num">' + (+place.rating).toFixed(1) + '</div>'
+              + '<div><div class="cg-overall-stars">' + stars(place.rating) + '</div>'
+              + (place.user_ratings_total
+                ? '<div class="cg-overall-count">' + place.user_ratings_total + ' ревюта в Google</div>'
+                : '')
+              + '</div></div>'
+            : '';
+
           var cardsHtml = reviews.map(function(r, i) {
-            var delay = (i * 0.1 + 0.1).toFixed(1) + 's';
-            var text = r.text ? r.text.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+            var delay = ((i + 1) * 0.1).toFixed(1) + 's';
+            var text  = (r.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             return '<div class="cg-review-card" style="animation-delay:' + delay + '">'
               + '<div class="cg-quote-deco">\u201c</div>'
               + '<div class="cg-review-header">'
               + '<div class="cg-avatar">' + initials(r.author_name) + '</div>'
-              + '<div><div class="cg-author">' + (r.author_name || '').replace(/</g,'&lt;') + '</div>'
-              + '<div class="cg-date">' + (r.relative_time_description || '') + '</div></div>'
-              + '</div>'
+              + '<div><div class="cg-author">' + (r.author_name || '').replace(/</g, '&lt;') + '</div>'
+              + '<div class="cg-date">' + (r.relative_time_description || '') + '</div>'
+              + '</div></div>'
               + '<div class="cg-review-stars">' + stars(r.rating) + '</div>'
               + (text ? '<div class="cg-review-text">' + text + '</div>' : '')
               + '</div>';
           }).join('');
+
           return '<div class="cg-reviews-kicker">GOOGLE REVIEWS</div>'
             + '<div class="cg-reviews-heading">Какво казват нашите гости</div>'
             + overallHtml
             + '<div class="cg-reviews-grid">' + cardsHtml + '</div>'
-            + '<a class="cg-reviews-link" href="' + MAPS_URL + '" target="_blank" rel="noopener">Виж всички ревюта в Google \u2197</a>';
+            + '<a class="cg-reviews-link" href="' + MAPS_URL + '" target="_blank" rel="noopener">'
+            + 'Виж всички ревюта в Google \u2197</a>';
         }
 
-        function injectHtml(html) {
+        function inject(html) {
           var el = document.getElementById('cg-reviews-section');
           if (el) el.innerHTML = html;
         }
 
-        window.cgUpdateReviews = function() {
-          if (_cache) { injectHtml(_cache); return; }
+        function fetchAndRender() {
           if (_loading) return;
-          _loading = true;
           if (!window.google || !window.google.maps || !window.google.maps.places) return;
+          _loading = true;
           var svc = new google.maps.places.PlacesService(document.getElementById('cg-map-placeholder'));
-          svc.getDetails({ placeId: PLACE_ID, fields: ['reviews','rating','user_ratings_total'], language: 'bg' }, function(place, status) {
-            _loading = false;
-            if (status === google.maps.places.PlacesServiceStatus.OK && place) {
-              _cache = buildHtml(place);
-            } else {
-              _cache = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">Ревютата не могат да бъдат заредени в момента.</div>';
+          svc.getDetails(
+            { placeId: PLACE_ID, fields: ['reviews', 'rating', 'user_ratings_total'] },
+            function(place, status) {
+              _loading = false;
+              if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+                // Serialize only what we need (PlacesService result is not plain JSON)
+                var plain = {
+                  rating: place.rating,
+                  user_ratings_total: place.user_ratings_total,
+                  reviews: (place.reviews || []).map(function(r) {
+                    return {
+                      author_name: r.author_name,
+                      rating: r.rating,
+                      relative_time_description: r.relative_time_description,
+                      text: r.text,
+                      time: r.time
+                    };
+                  })
+                };
+                lsSave(plain);
+                _memCache = buildHtml(plain);
+              } else {
+                _memCache = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">'
+                  + 'Ревютата не могат да бъдат заредени в момента.</div>';
+              }
+              inject(_memCache);
             }
-            injectHtml(_cache);
-          });
+          );
+        }
+
+        /* Called by render() every time home screen is shown */
+        window.cgUpdateReviews = function() {
+          if (_memCache) { inject(_memCache); return; }
+
+          // Try localStorage first
+          var entry = lsLoad();
+          if (isCacheValid(entry)) {
+            _memCache = buildHtml(entry.place);
+            inject(_memCache);
+            return;
+          }
+
+          // Need fresh data — fetch from Places API (API may not be ready yet)
+          fetchAndRender();
         };
 
+        /* Callback after Google Maps API loads */
         window.cgInitGoogleReviews = function() {
-          if (document.getElementById('cg-reviews-section')) window.cgUpdateReviews();
+          // If home section is visible and we don't have valid cache yet, fetch now
+          if (document.getElementById('cg-reviews-section') && !_memCache) {
+            var entry = lsLoad();
+            if (isCacheValid(entry)) {
+              _memCache = buildHtml(entry.place);
+              inject(_memCache);
+            } else {
+              fetchAndRender();
+            }
+          }
         };
       })();
     </script>
