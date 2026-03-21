@@ -761,6 +761,10 @@
         "Мъжка тоалетна",
       ];
 
+      /* ── Changing Room module constants ── */
+      const CHANGING_ROOM_SHEET_NAME = "Почистване съблекални";
+      const SHEETS_SPREADSHEET_ID = "17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA";
+
       const HALL_ITEMS = [
         { id: "cup_holders", label: "Cup Holders", icon: "☕", desc: "Поставки за чаши" },
         { id: "seats", label: "Седалки", icon: "💺", desc: "Тапицерия и механизъм" },
@@ -1157,6 +1161,14 @@
         toast: null,
         openedFromQR: false,
         currentSessionId: null,
+        /* Changing room module */
+        crType: null,        /* "male" | "female" */
+        crData: null,        /* { dateStr, rowIndex, maleEntry, femaleEntry } */
+        crLoading: false,
+        crError: null,
+        crStep: "idle",      /* "idle" | "started" | "submitting" | "done" */
+        crName: "",
+        crNameErr: "",
       };
 
       try { state.records = JSON.parse(localStorage.getItem(STORAGE_KEYS.records) || "[]"); }
@@ -1636,7 +1648,19 @@
                     <div class="tag-list">${cfg.tags.map((t) => `<span class="tag">${t}</span>`).join("")}</div>
                     <div class="btn btn-gold" style="text-align:center;">Започни проверка</div>
                   </div>
-                </div>`).join("")}</div>
+                </div>`).join("")}
+                <div class="panel card-pick" data-action="start-changing-room" style="grid-column:1/-1;">
+                  <div class="card-head" style="background:linear-gradient(160deg, rgba(255,255,255,.03), rgba(0,0,0,.1)), radial-gradient(circle at top right, rgba(139,92,246,.22), transparent 40%);">
+                    <span class="card-text-icon">СЪБЛЕКАЛНИ</span>
+                    <div style="font-size:28px;font-weight:700;position:relative;z-index:1;">Почистване на съблекалня</div>
+                    <div class="muted" style="position:relative;z-index:1;">Мъжка / Женска</div>
+                  </div>
+                  <div class="card-body">
+                    <div class="tag-list"><span class="tag">График</span><span class="tag">Отчет</span><span class="tag">Почистване</span></div>
+                    <div class="btn btn-gold" style="text-align:center;">Отчети почистване</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -2318,6 +2342,326 @@
         if (state.showDeleteModal) setupModalFocusTrap();
       }
 
+      /* ════════════════════════════════════════════════════════
+         CHANGING ROOM MODULE — helpers, fetch, submit, render
+         ════════════════════════════════════════════════════════ */
+
+      /* Parse "DD.MM.YYYY" (or "DD.MM.YYYY - Den") → Date (midnight local) */
+      function crParseDate(str) {
+        if (!str) return null;
+        const m = str.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+        if (!m) return null;
+        return new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+      }
+
+      /* Format Date → "DD.MM.YYYY" */
+      function crFmtDate(d) {
+        if (!d) return "";
+        const pad = (n) => String(n).padStart(2, "0");
+        return pad(d.getDate()) + "." + pad(d.getMonth() + 1) + "." + d.getFullYear();
+      }
+
+      /* Today at midnight local */
+      function crToday() {
+        const t = new Date();
+        t.setHours(0, 0, 0, 0);
+        return t;
+      }
+
+      /* Fetch all rows from "Почистване съблекални" sheet via gviz */
+      async function fetchChangingRoomData() {
+        state.crLoading = true;
+        state.crError = null;
+        state.crData = null;
+        render();
+        try {
+          const url = "https://docs.google.com/spreadsheets/d/" + SHEETS_SPREADSHEET_ID +
+            "/gviz/tq?tqx=out:json&sheet=" + encodeURIComponent(CHANGING_ROOM_SHEET_NAME);
+          const resp = await fetch(url, { cache: "no-store" });
+          if (!resp.ok) throw new Error("HTTP " + resp.status);
+          const text = await resp.text();
+          /* gviz wraps JSON in google.visualization.Query.setResponse(...) */
+          const json = JSON.parse(text.replace(/^[^(]+\(/, "").replace(/\);?\s*$/, ""));
+          const rows = json.table ? json.table.rows : [];
+
+          const today = crToday();
+          const futureRows = [];
+          let found = null;
+
+          /* Rows are 0-indexed; row 0 is the header; data starts at row 1 (sheetRow=2) */
+          for (let i = 0; i < rows.length; i++) {
+            const cells = rows[i].c || [];
+            /* gviz returns formatted value in .f (e.g. "23.03.2026 - Понеделник"),
+               or raw string in .v for text columns */
+            const formatted = cells[0] ? (cells[0].f || "") : "";
+            const raw       = cells[0] ? String(cells[0].v || "") : "";
+            const dateStr   = formatted || raw;
+            const d = crParseDate(dateStr);
+            if (!d) continue;
+            if (d >= today) {
+              const row = {
+                dateStr:     dateStr,
+                date:        d,
+                sheetRow:    i + 2,
+                maleEntry:   cells[1] ? String(cells[1].v || "").trim() : "",
+                femaleEntry: cells[2] ? String(cells[2].v || "").trim() : "",
+              };
+              futureRows.push(row);
+              if (!found) found = row;
+            }
+          }
+
+          if (found) {
+            found.allRows = futureRows; /* attach schedule for preview */
+          }
+          state.crData = found; /* null = no future date */
+        } catch (err) {
+          state.crError = "Грешка при връзка с таблицата. Опитайте отново.";
+        }
+        state.crLoading = false;
+        render();
+      }
+
+      /* Write name to Sheets via Apps Script */
+      async function submitChangingRoom() {
+        const name = state.crName.trim();
+        if (!name) { state.crNameErr = "Въведете вашето име."; render(); return; }
+        if (!/^[\u0400-\u04FF ]+$/.test(name)) { state.crNameErr = "Само кирилица."; render(); return; }
+        if (!state.crData) return;
+
+        const col = state.crType === "male" ? "B" : "C";
+        const alreadyFilled = state.crType === "male" ? state.crData.maleEntry : state.crData.femaleEntry;
+        if (alreadyFilled) { showToast("Вече е отчетено за тази дата.", "error"); return; }
+
+        state.crStep = "submitting";
+        render();
+        try {
+          const payload = {
+            action: "updateChangingRoom",
+            sheet: CHANGING_ROOM_SHEET_NAME,
+            dateStr: state.crData.dateStr,
+            col: col,
+            row: state.crData.sheetRow,
+            name: name,
+          };
+          let ok = false;
+          try {
+            const r = await fetch(SHEETS_WEB_APP_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+            const j = await r.json().catch(() => ({}));
+            ok = r.ok || j.success;
+          } catch (_) {
+            /* fallback no-cors */
+            await fetch(SHEETS_WEB_APP_URL, {
+              method: "POST",
+              mode: "no-cors",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+            ok = true; /* assume sent */
+          }
+          if (ok) {
+            /* Update local mirror */
+            if (state.crType === "male") state.crData.maleEntry = name;
+            else state.crData.femaleEntry = name;
+            state.crStep = "done";
+            state.crName = "";
+            showToast("Записано успешно!", "ok");
+          } else {
+            throw new Error("server error");
+          }
+        } catch (_) {
+          state.crStep = "started";
+          showToast("Грешка при запис. Опитайте отново.", "error");
+        }
+        render();
+      }
+
+      /* ── Render: select Мъжка / Женска ── */
+      function renderChangingRoomSelect() {
+        return `
+          <div style="padding:24px;max-width:480px;margin:0 auto;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+              <button data-action="go-home" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='none'">←</button>
+              <h2 style="font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;margin:0;">Избор на Съблекалня</h2>
+            </div>
+            <div style="color:var(--muted);font-size:13px;margin-bottom:20px;">Избери съблекалнята, която ще почистваш:</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <button data-action="select-cr-type" data-crtype="male"
+                style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:28px 12px 22px;cursor:pointer;text-align:center;color:var(--text);font-size:15px;font-weight:600;transition:background .15s,border-color .15s;"
+                onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.borderColor='var(--gold)'"
+                onmouseout="this.style.background='rgba(255,255,255,.04)';this.style.borderColor='var(--border)'">
+                <div style="font-size:36px;margin-bottom:12px;">🚹</div>
+                <div>Мъжка съблекалня</div>
+              </button>
+              <button data-action="select-cr-type" data-crtype="female"
+                style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:28px 12px 22px;cursor:pointer;text-align:center;color:var(--text);font-size:15px;font-weight:600;transition:background .15s,border-color .15s;"
+                onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.borderColor='var(--gold)'"
+                onmouseout="this.style.background='rgba(255,255,255,.04)';this.style.borderColor='var(--border)'">
+                <div style="font-size:36px;margin-bottom:12px;">🚺</div>
+                <div>Женска съблекалня</div>
+              </button>
+            </div>
+          </div>`;
+      }
+
+      /* ── Render: detail view for selected changing room ── */
+      function renderChangingRoomDetail() {
+        const typeLabel = state.crType === "male" ? "Мъжка съблекалня" : "Женска съблекалня";
+        const typeIcon  = state.crType === "male" ? "🚹" : "🚺";
+
+        /* Loading */
+        if (state.crLoading) {
+          return `
+            <div style="padding:24px;max-width:480px;margin:0 auto;">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
+                <button data-action="cr-back-select" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;">←</button>
+                <h2 style="font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
+              </div>
+              <div style="text-align:center;padding:48px 0;color:var(--muted);">
+                <div style="width:36px;height:36px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--gold);animation:spin .8s linear infinite;margin:0 auto 16px;"></div>
+                Зареждане на график…
+              </div>
+            </div>`;
+        }
+
+        /* Error */
+        if (state.crError) {
+          return `
+            <div style="padding:24px;max-width:480px;margin:0 auto;">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
+                <button data-action="cr-back-select" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;">←</button>
+                <h2 style="font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
+              </div>
+              <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:12px;padding:18px 20px;color:#f87171;margin-bottom:16px;">
+                ⚠ ${escapeHtml(state.crError)}
+              </div>
+              <button class="btn btn-outline" data-action="cr-reload" style="width:100%;">Опитай отново</button>
+            </div>`;
+        }
+
+        /* No future date */
+        if (!state.crData) {
+          return `
+            <div style="padding:24px;max-width:480px;margin:0 auto;">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
+                <button data-action="cr-back-select" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;">←</button>
+                <h2 style="font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
+              </div>
+              <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:28px;text-align:center;color:var(--muted);">
+                <div style="font-size:32px;margin-bottom:12px;">📅</div>
+                <div style="font-size:15px;">Няма планирано почистване</div>
+              </div>
+            </div>`;
+        }
+
+        const { dateStr, date, maleEntry, femaleEntry } = state.crData;
+        const today        = crToday();
+        const isToday      = date.getTime() === today.getTime();
+        const myEntry      = state.crType === "male" ? maleEntry : femaleEntry;
+        const alreadyDone  = Boolean(myEntry);
+
+        /* Status pill */
+        let statusPill = "";
+        if (alreadyDone) {
+          statusPill = `<span style="display:inline-block;background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:600;">✓ Изпълнено</span>`;
+        } else if (isToday) {
+          statusPill = `<span style="display:inline-block;background:rgba(201,162,39,.12);color:var(--gold);border:1px solid rgba(201,162,39,.3);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:600;">⬤ Предстои днес</span>`;
+        } else {
+          statusPill = `<span style="display:inline-block;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:600;">Предстоящо</span>`;
+        }
+
+        /* Action area */
+        let actionArea = "";
+        if (alreadyDone) {
+          actionArea = `
+            <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:16px 18px;color:var(--muted);font-size:14px;">
+              ✓ Почистването е отчетено от: <strong style="color:var(--text);">${escapeHtml(myEntry)}</strong>
+            </div>`;
+        } else if (!isToday) {
+          actionArea = `
+            <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:16px 18px;color:var(--muted);font-size:13px;text-align:center;">
+              Може да се отчита само в деня на почистването.
+            </div>`;
+        } else if (state.crStep === "idle") {
+          actionArea = `
+            <button class="btn btn-gold" data-action="cr-start" style="width:100%;font-size:15px;padding:14px;">
+              Започни почистване
+            </button>`;
+        } else if (state.crStep === "started") {
+          actionArea = `
+            <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:20px;">
+              <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Въведи твоето име:</div>
+              <input id="cr-name-input" type="text" value="${escapeHtml(state.crName)}"
+                placeholder="Само на кирилица"
+                style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.05);border:1px solid ${state.crNameErr ? "rgba(239,68,68,.6)" : "var(--border)"};border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;outline:none;margin-bottom:${state.crNameErr ? "6px" : "14px"};">
+              ${state.crNameErr ? `<div style="color:#f87171;font-size:12px;margin-bottom:10px;">${escapeHtml(state.crNameErr)}</div>` : ""}
+              <button class="btn btn-gold" data-action="cr-submit" style="width:100%;font-size:14px;padding:12px;">
+                Завърши и запиши
+              </button>
+            </div>`;
+        } else if (state.crStep === "submitting") {
+          actionArea = `
+            <div style="text-align:center;padding:20px;color:var(--muted);font-size:14px;">
+              <div style="width:28px;height:28px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--gold);animation:spin .8s linear infinite;margin:0 auto 12px;"></div>
+              Записване…
+            </div>`;
+        } else if (state.crStep === "done") {
+          actionArea = `
+            <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:16px 18px;color:var(--muted);font-size:14px;text-align:center;">
+              ✓ Записано успешно!
+            </div>`;
+        }
+
+        /* Schedule preview — all future rows (loaded from crData.allRows if available) */
+        const scheduleSection = state.crData.allRows && state.crData.allRows.length > 1 ? `
+          <div style="margin-top:20px;">
+            <div style="font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">График (само четене)</div>
+            <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead><tr style="background:rgba(255,255,255,.04);">
+                  <th style="padding:8px 12px;text-align:left;color:var(--muted);font-weight:600;">Дата</th>
+                  <th style="padding:8px 12px;text-align:left;color:var(--muted);font-weight:600;">🚹 Мъжка</th>
+                  <th style="padding:8px 12px;text-align:left;color:var(--muted);font-weight:600;">🚺 Женска</th>
+                </tr></thead>
+                <tbody>
+                  ${state.crData.allRows.map((r, idx) => `
+                    <tr style="border-top:1px solid var(--border);${idx === 0 ? "background:rgba(201,162,39,.06);" : ""}">
+                      <td style="padding:8px 12px;color:${idx === 0 ? "var(--gold)" : "var(--text)"};">${escapeHtml(r.dateStr)}</td>
+                      <td style="padding:8px 12px;color:var(--muted);">${r.maleEntry ? "✓ " + escapeHtml(r.maleEntry) : "—"}</td>
+                      <td style="padding:8px 12px;color:var(--muted);">${r.femaleEntry ? "✓ " + escapeHtml(r.femaleEntry) : "—"}</td>
+                    </tr>`).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>` : "";
+
+        return `
+          <div style="padding:24px;max-width:480px;margin:0 auto;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+              <button data-action="cr-back-select" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:8px;transition:background .15s;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='none'">←</button>
+              <h2 style="font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
+            </div>
+
+            <!-- Date card -->
+            <div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:16px;">
+              <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Следващо почистване</div>
+              <div style="font-size:26px;font-weight:700;font-family:'Oswald',sans-serif;letter-spacing:.04em;margin-bottom:10px;">${escapeHtml(dateStr)}</div>
+              ${statusPill}
+            </div>
+
+            <!-- Action area -->
+            ${actionArea}
+
+            ${scheduleSection}
+          </div>`;
+      }
+
+      /* ════════════════════════════════════════════════════════ */
+
       function render() {
         const content =
           state.screen === "home" ? renderHome() :
@@ -2326,6 +2670,8 @@
           state.screen === "inspection" ? renderInspection() :
           state.screen === "history" ? renderHistory() :
           state.screen === "charts" ? renderCharts() :
+          state.screen === "select-cr" ? renderChangingRoomSelect() :
+          state.screen === "cr-detail" ? renderChangingRoomDetail() :
           renderHome();
         app.innerHTML = renderShell(content);
         updateModals();
@@ -2373,6 +2719,12 @@
         bind("export-range-select", "change", (e) => { state.exportRange = e.target.value; render(); });
         bind("history-type-filter", "change", (e) => { state.historyTypeFilter = e.target.value; render(); });
         bind("history-location-filter", "change", (e) => { state.historyLocationFilter = e.target.value; render(); });
+        bind("cr-name-input", "input", (e) => {
+          const filtered = e.target.value.replace(/[^\u0400-\u04FF ]/g, "");
+          e.target.value = filtered;
+          state.crName = filtered;
+          state.crNameErr = "";
+        });
 }
 
       /* ── Event Delegation ── */
@@ -2392,6 +2744,56 @@
           applyPerfMode();
           return;
         }
+        /* ── Changing Room module ── */
+        if (action === "start-changing-room") {
+          state.screen = "select-cr";
+          state.crType = null;
+          state.crData = null;
+          state.crError = null;
+          state.crStep = "idle";
+          state.crName = "";
+          state.crNameErr = "";
+          render();
+          return;
+        }
+        if (action === "select-cr-type") {
+          state.crType = btn.dataset.crtype; /* "male" | "female" */
+          state.crStep = "idle";
+          state.crName = "";
+          state.crNameErr = "";
+          state.screen = "cr-detail";
+          fetchChangingRoomData(); /* async — will re-render when done */
+          return;
+        }
+        if (action === "cr-back-select") {
+          state.screen = "select-cr";
+          state.crData = null;
+          state.crError = null;
+          state.crStep = "idle";
+          render();
+          return;
+        }
+        if (action === "cr-reload") {
+          fetchChangingRoomData();
+          return;
+        }
+        if (action === "cr-start") {
+          state.crStep = "started";
+          state.crName = "";
+          state.crNameErr = "";
+          render();
+          /* Auto-focus the name input */
+          setTimeout(() => { const el = document.getElementById("cr-name-input"); if (el) el.focus(); }, 50);
+          return;
+        }
+        if (action === "cr-submit") {
+          /* Read the live input value before submitting */
+          const inp = document.getElementById("cr-name-input");
+          if (inp) state.crName = inp.value;
+          submitChangingRoom();
+          return;
+        }
+
         if (action === "go-home") { cleanupSessionLock(); state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
         if (action === "go-charts") {
