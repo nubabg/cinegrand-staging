@@ -3153,7 +3153,10 @@
               + '</div>';
           }).join('');
 
-          return '<div class="cg-reviews-kicker">GOOGLE REVIEWS</div>'
+          return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
+            + '<div class="cg-reviews-kicker" style="margin-bottom:0;">GOOGLE REVIEWS</div>'
+            + '<button onclick="cgManualRefresh()" title="Ръчно обновяване" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px 4px;line-height:1;opacity:.6;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.6">&#x21BB;</button>'
+            + '</div>'
             + '<div class="cg-reviews-heading">Какво казват нашите гости</div>'
             + overallHtml
             + '<div class="cg-reviews-grid">' + cardsHtml + '</div>'
@@ -3197,6 +3200,19 @@
             inject(_memCache);
             return;
           }
+          fetchAndRender();
+        };
+
+        /* Manual refresh button — asks for password first */
+        window.cgManualRefresh = function() {
+          var pass = prompt('Въведете парола за ръчно обновяване:');
+          if (pass === null) return; // cancelled
+          if (pass !== '1232911041644') {
+            alert('Грешна парола.');
+            return;
+          }
+          _memCache = null;
+          inject('<div class="cg-reviews-loading"><div class="cg-spinner"></div><span>Обновяване...</span></div>');
           fetchAndRender();
         };
       })();
