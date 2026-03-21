@@ -1764,7 +1764,7 @@
       }
 
       async function fetchSheetsData() {
-        const SHEET_ID = '17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA';
+        const SHEET_ID = SHEETS_SPREADSHEET_ID;
         const cacheBust = '_cb=' + Date.now();
 
         async function tryGviz() {
@@ -1971,10 +1971,11 @@
         const issEntries  = Object.entries(byIssue).sort((a,b) => b[1]-a[1]).slice(0,10);
         const locEntries  = Object.entries(byLocation).sort((a,b) => b[1]-a[1]);
 
-        const maxDay = Math.max(1, ...dayKeys.map(k => byDay[k] || 0));
+        const maxDay  = Math.max(1, ...dayKeys.map(k => byDay[k] || 0));
         const maxInsp = Math.max(1, inspEntries[0]?.[1] || 1);
-        const maxLoc = Math.max(1, ...locEntries.map(([,v]) => v));
+        const maxLoc  = Math.max(1, ...locEntries.map(([,v]) => v));
         const maxHour = Math.max(1, ...hourData);
+        const maxIss  = Math.max(1, issEntries[0]?.[1] || 1);
         const lastDay = dayKeys.length ? dayKeys[dayKeys.length - 1] : '—';
         const lastDayCount = lastDay !== '—' ? (byDay[lastDay] || 0) : 0;
         const totalIssues = issEntries.reduce((s, [,v]) => s + v, 0);
@@ -2045,7 +2046,6 @@
               <div class="chart-wrap" style="min-height:240px;">
                 ${issEntries.length ? issEntries.map(([name, count], i) => {
                   const pctOfTotal = totalIssues ? Math.round(count/totalIssues*100) : 0;
-                  const maxIss = Math.max(1, ...issEntries.map(([,v]) => v));
                   const severity = count >= maxIss * 0.7 ? 'high' : count >= maxIss * 0.3 ? 'med' : 'low';
                   const barPct = Math.round(count/maxIss*100);
                   return `<div class="issue-item" title="${escapeHtml(name)}: ${count} пъти (${pctOfTotal}% от всички проблеми)"><span class="issue-severity ${severity}"></span><span style="flex:1;">${escapeHtml(name)}</span><span class="issue-pct">${pctOfTotal}%</span><span class="issue-count">${count}</span><div class="charts-bar-bg" style="width:80px;height:6px;"><div class="charts-bar-fill charts-bar-fill--red" style="width:${barPct}%;"></div></div></div>`;
@@ -2072,7 +2072,7 @@
                 <div class="hourly-histogram">${hourLabels.map((label, i) => {
                   const v = hourData[i] || 0;
                   const barH = maxHour ? Math.max(4, Math.round(160 * v / maxHour)) : 0;
-                  const peak = maxHour && v === Math.max(...hourData) && v > 0;
+                  const peak = v > 0 && v === maxHour;
                   return `<div class="hourly-col" title="${label}: ${v} проверки"><div class="hourly-bar-track"><div class="hourly-bar-fill" style="height:${barH}px;${peak ? 'background:var(--gold);box-shadow:0 0 8px rgba(200,120,24,.5);' : ''}"></div></div>${v > 0 ? `<span class="hourly-value">${v}</span>` : ''}</div>`;
                 }).join('')}</div>
                 <div class="heatmap-legend"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
@@ -2465,7 +2465,7 @@
             else state.crData.femaleEntry = name;
             state.crStep = "done";
             state.crName = "";
-            showToast("Записано успешно!", "ok");
+            showToast("Записано успешно!", "success");
           } else {
             throw new Error("server error");
           }
@@ -2721,7 +2721,7 @@
           state.crName = filtered;
           state.crNameErr = "";
         });
-}
+      }
 
       /* ── Event Delegation ── */
       document.addEventListener("click", async (e) => {
