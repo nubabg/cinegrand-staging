@@ -863,6 +863,8 @@
          ══════════════════════════════════════════════════ */
       const SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxq3eE1B1UvvqDAJ-jHarX6IYRh3aZnKuzJOMdPszvWvQ-FG3cyiUJZP6MZ3nelSnfyVA/exec";
       const SHEETS_SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA/edit?usp=drive_web&ouid=105876940936518374708";
+      /* ── Shared secret — трябва да съвпада с TOKEN константата в Apps Script ── */
+      const SHEETS_SECRET_TOKEN = "cg-2025-secret-token";
 
       const QR_DEFAULT_URL = "https://cginspection.org/";
       const QR_REDIRECT_URL = "https://www.google.com/";
@@ -963,7 +965,7 @@
           const res = await fetch(SHEETS_WEB_APP_URL, {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=UTF-8" },
-            body: JSON.stringify({ action: "acquireLock", type, location, sessionId }),
+            body: JSON.stringify({ action: "acquireLock", type, location, sessionId, _token: SHEETS_SECRET_TOKEN }),
           });
           if (!res.ok) return { success: true, offline: true };
           try { return await res.json(); } catch (_) { return { success: true, offline: true }; }
@@ -979,7 +981,7 @@
           await fetch(SHEETS_WEB_APP_URL, {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=UTF-8" },
-            body: JSON.stringify({ action: "releaseLock", sessionId }),
+            body: JSON.stringify({ action: "releaseLock", sessionId, _token: SHEETS_SECRET_TOKEN }),
           });
         } catch (err) {
           console.warn("[Lock] releaseLock failed:", err.message);
@@ -988,7 +990,7 @@
 
       function releaseLockBeacon(sessionId) {
         if (!sessionId || !isSheetsConfigured()) return;
-        const payload = JSON.stringify({ action: "releaseLock", sessionId });
+        const payload = JSON.stringify({ action: "releaseLock", sessionId, _token: SHEETS_SECRET_TOKEN });
         try {
           fetch(SHEETS_WEB_APP_URL, {
             method: "POST",
@@ -1332,7 +1334,7 @@
 
       async function sendToSheets(record) {
         if (!isSheetsConfigured()) return { success: false, error: "Sheets URL \u043d\u0435 \u0435 \u043a\u043e\u043d\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043d" };
-        const payload = JSON.stringify({ record });
+        const payload = JSON.stringify({ record, _token: SHEETS_SECRET_TOKEN });
 
         try {
           const response = await fetch(SHEETS_WEB_APP_URL, {
@@ -1407,7 +1409,7 @@
           const res = await fetch(SHEETS_WEB_APP_URL, {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=UTF-8" },
-            body: JSON.stringify({ action: "acquireLockFirstFree", type, locations, sessionId }),
+            body: JSON.stringify({ action: "acquireLockFirstFree", type, locations, sessionId, _token: SHEETS_SECRET_TOKEN }),
           });
           if (!res.ok) return { success: true, location: locations[0], offline: true };
           try { return await res.json(); } catch (_) { return { success: true, location: locations[0], offline: true }; }
@@ -2266,7 +2268,7 @@
           </div>`;
         }
         if (state.showQRModal) html += renderQRModal();
-        if (state.toast) html += `<div class="toast ${state.toast.type}" role="status" aria-live="polite">${state.toast.msg}</div>`;
+        if (state.toast) html += `<div class="toast ${escapeHtml(state.toast.type)}" role="status" aria-live="polite">${escapeHtml(state.toast.msg)}</div>`;
         return html;
       }
 
@@ -2510,6 +2512,7 @@
             col: col,
             row: state.crData.sheetRow,
             name: name,
+            _token: SHEETS_SECRET_TOKEN,
           };
           let ok = false;
           const r = await fetch(SHEETS_WEB_APP_URL, {

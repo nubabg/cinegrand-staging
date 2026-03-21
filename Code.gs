@@ -2,12 +2,25 @@
 // CG CLAN INFO - Google Apps Script
 // Основен скрипт: получава данни от сайта + автоматизация
 // ========================================================
+
+// ── Shared secret — трябва да съвпада с SHEETS_SECRET_TOKEN в index.html ──
+var SECRET_TOKEN = "cg-2025-secret-token";
+
 // -----------------------------------------------------------
 // 1. doPost(e) - получава данни от сайта и записва в ИНФО
 // -----------------------------------------------------------
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
+
+    // ── Проверка на токена ──────────────────────────────────
+    if (data._token !== SECRET_TOKEN) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: false, error: "Unauthorized" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    // ───────────────────────────────────────────────────────
+
     if (data.action === "acquireLock") return handleAcquireLock_(data);
     if (data.action === "releaseLock") return handleReleaseLock_(data);
     if (data.action === "checkLock") return handleCheckLock_(data);
