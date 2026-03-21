@@ -2445,24 +2445,13 @@
             name: name,
           };
           let ok = false;
-          try {
-            const r = await fetch(SHEETS_WEB_APP_URL, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-            });
-            const j = await r.json().catch(() => ({}));
-            ok = j.success === true;
-          } catch (_) {
-            /* fallback no-cors */
-            await fetch(SHEETS_WEB_APP_URL, {
-              method: "POST",
-              mode: "no-cors",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-            });
-            ok = true; /* assume sent */
-          }
+          const r = await fetch(SHEETS_WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const j = await r.json().catch(() => ({}));
+          ok = j.success === true;
           if (ok) {
             /* Update local mirror */
             if (state.crType === "male") state.crData.maleEntry = name;
