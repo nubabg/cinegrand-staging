@@ -2447,7 +2447,7 @@
           let ok = false;
           const r = await fetch(SHEETS_WEB_APP_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "text/plain;charset=UTF-8" },
             body: JSON.stringify(payload),
           });
           const j = await r.json().catch(() => ({}));
