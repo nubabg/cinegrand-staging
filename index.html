@@ -2119,19 +2119,13 @@
               <div class="chart-title">Активност по часове</div>
               <div class="chart-subtitle">Последните 24 часа по часови диапазон (0–23 ч)</div>
               <div class="chart-wrap" style="min-height:240px;">
-                ${hourData.every(v => v === 0)
-                  ? `<div class="chart-empty" style="padding:60px 0;text-align:center;">
-                       <div style="font-size:28px;margin-bottom:10px;">🕐</div>
-                       <div style="color:var(--muted);font-size:13px;">Няма проверки в последните 24 часа</div>
-                     </div>`
-                  : `<div class="hourly-histogram">${hourLabels.map((label, i) => {
-                      const v = hourData[i] || 0;
-                      const barH = maxHour ? Math.max(4, Math.round(160 * v / maxHour)) : 0;
-                      const peak = v > 0 && v === maxHour;
-                      return \`<div class="hourly-col" title="\${label}: \${v} проверки"><div class="hourly-bar-track"><div class="hourly-bar-fill" style="height:\${barH}px;\${peak ? 'background:var(--gold);box-shadow:0 0 8px rgba(200,120,24,.5);' : ''}"></div></div>\${v > 0 ? \`<span class="hourly-value">\${v}</span>\` : ''}</div>\`;
-                    }).join('')}</div>
-                    <div class="heatmap-legend"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>`
-                }
+                <div class="hourly-histogram">${hourLabels.map((label, i) => {
+                  const v = hourData[i] || 0;
+                  const barH = maxHour ? Math.max(4, Math.round(160 * v / maxHour)) : 0;
+                  const peak = v > 0 && v === maxHour;
+                  return `<div class="hourly-col" title="${label}: ${v} проверки"><div class="hourly-bar-track"><div class="hourly-bar-fill" style="height:${barH}px;${peak ? 'background:var(--gold);box-shadow:0 0 8px rgba(200,120,24,.5);' : ''}"></div></div>${v > 0 ? `<span class="hourly-value">${v}</span>` : ''}</div>`;
+                }).join('')}</div>
+                <div class="heatmap-legend"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
               </div>
             </div>
           </div>
