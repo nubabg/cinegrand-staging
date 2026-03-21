@@ -1764,8 +1764,9 @@
             <div class="toolbar">
               <div>
                 <h3 class="section-title" style="margin:0;">Данни</h3>
-                <div class="muted" style="font-size:13px;margin-top:4px;">Данни от Google Sheets — актуални при презареждане на страницата</div>
+                <div class="muted" style="font-size:13px;margin-top:4px;">Данни от Google Sheets</div>
               </div>
+              <button class="btn btn-secondary" id="charts-refresh-btn" onclick="(async function(){const btn=document.getElementById('charts-refresh-btn');if(btn){btn.disabled=true;btn.textContent='Зарежда…';}window._cachedChartRows=null;window._chartsLoading=false;await initChartsScreen(false);if(btn){btn.disabled=false;btn.textContent='⟳ Обнови';}})()">⟳ Обнови</button>
             </div>
           </div>
           <div id="charts-container">
@@ -3026,13 +3027,6 @@
           Object.assign(state, { inspectionType: savedType, location: resolvedLoc, inspector: "", itemState: {}, notes: "", showValidation: false, screen: "inspection" });
         }
         render();
-        /* Live refresh на Данни екран — на всеки 2 минути */
-        setInterval(async function() {
-          if (state.screen !== "charts") return;
-          _cachedChartRows = null;
-          _chartsLoading = false;
-          await initChartsScreen(false);
-        }, 2 * 60 * 1000);
         /* Периодична проверка за изтекла QR сесия (всяка минута) */
         setInterval(function() {
           if (sessionStorage.getItem(QR_MODE_KEY) !== "1") return;
