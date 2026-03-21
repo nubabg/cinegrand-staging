@@ -13,6 +13,7 @@ function doPost(e) {
     if (data.action === "acquireLock") return handleAcquireLock_(data);
     if (data.action === "releaseLock") return handleReleaseLock_(data);
     if (data.action === "acquireLockFirstFree") return handleAcquireLockFirstFree_(data);
+    if (data.action === "updateChangingRoom") return handleUpdateChangingRoom_(data);
 
     var record = data.record;
     if (!record || typeof record !== 'object') {
@@ -521,4 +522,37 @@ function applyDesignFull1000() {
 
   Logger.log("Готово! Форматирани " + totalRows + " реда.");
   SpreadsheetApp.getActiveSpreadsheet().toast("Дизайн приложен на " + totalRows + " реда!", "Cine Grand", 5);
+}
+
+// -------------------------------------------------------
+// handleUpdateChangingRoom_ - записва почистване в съблекални
+// -------------------------------------------------------
+function handleUpdateChangingRoom_(data) {
+  try {
+    var ss    = SpreadsheetApp.openById("17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA");
+    var sheet = ss.getSheetByName("Почистване съблекални");
+    if (!sheet) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: false, error: "Sheet not found" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    var row      = parseInt(data.row);
+    var col      = data.col;
+    var name     = data.name || "";
+    var colIndex = (col === "B") ? 2 : 3;
+    var existing = sheet.getRange(row, colIndex).getValue();
+    if (existing && String(existing).trim() !== "") {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: false, error: "already_filled", existing: existing }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    sheet.getRange(row, colIndex).setValue(name);
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: true, row: row, col: col, name: name }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
