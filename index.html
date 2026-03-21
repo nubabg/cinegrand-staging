@@ -720,6 +720,41 @@
         #qr-modal-backdrop { position: static !important; background: #fff !important; padding: 20px !important; width: 100% !important; min-height: 100vh !important; }
         .qr-modal { box-shadow: none !important; border: 1px solid #ddd !important; max-width: 100% !important; }
       }
+
+      /* ── Google Reviews ── */
+      .cg-reviews-wrap { padding: 24px 0 8px; }
+      .cg-reviews-kicker { text-transform: uppercase; letter-spacing: 4px; font-size: 11px; color: var(--gold); font-weight: 600; margin-bottom: 6px; }
+      .cg-reviews-heading { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 14px; }
+      .cg-overall { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+      .cg-overall-num { font-size: 36px; font-weight: 700; color: var(--gold); line-height: 1; }
+      .cg-overall-stars { color: var(--gold); font-size: 18px; }
+      .cg-overall-count { color: var(--muted); font-size: 13px; }
+      .cg-reviews-grid { display: grid; gap: 12px; }
+      .cg-review-card {
+        background: var(--panel); border: 1px solid rgba(200,120,24,.15);
+        border-radius: 12px; padding: 16px 18px; position: relative; overflow: hidden;
+        opacity: 0; transform: translateY(10px);
+        transition: background .2s, border-color .2s;
+        animation: cgFadeUp .4s forwards;
+      }
+      .cg-review-card:hover { background: var(--panel-2); border-color: rgba(200,120,24,.35); }
+      .cg-quote-deco { position: absolute; top: 6px; right: 12px; font-size: 54px; color: rgba(200,120,24,.07); font-family: Georgia,serif; line-height: 1; pointer-events: none; }
+      .cg-review-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+      .cg-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg,var(--gold),#7a4e0a); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+      .cg-author { font-weight: 600; font-size: 13px; color: var(--text); }
+      .cg-date { font-size: 11px; color: var(--muted); }
+      .cg-review-stars { color: var(--gold); font-size: 12px; margin-bottom: 6px; }
+      .cg-review-text { font-size: 13px; color: var(--muted); line-height: 1.55; }
+      .cg-reviews-link { display: inline-block; margin-top: 14px; color: var(--gold); font-size: 12px; text-decoration: none; border-bottom: 1px solid rgba(200,120,24,.3); padding-bottom: 1px; }
+      .cg-reviews-link:hover { border-color: var(--gold); }
+      .cg-reviews-loading { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; padding: 16px 0; }
+      .cg-spinner { width: 16px; height: 16px; border: 2px solid rgba(200,120,24,.2); border-top-color: var(--gold); border-radius: 50%; animation: cgSpin .8s linear infinite; }
+      @keyframes cgSpin { to { transform: rotate(360deg); } }
+      @keyframes cgFadeUp { to { opacity: 1; transform: translateY(0); } }
+      @media (max-width: 600px) {
+        .cg-reviews-heading { font-size: 17px; }
+        .cg-review-card { padding: 12px 14px; }
+      }
     </style>
   </head>
   <body>
@@ -1669,6 +1704,10 @@
                 </div>
               </div>
             </div>
+          </div>
+
+          <div id="cg-reviews-section" class="cg-reviews-wrap">
+            <div class="cg-reviews-loading"><div class="cg-spinner"></div><span>Зареждане на ревюта...</span></div>
           </div>
 
         </div>`;
@@ -2679,6 +2718,7 @@
           if (c) buildChartsFromData(c, _cachedChartRows);
         }
         applyPerfMode();
+        if (state.screen === "home" && typeof cgUpdateReviews === 'function') cgUpdateReviews();
       }
 
       function bindInputs() {
@@ -3031,6 +3071,86 @@
       });
       } /* end getAccessBlock check */
 
+    </script>
+
+    <!-- Google Reviews -->
+    <div id="cg-map-placeholder" style="display:none;width:1px;height:1px;"></div>
+    <script>
+      (function() {
+        var _cache = null;
+        var _loading = false;
+        var PLACE_ID = 'ChIJSwfBtwaFqkARCbgjdIFdbVY';
+        var MAPS_URL = 'https://www.google.com/maps/place/?q=place_id:' + PLACE_ID;
+
+        function stars(n) {
+          return '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
+        }
+        function initials(name) {
+          if (!name) return '?';
+          var parts = name.trim().split(/\s+/);
+          if (parts.length === 1) return parts[0][0].toUpperCase();
+          return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+        function buildHtml(data) {
+          var reviews = (data.reviews || []).slice().sort(function(a, b) { return b.time - a.time; }).slice(0, 5);
+          var overallHtml = '';
+          if (data.rating) {
+            overallHtml = '<div class="cg-overall">'
+              + '<div class="cg-overall-num">' + data.rating.toFixed(1) + '</div>'
+              + '<div><div class="cg-overall-stars">' + stars(data.rating) + '</div>'
+              + (data.user_ratings_total ? '<div class="cg-overall-count">' + data.user_ratings_total + ' ревюта в Google</div>' : '')
+              + '</div></div>';
+          }
+          var cardsHtml = reviews.map(function(r, i) {
+            var delay = (i * 0.1 + 0.1).toFixed(1) + 's';
+            var text = r.text ? r.text.replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+            return '<div class="cg-review-card" style="animation-delay:' + delay + '">'
+              + '<div class="cg-quote-deco">\u201c</div>'
+              + '<div class="cg-review-header">'
+              + '<div class="cg-avatar">' + initials(r.author_name) + '</div>'
+              + '<div><div class="cg-author">' + (r.author_name || '').replace(/</g,'&lt;') + '</div>'
+              + '<div class="cg-date">' + (r.relative_time_description || '') + '</div></div>'
+              + '</div>'
+              + '<div class="cg-review-stars">' + stars(r.rating) + '</div>'
+              + (text ? '<div class="cg-review-text">' + text + '</div>' : '')
+              + '</div>';
+          }).join('');
+          return '<div class="cg-reviews-kicker">GOOGLE REVIEWS</div>'
+            + '<div class="cg-reviews-heading">Какво казват нашите гости</div>'
+            + overallHtml
+            + '<div class="cg-reviews-grid">' + cardsHtml + '</div>'
+            + '<a class="cg-reviews-link" href="' + MAPS_URL + '" target="_blank" rel="noopener">Виж всички ревюта в Google \u2197</a>';
+        }
+
+        function injectHtml(html) {
+          var el = document.getElementById('cg-reviews-section');
+          if (el) el.innerHTML = html;
+        }
+
+        window.cgUpdateReviews = function() {
+          if (_cache) { injectHtml(_cache); return; }
+          if (_loading) return;
+          _loading = true;
+          if (!window.google || !window.google.maps || !window.google.maps.places) return;
+          var svc = new google.maps.places.PlacesService(document.getElementById('cg-map-placeholder'));
+          svc.getDetails({ placeId: PLACE_ID, fields: ['reviews','rating','user_ratings_total'], language: 'bg' }, function(place, status) {
+            _loading = false;
+            if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+              _cache = buildHtml(place);
+            } else {
+              _cache = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">Ревютата не могат да бъдат заредени в момента.</div>';
+            }
+            injectHtml(_cache);
+          });
+        };
+
+        window.cgInitGoogleReviews = function() {
+          if (document.getElementById('cg-reviews-section')) window.cgUpdateReviews();
+        };
+      })();
+    </script>
+    <script async defer
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAHkDc75iMBlaL-yahzQxzg1xgKhIBItbs&libraries=places&callback=cgInitGoogleReviews&language=bg">
     </script>
   </body>
 </html>
