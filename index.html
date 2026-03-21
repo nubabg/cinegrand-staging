@@ -1998,12 +1998,21 @@
           return (ma+da).localeCompare(mb+db);
         }).slice(-30);
 
-        /* Часово разпределение */
+        /* Часово разпределение — само последните 24 часа */
+        const now24h = new Date();
+        const cutoff24h = new Date(now24h.getTime() - 24 * 60 * 60 * 1000);
+        const byHour24 = {};
+        normalized.forEach(r => {
+          if (r.date && r.date >= cutoff24h && r.hour !== null) {
+            const hKey = String(r.hour).padStart(2,'0') + ':00';
+            byHour24[hKey] = (byHour24[hKey] || 0) + 1;
+          }
+        });
         const hourLabels = [], hourData = [];
         for (let h = 0; h < 24; h++) {
           const hk = String(h).padStart(2,'0') + ':00';
           hourLabels.push(hk);
-          hourData.push(byHour[hk] || 0);
+          hourData.push(byHour24[hk] || 0);
         }
 
         const inspEntries = Object.entries(byInspector).sort((a,b) => b[1]-a[1]);
@@ -2106,7 +2115,7 @@
             </div>
             <div class="chart-card card-time">
               <div class="chart-title">Активност по часове</div>
-              <div class="chart-subtitle">Разпределение в денонощието (0–23 ч)</div>
+              <div class="chart-subtitle">Последните 24 часа по часови диапазон (0–23 ч)</div>
               <div class="chart-wrap" style="min-height:240px;">
                 <div class="hourly-histogram">${hourLabels.map((label, i) => {
                   const v = hourData[i] || 0;
@@ -3015,6 +3024,13 @@
           Object.assign(state, { inspectionType: savedType, location: resolvedLoc, inspector: "", itemState: {}, notes: "", showValidation: false, screen: "inspection" });
         }
         render();
+        /* Live refresh на Данни екран — на всеки 2 минути */
+        setInterval(async function() {
+          if (state.screen !== "charts") return;
+          _cachedChartRows = null;
+          _chartsLoading = false;
+          await initChartsScreen(false);
+        }, 2 * 60 * 1000);
         /* Периодична проверка за изтекла QR сесия (всяка минута) */
         setInterval(function() {
           if (sessionStorage.getItem(QR_MODE_KEY) !== "1") return;
