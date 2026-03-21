@@ -7,7 +7,52 @@
 var SECRET_TOKEN = "cg-2025-secret-token";
 
 // -----------------------------------------------------------
-// 1. doPost(e) - получава данни от сайта и записва в ИНФО
+// 1. doGet(e) - четене на данни от таблицата (частен достъп)
+// -----------------------------------------------------------
+function doGet(e) {
+  try {
+    var params = e.parameter || {};
+    var token  = params._token || "";
+    if (token !== SECRET_TOKEN) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: false, error: "Unauthorized" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    var action = params.action || "getInfo";
+    var ss = SpreadsheetApp.openById("17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA");
+
+    if (action === "getInfo") {
+      var sheet = ss.getSheetByName("ИНФО") || ss.getSheetByName("Sheet1") || ss.getSheets()[0];
+      var data  = sheet.getDataRange().getDisplayValues();
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, data: data }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "getChangingRooms") {
+      var sheet = ss.getSheetByName("Почистване съблекални");
+      if (!sheet) {
+        return ContentService
+          .createTextOutput(JSON.stringify({ success: false, error: "Sheet not found" }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      var data = sheet.getDataRange().getDisplayValues();
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, data: data }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, error: "Unknown action" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, error: error.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+// -----------------------------------------------------------
+// 2. doPost(e) - получава данни от сайта и записва в ИНФО
 // -----------------------------------------------------------
 function doPost(e) {
   try {

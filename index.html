@@ -1806,49 +1806,19 @@
       }
 
       async function fetchSheetsData() {
-        const SHEET_ID = SHEETS_SPREADSHEET_ID;
-        const cacheBust = '_cb=' + Date.now();
-
-        async function tryGviz() {
-          const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=0&${cacheBust}`;
-          const res = await fetch(url);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          const text = await res.text();
-          const start = text.indexOf('{');
-          const end   = text.lastIndexOf('}');
-          if (start === -1 || end === -1) throw new Error('Неочакван формат');
-          const json = JSON.parse(text.slice(start, end + 1));
-          if (!json.table) throw new Error('Липсва table');
-          const cols = json.table.cols.map(c => (c.label || c.id || '').trim());
-          return (json.table.rows || []).map(row => {
-            if (!row || !row.c) return null;
-            const obj = {};
-            cols.forEach((col, i) => {
-              const cell = row.c[i];
-              obj[col] = cell ? (cell.f != null ? String(cell.f) : cell.v != null ? String(cell.v) : '') : '';
-            });
-            return obj;
-          }).filter(r => r && Object.values(r).some(v => v !== ''));
-        }
-
-        async function tryCsv() {
-          const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0&${cacheBust}`;
-          const res = await fetch(url);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          return parseCSV(await res.text());
-        }
-
-        /* Опит 1: gviz, Опит 2: gviz retry, Опит 3: CSV */
-        for (let attempt = 0; attempt < 2; attempt++) {
-          try { return await tryGviz(); } catch (e) {
-            console.warn('[Charts] gviz опит ' + (attempt + 1) + ':', e.message);
-            if (attempt === 0) await new Promise(r => setTimeout(r, 500));
-          }
-        }
-        try { return await tryCsv(); } catch (e) {
-          console.warn('[Charts] CSV:', e.message);
-          throw e;
-        }
+        const url = SHEETS_WEB_APP_URL + '?action=getInfo&_token=' + encodeURIComponent(SHEETS_SECRET_TOKEN) + '&_cb=' + Date.now();
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'Error');
+        const data = json.data; // 2D array: row 0 = headers, rest = data
+        if (!data || data.length < 2) return [];
+        const headers = data[0].map(h => String(h || '').trim());
+        return data.slice(1).map(row => {
+          const obj = {};
+          headers.forEach((h, i) => { obj[h] = String(row[i] != null ? row[i] : ''); });
+          return obj;
+        }).filter(r => Object.values(r).some(v => v !== ''));
       }
 
       /* Парсва дата от различни формати (включително bg-BG: "21.03.2026, 14:35") */
@@ -2444,27 +2414,21 @@
         state.crData = null;
         render();
         try {
-          const url = "https://docs.google.com/spreadsheets/d/" + SHEETS_SPREADSHEET_ID +
-            "/gviz/tq?tqx=out:json&sheet=" + encodeURIComponent(CHANGING_ROOM_SHEET_NAME);
+          const url = SHEETS_WEB_APP_URL + '?action=getChangingRooms&_token=' + encodeURIComponent(SHEETS_SECRET_TOKEN) + '&_cb=' + Date.now();
           const resp = await fetch(url, { cache: "no-store" });
           if (!resp.ok) throw new Error("HTTP " + resp.status);
-          const text = await resp.text();
-          /* gviz wraps JSON in google.visualization.Query.setResponse(...) */
-          const json = JSON.parse(text.replace(/^[^(]+\(/, "").replace(/\);?\s*$/, ""));
-          const rows = json.table ? json.table.rows : [];
+          const json = await resp.json();
+          if (!json.success) throw new Error(json.error || "Error");
+          /* 2D array: row 0 = header, rest = data rows */
+          const rows = json.data || [];
 
           const today = crToday();
           const futureRows = [];
           let found = null;
 
-          /* Rows are 0-indexed; row 0 is the header; data starts at row 1 (sheetRow=2) */
           for (let i = 0; i < rows.length; i++) {
-            const cells = rows[i].c || [];
-            /* gviz returns formatted value in .f (e.g. "23.03.2026 - Понеделник"),
-               or raw string in .v for text columns */
-            const formatted = cells[0] ? (cells[0].f || "") : "";
-            const raw       = cells[0] ? String(cells[0].v || "") : "";
-            const dateStr   = formatted || raw;
+            const cells  = rows[i];
+            const dateStr = String(cells[0] != null ? cells[0] : "");
             const d = crParseDate(dateStr);
             if (!d) continue;
             if (d >= today) {
@@ -2472,8 +2436,8 @@
                 dateStr:     dateStr,
                 date:        d,
                 sheetRow:    i + 1,
-                maleEntry:   cells[1] ? String(cells[1].v || "").trim() : "",
-                femaleEntry: cells[2] ? String(cells[2].v || "").trim() : "",
+                maleEntry:   String(cells[1] != null ? cells[1] : "").trim(),
+                femaleEntry: String(cells[2] != null ? cells[2] : "").trim(),
               };
               futureRows.push(row);
               if (!found) found = row;
