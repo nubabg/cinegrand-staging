@@ -877,9 +877,8 @@
       body.low-perf .bar-fill { transition: none; }
       body.low-perf .progress > div { transition: none; }
       body.low-perf .hero-orbit { display: none; }
-      body.low-perf .acet-tl-fill { display: none; }
-      body.low-perf .acet-tl-track { display: none; }
-      body.low-perf .cg-fx-switch { border-color: rgba(52,211,153,.3); }
+      .cg-fx-switch { border-color: rgba(52,211,153,.25) !important; }
+      body.low-perf .cg-fx-switch { border-color: rgba(255,255,255,.08) !important; }
       body.low-perf {
         background: var(--bg) !important;
       }
@@ -938,25 +937,31 @@
         font-size: 10px; font-weight: 700; letter-spacing: .08em;
         transition: color .3s;
       }
-      .cg-fx-label-off { color: rgba(155,168,185,.5); }
-      .cg-fx-label-on  { color: rgba(155,168,185,.25); }
-      /* when low-perf is active, flip label colors */
-      body.low-perf .cg-fx-label-off { color: rgba(155,168,185,.25); }
-      body.low-perf .cg-fx-label-on  {
+      .cg-fx-label-off { color: rgba(155,168,185,.25); }
+      .cg-fx-label-on  {
         color: #34d399;
         text-shadow: 0 0 8px rgba(52,211,153,.5);
       }
+      /* when low-perf is active, flip label colors */
+      body.low-perf .cg-fx-label-off { color: rgba(155,168,185,.5); }
+      body.low-perf .cg-fx-label-on  {
+        color: rgba(155,168,185,.25);
+        text-shadow: none;
+      }
       .cg-fx-track {
         position: relative; width: 44px; height: 24px; border-radius: 999px;
-        background: #27272a; transition: background .3s;
+        background: #064e3b; transition: background .3s;
         flex-shrink: 0;
       }
-      body.low-perf .cg-fx-track { background: #064e3b; }
+      body.low-perf .cg-fx-track { background: #27272a; }
       .cg-fx-thumb {
         position: absolute; top: 3px; left: 3px;
         width: 18px; height: 18px; border-radius: 50%;
-        background: #52525b; border: 1px solid rgba(255,255,255,.1);
+        background: #34d399;
+        box-shadow: 0 0 8px rgba(52,211,153,.45);
+        border: 1px solid rgba(255,255,255,.1);
         transition: transform .25s cubic-bezier(.34,1.56,.64,1), background .3s, box-shadow .3s;
+        transform: translateX(20px);
       }
       .cg-fx-thumb::after {
         content: ''; position: absolute; top: 3px; left: 4px;
@@ -965,75 +970,11 @@
         filter: blur(1px);
       }
       body.low-perf .cg-fx-thumb {
-        transform: translateX(20px);
-        background: #34d399;
-        box-shadow: 0 0 8px rgba(52,211,153,.45);
+        transform: translateX(0);
+        background: #52525b;
+        box-shadow: none;
       }
 
-      /* ── Aceternity Timeline ── */
-      .acet-tl { width: 100%; padding: 0 0 32px; }
-      .acet-tl-header { padding: 48px 0 0; margin-bottom: 0; }
-      .acet-tl-header h2 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
-      @media (min-width: 768px) { .acet-tl-header h2 { font-size: 36px; } }
-      .acet-tl-header p { font-size: 13px; color: var(--muted); max-width: 32ch; line-height: 1.6; }
-      @media (min-width: 768px) { .acet-tl-header p { font-size: 15px; } }
-      .acet-tl-body { position: relative; padding-bottom: 48px; }
-      /* gray track */
-      .acet-tl-track {
-        position: absolute; left: 32px; top: 0; width: 2px;
-        background: linear-gradient(to bottom, transparent 0%, rgba(155,168,185,.22) 8%, rgba(155,168,185,.22) 92%, transparent 100%);
-        mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
-        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
-      }
-      /* purple→blue animated fill */
-      .acet-tl-fill {
-        position: absolute; left: 32px; top: 0; width: 2px;
-        background: linear-gradient(to bottom, #a855f7, #3b82f6 50%, transparent);
-        border-radius: 2px;
-        overflow: hidden;
-      }
-      .acet-tl-entry {
-        display: flex; align-items: flex-start;
-        padding-top: 32px; gap: 0;
-      }
-      @media (min-width: 768px) { .acet-tl-entry { padding-top: 96px; gap: 32px; } }
-      /* left: sticky dot + title */
-      .acet-tl-left {
-        position: sticky; top: 96px; align-self: flex-start;
-        flex-shrink: 0; width: 80px;
-        display: flex; flex-direction: column; align-items: flex-start; z-index: 4;
-      }
-      @media (min-width: 768px) { .acet-tl-left { width: 260px; flex-direction: row; align-items: center; } }
-      .acet-tl-dot-ring {
-        width: 40px; height: 40px; border-radius: 50%;
-        background: var(--bg); border: 1px solid rgba(155,168,185,.18);
-        display: flex; align-items: center; justify-content: center;
-        flex-shrink: 0; margin-left: 13px;
-      }
-      .acet-tl-dot-ring::after {
-        content: ''; display: block; width: 14px; height: 14px; border-radius: 50%;
-        background: var(--panel-2, #1a2233); border: 1.5px solid rgba(155,168,185,.4);
-      }
-      .acet-tl-year {
-        display: none; font-size: 40px; font-weight: 700;
-        color: rgba(155,168,185,.35); padding-left: 20px; line-height: 1;
-      }
-      @media (min-width: 768px) { .acet-tl-year { display: block; } }
-      /* right: content */
-      .acet-tl-right { flex: 1; min-width: 0; padding-left: 24px; }
-      @media (min-width: 768px) { .acet-tl-right { padding-left: 0; } }
-      .acet-tl-mobile-title {
-        font-size: 20px; font-weight: 700; color: rgba(155,168,185,.45);
-        margin-bottom: 12px;
-      }
-      @media (min-width: 768px) { .acet-tl-mobile-title { display: none; } }
-      .acet-tl-content { font-size: 13px; color: var(--muted); line-height: 1.65; }
-      @media (min-width: 768px) { .acet-tl-content { font-size: 14px; } }
-      .acet-tl-content p { margin-bottom: 14px; }
-      .acet-tl-content strong { color: var(--text); font-weight: 600; }
-      .acet-tl-checklist { list-style: none; padding: 0; margin: 0 0 14px; display: flex; flex-direction: column; gap: 5px; }
-      .acet-tl-checklist li { display: flex; align-items: center; gap: 8px; }
-      .acet-tl-checklist li::before { content: '✓'; color: var(--green, #2dcc70); font-weight: 700; font-size: 12px; }
     </style>
   </head>
   <body>
@@ -2006,100 +1947,7 @@
             <div class="cg-reviews-loading"><div class="cg-spinner"></div><span>Зареждане на ревюта...</span></div>
           </div>
 
-          ${renderAcetTimeline()}
-
         </div>`;
-      }
-
-      function renderAcetTimeline() {
-        const data = [
-          {
-            year: "Зали",
-            title: "Кинозали 1–6",
-            html: `<p>Всяка зала се проверява <strong>преди и след всяка прожекция</strong> — седалки, под, напитки, общо състояние.</p>
-                   <ul class="acet-tl-checklist">
-                     <li>Проверка на седалките</li>
-                     <li>Чистота на пода</li>
-                     <li>Остатъци от храна и напитки</li>
-                     <li>Осветление и техника</li>
-                   </ul>`
-          },
-          {
-            year: "WC",
-            title: "Санитарни Възли",
-            html: `<p>Тоалетните се проверяват на <strong>фиксирани интервали</strong> и всеки проблем се отразява в реално време.</p>
-                   <ul class="acet-tl-checklist">
-                     <li>Мъжко и дамско WC</li>
-                     <li>Водоподаване и мирис</li>
-                     <li>Хигиенни консумативи</li>
-                     <li>Синхрон към Google Sheets</li>
-                   </ul>`
-          },
-          {
-            year: "Събл.",
-            title: "Съблекални",
-            html: `<p>Мъжката и женската съблекалня се почистват по <strong>утвърден график</strong> с пълен писмен отчет.</p>
-                   <ul class="acet-tl-checklist">
-                     <li>График за почистване</li>
-                     <li>Отчет с час и изпълнител</li>
-                     <li>Специфични забележки</li>
-                   </ul>`
-          },
-          {
-            year: "Data",
-            title: "Статистики",
-            html: `<p>Всяка проверка се записва локално и се <strong>синхронизира с Google Sheets</strong> за управленски анализ.</p>
-                   <ul class="acet-tl-checklist">
-                     <li>Месечни тенденции</li>
-                     <li>Дневни и почасови графики</li>
-                     <li>Експорт и печат</li>
-                   </ul>`
-          }
-        ];
-
-        const entries = data.map(d => `
-          <div class="acet-tl-entry">
-            <div class="acet-tl-left">
-              <div class="acet-tl-dot-ring"></div>
-              <div class="acet-tl-year">${d.year}</div>
-            </div>
-            <div class="acet-tl-right">
-              <div class="acet-tl-mobile-title">${d.title}</div>
-              <div class="acet-tl-content">${d.html}</div>
-            </div>
-          </div>`).join('');
-
-        return `
-          <div class="acet-tl" id="acet-tl-wrap">
-            <div class="acet-tl-body" id="acet-tl-body">
-              <div class="acet-tl-track" id="acet-tl-track"></div>
-              <div class="acet-tl-fill" id="acet-tl-fill" style="height:0"></div>
-              ${entries}
-            </div>
-          </div>`;
-      }
-
-      function initAcetTimeline() {
-        const body  = document.getElementById('acet-tl-body');
-        const track = document.getElementById('acet-tl-track');
-        const fill  = document.getElementById('acet-tl-fill');
-        if (!body || !track || !fill) return;
-
-        track.style.height = body.offsetHeight + 'px';
-
-        function onScroll() {
-          const rect   = body.getBoundingClientRect();
-          const winH   = window.innerHeight;
-          /* mirrors Aceternity: start 10% into viewport, end at 50% */
-          const start  = winH * 0.1;
-          const end    = winH * 0.5;
-          const travel = (start - rect.top) / (rect.height - (winH - end));
-          const pct    = Math.min(1, Math.max(0, travel));
-          fill.style.height = (pct * body.offsetHeight) + 'px';
-        }
-
-        window.addEventListener('scroll', onScroll, { passive: true });
-        onScroll();
       }
 
       function renderRecentTable(records, compact) {
@@ -3094,7 +2942,6 @@
         }
         applyPerfMode();
         if (state.screen === "home" && typeof cgUpdateReviews === 'function') cgUpdateReviews();
-        if (state.screen === "home") initAcetTimeline();
         initSearchBar();
       }
 
