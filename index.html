@@ -234,7 +234,7 @@
         color: var(--muted); border-radius: 14px; padding: 10px 14px;
         font-family: "Oswald", sans-serif; font-size: 14px; font-weight: 500;
         text-transform: uppercase; letter-spacing: .04em; cursor: pointer;
-        position: relative; overflow: hidden; isolation: isolate;
+        position: relative; overflow: visible; isolation: isolate;
         transition: color .2s ease, background .2s ease, border-color .2s ease,
                     box-shadow .2s ease, transform .22s cubic-bezier(.34,1.56,.64,1);
       }
@@ -244,15 +244,34 @@
         transition: transform .28s cubic-bezier(.34,1.2,.64,1);
         z-index: -1; pointer-events: none;
       }
+      /* Tubelight lamp bar */
+      .nav-btn::after {
+        content: "";
+        position: absolute; top: -2px; left: 50%;
+        transform: translateX(-50%) scaleX(0);
+        transform-origin: center;
+        width: 30px; height: 3px;
+        background: var(--gold);
+        border-radius: 0 0 4px 4px;
+        opacity: 0;
+        transition: transform .32s cubic-bezier(.34,1.56,.64,1), opacity .2s ease;
+        pointer-events: none; z-index: 2;
+        box-shadow:
+          0 0 6px 2px rgba(200,120,24,.75),
+          0 4px 14px 5px rgba(200,120,24,.3),
+          0 10px 28px 10px rgba(200,120,24,.12);
+      }
       .nav-btn:hover { color: var(--text); background: rgba(255,255,255,.04); transform: translateY(-1px); }
       .nav-btn:hover::before { transform: scaleX(1); }
+      .nav-btn:hover::after { transform: translateX(-50%) scaleX(.5); opacity: .35; }
       .nav-btn:active { transform: scale(.96); transition-duration: .08s; }
       .nav-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
       .nav-btn.state {
-        color: var(--gold-2); border-color: rgba(200,120,24,.26);
-        background: rgba(200,120,24,.10);
-        box-shadow: 0 0 16px rgba(200,120,24,.12);
+        color: var(--gold-2); border-color: rgba(200,120,24,.22);
+        background: rgba(200,120,24,.08);
       }
+      .nav-btn.state::before { transform: scaleX(1); }
+      .nav-btn.state::after { transform: translateX(-50%) scaleX(1); opacity: 1; }
       .nav-btn.cooldown { opacity: 0.7; cursor: not-allowed; pointer-events: none; }
 
       .page { padding: 8px 0 24px; }
