@@ -921,70 +921,70 @@
         .cg-review-card { padding: 12px 14px; }
       }
 
-      /* ── Scroll Timeline ── */
-      .cg-timeline-wrap { padding: 32px 0 8px; }
-      .cg-timeline-kicker { text-transform: uppercase; letter-spacing: 4px; font-size: 11px; color: var(--gold); font-weight: 600; margin-bottom: 6px; }
-      .cg-timeline-heading { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-      .cg-timeline-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; max-width: 48ch; }
-      .cg-timeline-body { position: relative; }
-      .cg-timeline-line-track {
-        position: absolute; left: 20px; top: 0; width: 2px;
-        background: linear-gradient(to bottom, transparent 0%, rgba(155,168,185,.25) 10%, rgba(155,168,185,.25) 90%, transparent 100%);
-        mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
-        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
+      /* ── Aceternity Timeline ── */
+      .acet-tl { width: 100%; padding: 0 0 32px; }
+      .acet-tl-header { padding: 48px 0 0; margin-bottom: 0; }
+      .acet-tl-header h2 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+      @media (min-width: 768px) { .acet-tl-header h2 { font-size: 36px; } }
+      .acet-tl-header p { font-size: 13px; color: var(--muted); max-width: 32ch; line-height: 1.6; }
+      @media (min-width: 768px) { .acet-tl-header p { font-size: 15px; } }
+      .acet-tl-body { position: relative; padding-bottom: 48px; }
+      /* gray track */
+      .acet-tl-track {
+        position: absolute; left: 32px; top: 0; width: 2px;
+        background: linear-gradient(to bottom, transparent 0%, rgba(155,168,185,.22) 8%, rgba(155,168,185,.22) 92%, transparent 100%);
+        mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
       }
-      .cg-timeline-line-fill {
-        position: absolute; inset-x: 0; top: 0; width: 2px;
-        background: linear-gradient(to bottom, #a855f7, #3b82f6, transparent);
+      /* purple→blue animated fill */
+      .acet-tl-fill {
+        position: absolute; left: 32px; top: 0; width: 2px;
+        background: linear-gradient(to bottom, #a855f7, #3b82f6 50%, transparent);
         border-radius: 2px;
-        transition: height 0.1s linear;
+        overflow: hidden;
       }
-      .cg-timeline-entry { display: flex; gap: 0; padding: 0 0 40px 0; align-items: flex-start; }
-      .cg-timeline-left {
-        position: sticky; top: 120px; flex-shrink: 0; width: 52px;
-        display: flex; align-items: flex-start; justify-content: center; padding-top: 2px;
+      .acet-tl-entry {
+        display: flex; align-items: flex-start;
+        padding-top: 32px; gap: 0;
       }
-      .cg-timeline-dot {
-        width: 14px; height: 14px; border-radius: 50%;
-        background: var(--panel); border: 2px solid rgba(155,168,185,.3);
-        position: relative; z-index: 2; flex-shrink: 0; margin-top: 3px;
-        transition: border-color .3s, box-shadow .3s;
+      @media (min-width: 768px) { .acet-tl-entry { padding-top: 96px; gap: 32px; } }
+      /* left: sticky dot + title */
+      .acet-tl-left {
+        position: sticky; top: 96px; align-self: flex-start;
+        flex-shrink: 0; width: 80px;
+        display: flex; flex-direction: column; align-items: flex-start; z-index: 4;
       }
-      .cg-timeline-dot.active {
-        border-color: var(--gold);
-        box-shadow: 0 0 8px rgba(200,120,24,.4);
+      @media (min-width: 768px) { .acet-tl-left { width: 260px; flex-direction: row; align-items: center; } }
+      .acet-tl-dot-ring {
+        width: 40px; height: 40px; border-radius: 50%;
+        background: var(--bg); border: 1px solid rgba(155,168,185,.18);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; margin-left: 13px;
       }
-      .cg-timeline-year {
-        display: none;
-        font-size: 26px; font-weight: 700; color: rgba(155,168,185,.4);
-        position: sticky; top: 120px;
+      .acet-tl-dot-ring::after {
+        content: ''; display: block; width: 14px; height: 14px; border-radius: 50%;
+        background: var(--panel-2, #1a2233); border: 1.5px solid rgba(155,168,185,.4);
       }
-      @media (min-width: 768px) {
-        .cg-timeline-left { width: 160px; flex-direction: row; gap: 0; align-items: flex-start; }
-        .cg-timeline-dot { margin-right: 0; }
-        .cg-timeline-year { display: block; padding-left: 28px; font-size: 32px; }
-        .cg-timeline-line-track { left: 32px; }
+      .acet-tl-year {
+        display: none; font-size: 40px; font-weight: 700;
+        color: rgba(155,168,185,.35); padding-left: 20px; line-height: 1;
       }
-      .cg-timeline-right { flex: 1; min-width: 0; }
-      .cg-timeline-title {
-        font-size: 18px; font-weight: 700; color: rgba(155,168,185,.5);
+      @media (min-width: 768px) { .acet-tl-year { display: block; } }
+      /* right: content */
+      .acet-tl-right { flex: 1; min-width: 0; padding-left: 24px; }
+      @media (min-width: 768px) { .acet-tl-right { padding-left: 0; } }
+      .acet-tl-mobile-title {
+        font-size: 20px; font-weight: 700; color: rgba(155,168,185,.45);
         margin-bottom: 12px;
       }
-      @media (min-width: 768px) { .cg-timeline-title { display: none; } }
-      .cg-timeline-card {
-        background: var(--panel); border: 1px solid rgba(200,120,24,.12);
-        border-radius: 14px; padding: 18px 20px;
-        opacity: 0; transform: translateY(12px);
-        transition: opacity .5s, transform .5s;
-      }
-      .cg-timeline-card.visible { opacity: 1; transform: translateY(0); }
-      .cg-timeline-card-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-      .cg-timeline-card-text { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 12px; }
-      .cg-timeline-tags { display: flex; gap: 6px; flex-wrap: wrap; }
-      .cg-tl-tag {
-        font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
-        background: rgba(200,120,24,.1); color: var(--gold); border: 1px solid rgba(200,120,24,.2);
-      }
+      @media (min-width: 768px) { .acet-tl-mobile-title { display: none; } }
+      .acet-tl-content { font-size: 13px; color: var(--muted); line-height: 1.65; }
+      @media (min-width: 768px) { .acet-tl-content { font-size: 14px; } }
+      .acet-tl-content p { margin-bottom: 14px; }
+      .acet-tl-content strong { color: var(--text); font-weight: 600; }
+      .acet-tl-checklist { list-style: none; padding: 0; margin: 0 0 14px; display: flex; flex-direction: column; gap: 5px; }
+      .acet-tl-checklist li { display: flex; align-items: center; gap: 8px; }
+      .acet-tl-checklist li::before { content: '✓'; color: var(--green, #2dcc70); font-weight: 700; font-size: 12px; }
     </style>
   </head>
   <body>
@@ -1955,112 +1955,100 @@
             <div class="cg-reviews-loading"><div class="cg-spinner"></div><span>Зареждане на ревюта...</span></div>
           </div>
 
-          ${renderTimeline()}
+          ${renderAcetTimeline()}
 
         </div>`;
       }
 
-      function renderTimeline() {
-        const entries = [
+      function renderAcetTimeline() {
+        const data = [
           {
             year: "Зали",
             title: "Кинозали 1–6",
-            cardTitle: "Проверка на хигиената в залите",
-            text: "Всяка кинозала се проверява преди и след всяка прожекция. Инспекторът преминава по всички редове и отчита чистотата на седалките, пода, напитките и общото състояние.",
-            tags: ["Преди прожекция", "След прожекция", "6 зали"]
+            html: `<p>Всяка зала се проверява <strong>преди и след всяка прожекция</strong> — седалки, под, напитки, общо състояние.</p>
+                   <ul class="acet-tl-checklist">
+                     <li>Проверка на седалките</li>
+                     <li>Чистота на пода</li>
+                     <li>Остатъци от храна и напитки</li>
+                     <li>Осветление и техника</li>
+                   </ul>`
           },
           {
             year: "WC",
             title: "Санитарни Възли",
-            cardTitle: "Контрол на тоалетните помещения",
-            text: "Тоалетните се проверяват на фиксирани интервали. Всеки проблем — мирис, водоподаване, хигиена — се отразява в реално време и се изпраща към Google Sheets.",
-            tags: ["Мъжко WC", "Дамско WC", "На всеки 2 часа"]
+            html: `<p>Тоалетните се проверяват на <strong>фиксирани интервали</strong> и всеки проблем се отразява в реално време.</p>
+                   <ul class="acet-tl-checklist">
+                     <li>Мъжко и дамско WC</li>
+                     <li>Водоподаване и мирис</li>
+                     <li>Хигиенни консумативи</li>
+                     <li>Синхрон към Google Sheets</li>
+                   </ul>`
           },
           {
             year: "Събл.",
             title: "Съблекални",
-            cardTitle: "Почистване и отчет на съблекалните",
-            text: "Мъжката и женската съблекалня се почистват по утвърден график. Всеки отчет включва часа на почистването, извършилия го и специфични забележки при нужда.",
-            tags: ["График", "Мъжка", "Женска", "Отчет"]
+            html: `<p>Мъжката и женската съблекалня се почистват по <strong>утвърден график</strong> с пълен писмен отчет.</p>
+                   <ul class="acet-tl-checklist">
+                     <li>График за почистване</li>
+                     <li>Отчет с час и изпълнител</li>
+                     <li>Специфични забележки</li>
+                   </ul>`
           },
           {
-            year: "Данни",
+            year: "Data",
             title: "Статистики",
-            cardTitle: "Синхронизация с Google Sheets",
-            text: "Всяка проверка се записва локално и се синхронизира с Google Sheets. Графиките показват месечни, дневни и почасови тенденции за бързи управленски решения.",
-            tags: ["Google Sheets", "Месечни", "Дневни", "Почасови"]
+            html: `<p>Всяка проверка се записва локално и се <strong>синхронизира с Google Sheets</strong> за управленски анализ.</p>
+                   <ul class="acet-tl-checklist">
+                     <li>Месечни тенденции</li>
+                     <li>Дневни и почасови графики</li>
+                     <li>Експорт и печат</li>
+                   </ul>`
           }
         ];
 
-        const entriesHtml = entries.map((e, i) => `
-          <div class="cg-timeline-entry" data-tl-entry="${i}">
-            <div class="cg-timeline-left">
-              <div class="cg-timeline-dot" id="cg-tl-dot-${i}"></div>
-              <div class="cg-timeline-year">${e.year}</div>
+        const entries = data.map(d => `
+          <div class="acet-tl-entry">
+            <div class="acet-tl-left">
+              <div class="acet-tl-dot-ring"></div>
+              <div class="acet-tl-year">${d.year}</div>
             </div>
-            <div class="cg-timeline-right">
-              <div class="cg-timeline-title">${e.title}</div>
-              <div class="cg-timeline-card" id="cg-tl-card-${i}">
-                <div class="cg-timeline-card-title">${e.cardTitle}</div>
-                <div class="cg-timeline-card-text">${e.text}</div>
-                <div class="cg-timeline-tags">${e.tags.map(t => `<span class="cg-tl-tag">${t}</span>`).join('')}</div>
-              </div>
+            <div class="acet-tl-right">
+              <div class="acet-tl-mobile-title">${d.title}</div>
+              <div class="acet-tl-content">${d.html}</div>
             </div>
-          </div>
-        `).join('');
+          </div>`).join('');
 
         return `
-          <div class="cg-timeline-wrap" id="cg-timeline-wrap">
-            <div class="cg-timeline-kicker">Работни процеси</div>
-            <div class="cg-timeline-heading">Как работи контролът</div>
-            <div class="cg-timeline-sub">Всяка стъпка от процеса на контрол е документирана и проследима в реално време.</div>
-            <div class="cg-timeline-body" id="cg-timeline-body">
-              <div class="cg-timeline-line-track" id="cg-tl-track"></div>
-              <div class="cg-timeline-line-fill" id="cg-tl-fill" style="height:0px;"></div>
-              ${entriesHtml}
+          <div class="acet-tl" id="acet-tl-wrap">
+            <div class="acet-tl-header">
+              <h2>Процес на контрол</h2>
+              <p>Стъпките от хигиенния контрол в Cine Grand — документирани в реално време.</p>
+            </div>
+            <div class="acet-tl-body" id="acet-tl-body">
+              <div class="acet-tl-track" id="acet-tl-track"></div>
+              <div class="acet-tl-fill" id="acet-tl-fill" style="height:0"></div>
+              ${entries}
             </div>
           </div>`;
       }
 
-      function initTimeline() {
-        const body = document.getElementById('cg-timeline-body');
-        const track = document.getElementById('cg-tl-track');
-        const fill = document.getElementById('cg-tl-fill');
+      function initAcetTimeline() {
+        const body  = document.getElementById('acet-tl-body');
+        const track = document.getElementById('acet-tl-track');
+        const fill  = document.getElementById('acet-tl-fill');
         if (!body || !track || !fill) return;
 
-        // Set track height to match body
-        function updateTrackHeight() {
-          track.style.height = body.offsetHeight + 'px';
-        }
-        updateTrackHeight();
+        track.style.height = body.offsetHeight + 'px';
 
-        // IntersectionObserver for cards fade-in
-        const cardObs = new IntersectionObserver((entries) => {
-          entries.forEach(e => {
-            if (e.isIntersecting) e.target.classList.add('visible');
-          });
-        }, { threshold: 0.15 });
-
-        document.querySelectorAll('.cg-timeline-card').forEach(c => cardObs.observe(c));
-
-        // Dot activation observer
-        document.querySelectorAll('.cg-timeline-entry').forEach((entry, i) => {
-          const obs = new IntersectionObserver((ents) => {
-            const dot = document.getElementById('cg-tl-dot-' + i);
-            if (dot) dot.classList.toggle('active', ents[0].isIntersecting);
-          }, { threshold: 0.3 });
-          obs.observe(entry);
-        });
-
-        // Scroll-driven line fill
         function onScroll() {
-          const bodyRect = body.getBoundingClientRect();
-          const winH = window.innerHeight;
-          // How far the bottom of the viewport has traveled into the body
-          const progress = Math.min(1, Math.max(0,
-            (winH * 0.5 - bodyRect.top) / (bodyRect.height)
-          ));
-          fill.style.height = (progress * body.offsetHeight) + 'px';
+          const rect   = body.getBoundingClientRect();
+          const winH   = window.innerHeight;
+          /* mirrors Aceternity: start 10% into viewport, end at 50% */
+          const start  = winH * 0.1;
+          const end    = winH * 0.5;
+          const travel = (start - rect.top) / (rect.height - (winH - end));
+          const pct    = Math.min(1, Math.max(0, travel));
+          fill.style.height = (pct * body.offsetHeight) + 'px';
         }
 
         window.addEventListener('scroll', onScroll, { passive: true });
@@ -3059,7 +3047,7 @@
         }
         applyPerfMode();
         if (state.screen === "home" && typeof cgUpdateReviews === 'function') cgUpdateReviews();
-        if (state.screen === "home") initTimeline();
+        if (state.screen === "home") initAcetTimeline();
         initSearchBar();
       }
 
