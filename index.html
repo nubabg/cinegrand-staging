@@ -876,6 +876,10 @@
       body.low-perf .item-row { transition: none; }
       body.low-perf .bar-fill { transition: none; }
       body.low-perf .progress > div { transition: none; }
+      body.low-perf .hero-orbit { display: none; }
+      body.low-perf .acet-tl-fill { display: none; }
+      body.low-perf .acet-tl-track { display: none; }
+      body.low-perf .cg-fx-switch { border-color: rgba(52,211,153,.3); }
       body.low-perf {
         background: var(--bg) !important;
       }
@@ -919,6 +923,51 @@
       @media (max-width: 600px) {
         .cg-reviews-heading { font-size: 17px; }
         .cg-review-card { padding: 12px 14px; }
+      }
+
+      /* ── Cinematic Effects Switch ── */
+      .cg-fx-switch {
+        display: flex; align-items: center; gap: 8px;
+        padding: 6px 10px; border-radius: 14px;
+        background: rgba(39,39,42,.55); border: 1px solid rgba(255,255,255,.08);
+        backdrop-filter: blur(8px); cursor: pointer;
+        user-select: none; flex-shrink: 0;
+      }
+      .cg-fx-switch:hover { border-color: rgba(255,255,255,.16); }
+      .cg-fx-label {
+        font-size: 10px; font-weight: 700; letter-spacing: .08em;
+        transition: color .3s;
+      }
+      .cg-fx-label-off { color: rgba(155,168,185,.5); }
+      .cg-fx-label-on  { color: rgba(155,168,185,.25); }
+      /* when low-perf is active, flip label colors */
+      body.low-perf .cg-fx-label-off { color: rgba(155,168,185,.25); }
+      body.low-perf .cg-fx-label-on  {
+        color: #34d399;
+        text-shadow: 0 0 8px rgba(52,211,153,.5);
+      }
+      .cg-fx-track {
+        position: relative; width: 44px; height: 24px; border-radius: 999px;
+        background: #27272a; transition: background .3s;
+        flex-shrink: 0;
+      }
+      body.low-perf .cg-fx-track { background: #064e3b; }
+      .cg-fx-thumb {
+        position: absolute; top: 3px; left: 3px;
+        width: 18px; height: 18px; border-radius: 50%;
+        background: #52525b; border: 1px solid rgba(255,255,255,.1);
+        transition: transform .25s cubic-bezier(.34,1.56,.64,1), background .3s, box-shadow .3s;
+      }
+      .cg-fx-thumb::after {
+        content: ''; position: absolute; top: 3px; left: 4px;
+        width: 7px; height: 4px;
+        background: rgba(255,255,255,.25); border-radius: 999px;
+        filter: blur(1px);
+      }
+      body.low-perf .cg-fx-thumb {
+        transform: translateX(20px);
+        background: #34d399;
+        box-shadow: 0 0 8px rgba(52,211,153,.45);
       }
 
       /* ── Aceternity Timeline ── */
@@ -1080,8 +1129,6 @@
       function applyPerfMode() {
         const on = localStorage.getItem(PERF_KEY) === "1";
         document.body.classList.toggle("low-perf", on);
-        const btn = document.querySelector("[data-action='toggle-perf']");
-        if (btn) btn.style.opacity = on ? "1" : "0.5";
       }
       applyPerfMode();
       const LOCAL_RETENTION_DAYS = 7; /* Локални записи се пазят 7 дни */
@@ -1872,7 +1919,11 @@
                     <div class="search-dropdown" id="search-dropdown" style="display:none;"></div>
                   </div>
                 </div>
-                <button class="btn btn-outline" style="padding:8px 11px;font-size:13px;" data-action="toggle-perf" title="Включи/изключи ефекти за по-добра производителност" aria-label="Режим на производителност">⚡</button>
+                <div class="cg-fx-switch" data-action="toggle-perf" title="Включи/изключи визуални ефекти" role="switch" aria-label="Визуални ефекти">
+                  <span class="cg-fx-label cg-fx-label-off">OFF</span>
+                  <div class="cg-fx-track"><div class="cg-fx-thumb"></div></div>
+                  <span class="cg-fx-label cg-fx-label-on">ON</span>
+                </div>
               </div>
             </div>
           </div>`;
@@ -2020,10 +2071,6 @@
 
         return `
           <div class="acet-tl" id="acet-tl-wrap">
-            <div class="acet-tl-header">
-              <h2>Процес на контрол</h2>
-              <p>Стъпките от хигиенния контрол в Cine Grand — документирани в реално време.</p>
-            </div>
             <div class="acet-tl-body" id="acet-tl-body">
               <div class="acet-tl-track" id="acet-tl-track"></div>
               <div class="acet-tl-fill" id="acet-tl-fill" style="height:0"></div>
