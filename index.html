@@ -920,6 +920,71 @@
         .cg-reviews-heading { font-size: 17px; }
         .cg-review-card { padding: 12px 14px; }
       }
+
+      /* ── Scroll Timeline ── */
+      .cg-timeline-wrap { padding: 32px 0 8px; }
+      .cg-timeline-kicker { text-transform: uppercase; letter-spacing: 4px; font-size: 11px; color: var(--gold); font-weight: 600; margin-bottom: 6px; }
+      .cg-timeline-heading { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+      .cg-timeline-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; max-width: 48ch; }
+      .cg-timeline-body { position: relative; }
+      .cg-timeline-line-track {
+        position: absolute; left: 20px; top: 0; width: 2px;
+        background: linear-gradient(to bottom, transparent 0%, rgba(155,168,185,.25) 10%, rgba(155,168,185,.25) 90%, transparent 100%);
+        mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);
+      }
+      .cg-timeline-line-fill {
+        position: absolute; inset-x: 0; top: 0; width: 2px;
+        background: linear-gradient(to bottom, #a855f7, #3b82f6, transparent);
+        border-radius: 2px;
+        transition: height 0.1s linear;
+      }
+      .cg-timeline-entry { display: flex; gap: 0; padding: 0 0 40px 0; align-items: flex-start; }
+      .cg-timeline-left {
+        position: sticky; top: 120px; flex-shrink: 0; width: 52px;
+        display: flex; align-items: flex-start; justify-content: center; padding-top: 2px;
+      }
+      .cg-timeline-dot {
+        width: 14px; height: 14px; border-radius: 50%;
+        background: var(--panel); border: 2px solid rgba(155,168,185,.3);
+        position: relative; z-index: 2; flex-shrink: 0; margin-top: 3px;
+        transition: border-color .3s, box-shadow .3s;
+      }
+      .cg-timeline-dot.active {
+        border-color: var(--gold);
+        box-shadow: 0 0 8px rgba(200,120,24,.4);
+      }
+      .cg-timeline-year {
+        display: none;
+        font-size: 26px; font-weight: 700; color: rgba(155,168,185,.4);
+        position: sticky; top: 120px;
+      }
+      @media (min-width: 768px) {
+        .cg-timeline-left { width: 160px; flex-direction: row; gap: 0; align-items: flex-start; }
+        .cg-timeline-dot { margin-right: 0; }
+        .cg-timeline-year { display: block; padding-left: 28px; font-size: 32px; }
+        .cg-timeline-line-track { left: 32px; }
+      }
+      .cg-timeline-right { flex: 1; min-width: 0; }
+      .cg-timeline-title {
+        font-size: 18px; font-weight: 700; color: rgba(155,168,185,.5);
+        margin-bottom: 12px;
+      }
+      @media (min-width: 768px) { .cg-timeline-title { display: none; } }
+      .cg-timeline-card {
+        background: var(--panel); border: 1px solid rgba(200,120,24,.12);
+        border-radius: 14px; padding: 18px 20px;
+        opacity: 0; transform: translateY(12px);
+        transition: opacity .5s, transform .5s;
+      }
+      .cg-timeline-card.visible { opacity: 1; transform: translateY(0); }
+      .cg-timeline-card-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+      .cg-timeline-card-text { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 12px; }
+      .cg-timeline-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+      .cg-tl-tag {
+        font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
+        background: rgba(200,120,24,.1); color: var(--gold); border: 1px solid rgba(200,120,24,.2);
+      }
     </style>
   </head>
   <body>
@@ -1890,7 +1955,116 @@
             <div class="cg-reviews-loading"><div class="cg-spinner"></div><span>Зареждане на ревюта...</span></div>
           </div>
 
+          ${renderTimeline()}
+
         </div>`;
+      }
+
+      function renderTimeline() {
+        const entries = [
+          {
+            year: "Зали",
+            title: "Кинозали 1–6",
+            cardTitle: "Проверка на хигиената в залите",
+            text: "Всяка кинозала се проверява преди и след всяка прожекция. Инспекторът преминава по всички редове и отчита чистотата на седалките, пода, напитките и общото състояние.",
+            tags: ["Преди прожекция", "След прожекция", "6 зали"]
+          },
+          {
+            year: "WC",
+            title: "Санитарни Възли",
+            cardTitle: "Контрол на тоалетните помещения",
+            text: "Тоалетните се проверяват на фиксирани интервали. Всеки проблем — мирис, водоподаване, хигиена — се отразява в реално време и се изпраща към Google Sheets.",
+            tags: ["Мъжко WC", "Дамско WC", "На всеки 2 часа"]
+          },
+          {
+            year: "Събл.",
+            title: "Съблекални",
+            cardTitle: "Почистване и отчет на съблекалните",
+            text: "Мъжката и женската съблекалня се почистват по утвърден график. Всеки отчет включва часа на почистването, извършилия го и специфични забележки при нужда.",
+            tags: ["График", "Мъжка", "Женска", "Отчет"]
+          },
+          {
+            year: "Данни",
+            title: "Статистики",
+            cardTitle: "Синхронизация с Google Sheets",
+            text: "Всяка проверка се записва локално и се синхронизира с Google Sheets. Графиките показват месечни, дневни и почасови тенденции за бързи управленски решения.",
+            tags: ["Google Sheets", "Месечни", "Дневни", "Почасови"]
+          }
+        ];
+
+        const entriesHtml = entries.map((e, i) => `
+          <div class="cg-timeline-entry" data-tl-entry="${i}">
+            <div class="cg-timeline-left">
+              <div class="cg-timeline-dot" id="cg-tl-dot-${i}"></div>
+              <div class="cg-timeline-year">${e.year}</div>
+            </div>
+            <div class="cg-timeline-right">
+              <div class="cg-timeline-title">${e.title}</div>
+              <div class="cg-timeline-card" id="cg-tl-card-${i}">
+                <div class="cg-timeline-card-title">${e.cardTitle}</div>
+                <div class="cg-timeline-card-text">${e.text}</div>
+                <div class="cg-timeline-tags">${e.tags.map(t => `<span class="cg-tl-tag">${t}</span>`).join('')}</div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        return `
+          <div class="cg-timeline-wrap" id="cg-timeline-wrap">
+            <div class="cg-timeline-kicker">Работни процеси</div>
+            <div class="cg-timeline-heading">Как работи контролът</div>
+            <div class="cg-timeline-sub">Всяка стъпка от процеса на контрол е документирана и проследима в реално време.</div>
+            <div class="cg-timeline-body" id="cg-timeline-body">
+              <div class="cg-timeline-line-track" id="cg-tl-track"></div>
+              <div class="cg-timeline-line-fill" id="cg-tl-fill" style="height:0px;"></div>
+              ${entriesHtml}
+            </div>
+          </div>`;
+      }
+
+      function initTimeline() {
+        const body = document.getElementById('cg-timeline-body');
+        const track = document.getElementById('cg-tl-track');
+        const fill = document.getElementById('cg-tl-fill');
+        if (!body || !track || !fill) return;
+
+        // Set track height to match body
+        function updateTrackHeight() {
+          track.style.height = body.offsetHeight + 'px';
+        }
+        updateTrackHeight();
+
+        // IntersectionObserver for cards fade-in
+        const cardObs = new IntersectionObserver((entries) => {
+          entries.forEach(e => {
+            if (e.isIntersecting) e.target.classList.add('visible');
+          });
+        }, { threshold: 0.15 });
+
+        document.querySelectorAll('.cg-timeline-card').forEach(c => cardObs.observe(c));
+
+        // Dot activation observer
+        document.querySelectorAll('.cg-timeline-entry').forEach((entry, i) => {
+          const obs = new IntersectionObserver((ents) => {
+            const dot = document.getElementById('cg-tl-dot-' + i);
+            if (dot) dot.classList.toggle('active', ents[0].isIntersecting);
+          }, { threshold: 0.3 });
+          obs.observe(entry);
+        });
+
+        // Scroll-driven line fill
+        function onScroll() {
+          const bodyRect = body.getBoundingClientRect();
+          const winH = window.innerHeight;
+          // How far the bottom of the viewport has traveled into the body
+          const progress = Math.min(1, Math.max(0,
+            (winH * 0.5 - bodyRect.top) / (bodyRect.height)
+          ));
+          fill.style.height = (progress * body.offsetHeight) + 'px';
+        }
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
       }
 
       function renderRecentTable(records, compact) {
@@ -2885,6 +3059,7 @@
         }
         applyPerfMode();
         if (state.screen === "home" && typeof cgUpdateReviews === 'function') cgUpdateReviews();
+        if (state.screen === "home") initTimeline();
         initSearchBar();
       }
 
