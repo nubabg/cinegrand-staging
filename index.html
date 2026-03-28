@@ -1004,32 +1004,73 @@
 
       /* ── Announcement Banner ── */
       .cg-ann-banner {
-        background: linear-gradient(135deg, rgba(220,38,38,.18), rgba(185,28,28,.10));
-        border: 1px solid rgba(239,68,68,.40);
-        border-left: 4px solid #ef4444;
-        border-radius: 12px; padding: 16px 18px;
-        display: flex; gap: 14px; align-items: flex-start;
+        background: linear-gradient(135deg, rgba(220,38,38,.22), rgba(185,28,28,.15), rgba(220,38,38,.18));
+        border: 2px solid rgba(239,68,68,.55);
+        border-left: 5px solid #ef4444;
+        border-radius: 14px; padding: 20px 22px;
+        display: flex; gap: 16px; align-items: flex-start;
         margin-bottom: 18px;
-        box-shadow: 0 0 24px rgba(239,68,68,.10);
-        animation: cgAnnPulse 3.5s ease-in-out infinite;
+        box-shadow: 0 0 30px rgba(239,68,68,.15), 0 0 60px rgba(239,68,68,.06);
+        animation: cgAnnPulse 2.5s ease-in-out infinite;
+        position: relative;
+        overflow: hidden;
+      }
+      .cg-ann-banner::before {
+        content: ''; position: absolute; inset: 0;
+        background: linear-gradient(90deg, transparent 0%, rgba(239,68,68,.06) 50%, transparent 100%);
+        animation: cgAnnSweep 4s ease-in-out infinite;
+        pointer-events: none;
       }
       @keyframes cgAnnPulse {
-        0%,100% { box-shadow: 0 0 20px rgba(239,68,68,.10); }
-        50%      { box-shadow: 0 0 38px rgba(239,68,68,.25), inset 0 0 12px rgba(239,68,68,.04); }
+        0%,100% { box-shadow: 0 0 25px rgba(239,68,68,.12), 0 0 60px rgba(239,68,68,.05); border-color: rgba(239,68,68,.50); }
+        50%      { box-shadow: 0 0 45px rgba(239,68,68,.30), 0 0 80px rgba(239,68,68,.10), inset 0 0 20px rgba(239,68,68,.05); border-color: rgba(239,68,68,.75); }
       }
-      .cg-ann-icon  { font-size: 22px; line-height:1; padding-top:1px; flex-shrink:0; }
-      .cg-ann-body  { flex: 1; min-width:0; }
-      .cg-ann-label { font-size: 10px; font-weight: 700; letter-spacing: .12em;
-                      color: #ef4444; margin-bottom: 5px; text-transform:uppercase; }
-      .cg-ann-text  { font-size: 14px; font-weight: 600; color: var(--text);
-                      white-space: pre-wrap; line-height: 1.55; word-break:break-word; }
-      .cg-ann-date  { font-size: 11px; color: var(--muted); margin-top: 7px; }
-      .cg-ann-btns  { display: flex; gap: 6px; flex-shrink: 0; flex-direction:column; }
-      .cg-ann-btn   { background: rgba(239,68,68,.13); border: 1px solid rgba(239,68,68,.28);
+      @keyframes cgAnnSweep {
+        0%   { transform: translateX(-100%); }
+        50%  { transform: translateX(100%); }
+        100% { transform: translateX(-100%); }
+      }
+      .cg-ann-icon  { font-size: 28px; line-height:1; padding-top:2px; flex-shrink:0;
+                       animation: cgAnnShake 2s ease-in-out infinite;
+                       filter: drop-shadow(0 0 6px rgba(239,68,68,.5)); }
+      @keyframes cgAnnShake {
+        0%,100% { transform: rotate(0deg); }
+        15%     { transform: rotate(-12deg); }
+        30%     { transform: rotate(10deg); }
+        45%     { transform: rotate(-8deg); }
+        60%     { transform: rotate(0deg); }
+      }
+      .cg-ann-body  { flex: 1; min-width:0; position:relative; z-index:1; }
+      .cg-ann-label { font-size: 12px; font-weight: 800; letter-spacing: .14em;
+                      color: #ef4444; margin-bottom: 6px; text-transform:uppercase;
+                      text-shadow: 0 0 12px rgba(239,68,68,.4); }
+      .cg-ann-text  { font-size: 16px; font-weight: 700; color: #fff;
+                      white-space: pre-wrap; line-height: 1.6; word-break:break-word;
+                      text-shadow: 0 1px 3px rgba(0,0,0,.3); }
+      .cg-ann-date  { font-size: 12px; color: rgba(255,255,255,.55); margin-top: 8px; }
+      .cg-ann-date strong { color: rgba(255,255,255,.8); }
+      .cg-ann-btns  { display: flex; gap: 6px; flex-shrink: 0; flex-direction:column; position:relative; z-index:1; }
+      .cg-ann-btn   { background: rgba(239,68,68,.18); border: 1px solid rgba(239,68,68,.35);
                       color: #fca5a5; border-radius: 6px; padding: 5px 10px;
                       font-size: 11px; cursor: pointer; font-family: inherit;
                       transition: background .2s; white-space:nowrap; }
-      .cg-ann-btn:hover { background: rgba(239,68,68,.28); color:#fff; }
+      .cg-ann-btn:hover { background: rgba(239,68,68,.35); color:#fff; }
+
+      /* ── Topbar red dot indicator ── */
+      .cg-ann-dot {
+        width: 8px; height: 8px; border-radius: 50%; background: #ef4444;
+        display: inline-block; margin-left: 4px; vertical-align: middle;
+        box-shadow: 0 0 6px rgba(239,68,68,.7);
+        animation: cgAnnDotPulse 1.5s ease-in-out infinite;
+      }
+      @keyframes cgAnnDotPulse {
+        0%,100% { opacity: 1; box-shadow: 0 0 4px rgba(239,68,68,.5); }
+        50%     { opacity: .4; box-shadow: 0 0 10px rgba(239,68,68,.9); }
+      }
+      body.low-perf .cg-ann-banner { animation: none; }
+      body.low-perf .cg-ann-banner::before { animation: none; display: none; }
+      body.low-perf .cg-ann-icon { animation: none; }
+      body.low-perf .cg-ann-dot  { animation: none; }
       .cg-ann-add-btn {
         width: 100%; padding: 11px; border-radius: 9px; font-size: 12px;
         font-weight: 600; border: 1px dashed rgba(239,68,68,.30);
@@ -2046,10 +2087,21 @@
           </div>`;
       }
 
+      function renderAnnStrip() {
+        const ann = cgGetAnn();
+        if (!ann || !ann.text || state.screen === 'home') return '';
+        return `<div style="background:rgba(239,68,68,.12);border-bottom:1px solid rgba(239,68,68,.3);padding:6px 16px;display:flex;align-items:center;gap:8px;cursor:pointer;" data-action="go-home" title="Виж пълното съобщение">
+          <span class="cg-ann-dot"></span>
+          <span style="font-size:11px;font-weight:700;color:#ef4444;letter-spacing:.08em;">ВАЖНО</span>
+          <span style="font-size:12px;color:rgba(255,255,255,.75);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(ann.text)}</span>
+        </div>`;
+      }
+
       function renderShell(content) {
         return `
           <div class="app-shell"><div class="workspace">
             ${renderTopbar()}
+            ${renderAnnStrip()}
             ${content}
           </div></div>`;
       }
