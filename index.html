@@ -2087,7 +2087,7 @@
             <div class="cg-ann-body">
               <div class="cg-ann-label">Важно съобщение</div>
               <div class="cg-ann-text">${escapeHtml(ann.text)}</div>
-              <div class="cg-ann-date">${escapeHtml(ann.date || '')}</div>
+              <div class="cg-ann-date">${ann.author ? `<strong>${escapeHtml(ann.author)}</strong> · ` : ''}${escapeHtml(ann.date || '')}</div>
             </div>
             <div class="cg-ann-btns">
               <button class="cg-ann-btn" data-action="announce-edit">✏ Редактирай</button>
@@ -2123,8 +2123,13 @@
         } else if (_annM.mode === 'add-text' || _annM.mode === 'edit-text') {
           title = _annM.mode === 'add-text' ? 'Ново съобщение' : 'Редактирай съобщение';
           const existing = _annM.mode === 'edit-text' && ann ? escapeHtml(ann.text) : '';
+          const existingAuthor = _annM.mode === 'edit-text' && ann && ann.author ? escapeHtml(ann.author) : '';
           body = `
-            <div class="cg-ann-modal-hint">Въведи текста на важното съобщение:</div>
+            <div class="cg-ann-modal-hint">Твоето име:</div>
+            <input id="cg-ann-author-inp" class="cg-ann-modal-input" type="text"
+              placeholder="Въведи името си..." value="${existingAuthor}"
+              style="min-height:unset;resize:none;margin-bottom:12px;" autocomplete="off">
+            <div class="cg-ann-modal-hint">Текст на съобщението:</div>
             <textarea id="cg-ann-text-inp" class="cg-ann-modal-input"
               placeholder="Текст на съобщението..." rows="4">${existing}</textarea>
             <div class="cg-ann-modal-err" id="cg-ann-err">${_annM.err || ''}</div>`;
@@ -2144,7 +2149,7 @@
 
         /* Auto-focus */
         setTimeout(() => {
-          const inp = document.getElementById('cg-ann-pass-inp') || document.getElementById('cg-ann-text-inp');
+          const inp = document.getElementById('cg-ann-pass-inp') || document.getElementById('cg-ann-author-inp') || document.getElementById('cg-ann-text-inp');
           if (inp) inp.focus();
         }, 50);
 
@@ -2176,8 +2181,15 @@
       }
 
       function _cgAnnSave() {
+        const authorInp = document.getElementById('cg-ann-author-inp');
         const inp = document.getElementById('cg-ann-text-inp');
         if (!inp) return;
+        const author = authorInp ? authorInp.value.trim() : '';
+        if (!author) {
+          const errEl = document.getElementById('cg-ann-err');
+          if (errEl) errEl.textContent = 'Моля, въведи името си.';
+          if (authorInp) authorInp.focus(); return;
+        }
         const text = inp.value.trim();
         if (!text) {
           const errEl = document.getElementById('cg-ann-err');
@@ -2190,7 +2202,7 @@
                         now.getFullYear() + '  ' +
                         String(now.getHours()).padStart(2,'0') + ':' +
                         String(now.getMinutes()).padStart(2,'0');
-        localStorage.setItem(CG_ANN_KEY, JSON.stringify({ text, date: dateStr }));
+        localStorage.setItem(CG_ANN_KEY, JSON.stringify({ text, date: dateStr, author }));
         cgAnnClose();
         render();
       }
