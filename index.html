@@ -1002,6 +1002,83 @@
       body.low-perf .cg-fx-track { transition: none; }
       body.low-perf .cg-fx-label { transition: none; }
 
+      /* ── Announcement Banner ── */
+      .cg-ann-banner {
+        background: linear-gradient(135deg, rgba(220,38,38,.18), rgba(185,28,28,.10));
+        border: 1px solid rgba(239,68,68,.40);
+        border-left: 4px solid #ef4444;
+        border-radius: 12px; padding: 16px 18px;
+        display: flex; gap: 14px; align-items: flex-start;
+        margin-bottom: 18px;
+        box-shadow: 0 0 24px rgba(239,68,68,.10);
+        animation: cgAnnPulse 3.5s ease-in-out infinite;
+      }
+      @keyframes cgAnnPulse {
+        0%,100% { box-shadow: 0 0 20px rgba(239,68,68,.10); }
+        50%      { box-shadow: 0 0 38px rgba(239,68,68,.25), inset 0 0 12px rgba(239,68,68,.04); }
+      }
+      .cg-ann-icon  { font-size: 22px; line-height:1; padding-top:1px; flex-shrink:0; }
+      .cg-ann-body  { flex: 1; min-width:0; }
+      .cg-ann-label { font-size: 10px; font-weight: 700; letter-spacing: .12em;
+                      color: #ef4444; margin-bottom: 5px; text-transform:uppercase; }
+      .cg-ann-text  { font-size: 14px; font-weight: 600; color: var(--text);
+                      white-space: pre-wrap; line-height: 1.55; word-break:break-word; }
+      .cg-ann-date  { font-size: 11px; color: var(--muted); margin-top: 7px; }
+      .cg-ann-btns  { display: flex; gap: 6px; flex-shrink: 0; flex-direction:column; }
+      .cg-ann-btn   { background: rgba(239,68,68,.13); border: 1px solid rgba(239,68,68,.28);
+                      color: #fca5a5; border-radius: 6px; padding: 5px 10px;
+                      font-size: 11px; cursor: pointer; font-family: inherit;
+                      transition: background .2s; white-space:nowrap; }
+      .cg-ann-btn:hover { background: rgba(239,68,68,.28); color:#fff; }
+      .cg-ann-add-btn {
+        width: 100%; padding: 11px; border-radius: 9px; font-size: 12px;
+        font-weight: 600; border: 1px dashed rgba(239,68,68,.30);
+        color: rgba(239,68,68,.55); background: rgba(239,68,68,.04);
+        cursor: pointer; font-family: inherit; margin-bottom: 18px;
+        transition: all .2s; display:block; text-align:center;
+      }
+      .cg-ann-add-btn:hover { background: rgba(239,68,68,.10); color: #ef4444;
+                               border-color: rgba(239,68,68,.55); }
+      /* Modal overlay */
+      .cg-ann-overlay {
+        position: fixed; inset: 0; z-index: 500;
+        background: rgba(0,0,0,.68); backdrop-filter: blur(5px);
+        display: flex; align-items: center; justify-content: center;
+        padding: 20px;
+      }
+      .cg-ann-overlay[hidden] { display: none !important; }
+      .cg-ann-modal-box {
+        background: #1a1a24; border-radius: 16px;
+        border: 1px solid rgba(255,255,255,.10); padding: 24px;
+        width: 100%; max-width: 420px;
+        box-shadow: 0 24px 64px rgba(0,0,0,.65);
+        position:relative;
+      }
+      .cg-ann-modal-title { font-size: 15px; font-weight: 700; margin-bottom: 14px;
+                             display:flex; align-items:center; gap:8px; }
+      .cg-ann-modal-input {
+        width: 100%; padding: 10px 12px; border-radius: 8px;
+        background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+        color: var(--text); font-size: 14px; font-family: inherit;
+        box-sizing: border-box; resize: vertical; min-height:100px;
+      }
+      .cg-ann-modal-input[type="password"] { min-height:unset; resize:none; }
+      .cg-ann-modal-input:focus { outline: 1px solid #ef4444; border-color: #ef4444; }
+      .cg-ann-modal-err { color: #ef4444; font-size: 12px; margin-top: 5px; min-height:16px; }
+      .cg-ann-modal-hint { color: var(--muted); font-size: 12px; margin-bottom:12px; }
+      .cg-ann-modal-actions { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; }
+      .cg-ann-modal-save {
+        padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 700;
+        background: #ef4444; color: #fff; border: none; cursor: pointer;
+        font-family: inherit; transition: background .2s;
+      }
+      .cg-ann-modal-save:hover { background: #dc2626; }
+      .cg-ann-modal-cancel {
+        padding: 8px 14px; border-radius: 8px; font-size: 13px;
+        background: rgba(255,255,255,.07); color: var(--muted);
+        border: 1px solid rgba(255,255,255,.10); cursor: pointer; font-family: inherit;
+      }
+
       /* ── Day filter controls ── */
       .day-filter-bar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
       .day-filter-btn {
@@ -1994,7 +2071,135 @@
             </div>
           </div>`;
       }
+      /* ── Announcement system ── */
+      const CG_ANN_KEY  = 'cg_announcement';
+      const CG_ANN_PASS = '12341';
+
+      function cgGetAnn() {
+        try { return JSON.parse(localStorage.getItem(CG_ANN_KEY) || 'null'); } catch { return null; }
+      }
+
+      function renderAnnouncementBanner(ann) {
+        if (!ann || !ann.text) return '';
+        return `
+          <div class="cg-ann-banner" role="alert">
+            <div class="cg-ann-icon">⚠</div>
+            <div class="cg-ann-body">
+              <div class="cg-ann-label">Важно съобщение</div>
+              <div class="cg-ann-text">${escapeHtml(ann.text)}</div>
+              <div class="cg-ann-date">${escapeHtml(ann.date || '')}</div>
+            </div>
+            <div class="cg-ann-btns">
+              <button class="cg-ann-btn" data-action="announce-edit">✏ Редактирай</button>
+              <button class="cg-ann-btn" data-action="announce-delete">✕ Изтрий</button>
+            </div>
+          </div>`;
+      }
+
+      const _annM = { mode: null };
+
+      function cgAnnShow(mode) { _annM.mode = mode; _annM.err = ''; cgAnnRender(); }
+      function cgAnnClose()    { _annM.mode = null; cgAnnRender(); }
+
+      function cgAnnRender() {
+        const el = document.getElementById('cg-ann-modal');
+        if (!el) return;
+        if (!_annM.mode) { el.hidden = true; return; }
+        el.hidden = false;
+
+        const ann = cgGetAnn();
+        let title = '', body = '', saveAction = '', saveLabel = '';
+
+        if (_annM.mode === 'add-pass' || _annM.mode === 'edit-pass' || _annM.mode === 'delete-pass') {
+          const labels = { 'add-pass':'Добави съобщение', 'edit-pass':'Редактирай съобщение', 'delete-pass':'Изтрий съобщение' };
+          title = labels[_annM.mode];
+          body = `
+            <div class="cg-ann-modal-hint">Въведи паролата за управление на съобщения:</div>
+            <input id="cg-ann-pass-inp" class="cg-ann-modal-input" type="password"
+              placeholder="Парола" autocomplete="off" style="min-height:unset;resize:none;">
+            <div class="cg-ann-modal-err" id="cg-ann-err">${_annM.err || ''}</div>`;
+          saveAction = 'ann-pass-submit';
+          saveLabel  = _annM.mode === 'delete-pass' ? 'Изтрий' : 'Продължи';
+        } else if (_annM.mode === 'add-text' || _annM.mode === 'edit-text') {
+          title = _annM.mode === 'add-text' ? 'Ново съобщение' : 'Редактирай съобщение';
+          const existing = _annM.mode === 'edit-text' && ann ? escapeHtml(ann.text) : '';
+          body = `
+            <div class="cg-ann-modal-hint">Въведи текста на важното съобщение:</div>
+            <textarea id="cg-ann-text-inp" class="cg-ann-modal-input"
+              placeholder="Текст на съобщението..." rows="4">${existing}</textarea>
+            <div class="cg-ann-modal-err" id="cg-ann-err">${_annM.err || ''}</div>`;
+          saveAction = 'ann-save';
+          saveLabel  = 'Запази';
+        }
+
+        el.innerHTML = `
+          <div class="cg-ann-modal-box" id="cg-ann-modal-box">
+            <div class="cg-ann-modal-title">🔴 ${escapeHtml(title)}</div>
+            ${body}
+            <div class="cg-ann-modal-actions">
+              <button class="cg-ann-modal-cancel" data-action="ann-modal-close">Отказ</button>
+              <button class="cg-ann-modal-save"   data-action="${saveAction}">${escapeHtml(saveLabel)}</button>
+            </div>
+          </div>`;
+
+        /* Auto-focus */
+        setTimeout(() => {
+          const inp = document.getElementById('cg-ann-pass-inp') || document.getElementById('cg-ann-text-inp');
+          if (inp) inp.focus();
+        }, 50);
+
+        /* Enter key submits */
+        el.addEventListener('keydown', function onKey(ev) {
+          if (ev.key !== 'Enter') return;
+          const passInp = document.getElementById('cg-ann-pass-inp');
+          if (passInp) { ev.preventDefault(); _cgAnnPassSubmit(); }
+        }, { once: true });
+      }
+
+      function _cgAnnPassSubmit() {
+        const inp = document.getElementById('cg-ann-pass-inp');
+        if (!inp) return;
+        if (inp.value !== CG_ANN_PASS) {
+          _annM.err = 'Грешна парола. Опитай отново.';
+          const errEl = document.getElementById('cg-ann-err');
+          if (errEl) errEl.textContent = _annM.err;
+          inp.value = ''; inp.focus(); return;
+        }
+        _annM.err = '';
+        if (_annM.mode === 'add-pass')    { _annM.mode = 'add-text';  cgAnnRender(); }
+        else if (_annM.mode === 'edit-pass')   { _annM.mode = 'edit-text'; cgAnnRender(); }
+        else if (_annM.mode === 'delete-pass') {
+          localStorage.removeItem(CG_ANN_KEY);
+          cgAnnClose();
+          render();
+        }
+      }
+
+      function _cgAnnSave() {
+        const inp = document.getElementById('cg-ann-text-inp');
+        if (!inp) return;
+        const text = inp.value.trim();
+        if (!text) {
+          const errEl = document.getElementById('cg-ann-err');
+          if (errEl) errEl.textContent = 'Въведи текст за съобщението.';
+          inp.focus(); return;
+        }
+        const now = new Date();
+        const dateStr = String(now.getDate()).padStart(2,'0') + '.' +
+                        String(now.getMonth()+1).padStart(2,'0') + '.' +
+                        now.getFullYear() + '  ' +
+                        String(now.getHours()).padStart(2,'0') + ':' +
+                        String(now.getMinutes()).padStart(2,'0');
+        localStorage.setItem(CG_ANN_KEY, JSON.stringify({ text, date: dateStr }));
+        cgAnnClose();
+        render();
+      }
+
       function renderHome() {
+        const _ann = cgGetAnn();
+        const _annHtml = _ann
+          ? renderAnnouncementBanner(_ann)
+          : `<button class="cg-ann-add-btn" data-action="announce-add">＋ Добави важно съобщение</button>`;
 
         return `<div class="page">
           <div class="panel panel-soft" style="margin-bottom:18px;">
@@ -2002,14 +2207,15 @@
               <div class="hero-copy">
                 <div>
                   <div class="hero-kicker">Operations Dashboard</div>
-                  <h1 class="hero-title">\u041a\u043e\u043d\u0442\u0440\u043e\u043b \u043d\u0430 \u0425\u0438\u0433\u0438\u0435\u043d\u0430\u0442\u0430</h1>
-                  <div class="muted" style="max-width:60ch;">\u0427\u0438\u0441\u0442\u0430\u0442\u0430 \u0441\u0440\u0435\u0434\u0430 \u043d\u0435 \u0435 \u0434\u0435\u0442\u0430\u0439\u043b, \u0430 \u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442. \u041f\u043e\u0441\u0442\u043e\u044f\u043d\u043d\u0438\u044f\u0442 \u043a\u043e\u043d\u0442\u0440\u043e\u043b \u043d\u0430 \u0445\u0438\u0433\u0438\u0435\u043d\u0430\u0442\u0430 \u0433\u0430\u0440\u0430\u043d\u0442\u0438\u0440\u0430 \u043a\u0430\u0447\u0435\u0441\u0442\u0432\u0435\u043d\u0430 \u0443\u0441\u043b\u0443\u0433\u0430 \u0438 \u0443\u0432\u0430\u0436\u0435\u043d\u0438\u0435 \u043a\u044a\u043c \u0432\u0441\u0435\u043a\u0438 \u043a\u043b\u0438\u0435\u043d\u0442.</div>
+                  <h1 class="hero-title">Контрол на Хигиената</h1>
+                  <div class="muted" style="max-width:60ch;">Чистата среда не е детайл, а стандарт. Постоянният контрол на хигиената гарантира качествена услуга и уважение към всеки клиент.</div>
                 </div>
               </div>
               <div class="hero-orbit"><div class="hero-core">CG</div></div>
             </div>
           </div>
 
+          ${_annHtml}
 
           <div style="margin-bottom:24px;">
             <div class="panel">
@@ -3376,6 +3582,13 @@
         });
       }
 
+      /* ── Close ann modal on outside click ── */
+      document.addEventListener("click", (e) => {
+        const modal = document.getElementById('cg-ann-modal');
+        if (!modal || modal.hidden) return;
+        if (!e.target.closest('#cg-ann-modal-box')) cgAnnClose();
+      });
+
       /* ── Event Delegation ── */
       document.addEventListener("click", async (e) => {
         const btn = e.target.closest("[data-action]");
@@ -3387,6 +3600,14 @@
 
         /* Navigation — blocked for QR-only sessions */
         if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection")) return;
+        /* ── Announcement actions ── */
+        if (action === "announce-add")    { cgAnnShow('add-pass');    return; }
+        if (action === "announce-edit")   { cgAnnShow('edit-pass');   return; }
+        if (action === "announce-delete") { cgAnnShow('delete-pass'); return; }
+        if (action === "ann-modal-close") { cgAnnClose(); return; }
+        if (action === "ann-pass-submit") { _cgAnnPassSubmit(); return; }
+        if (action === "ann-save")        { _cgAnnSave(); return; }
+
         if (action === "toggle-perf") {
           const next = localStorage.getItem(PERF_KEY) === "1" ? "0" : "1";
           localStorage.setItem(PERF_KEY, next);
@@ -3890,5 +4111,9 @@
         };
       })();
     </script>
+
+    <!-- Announcement modal (managed by cgAnnRender) -->
+    <div id="cg-ann-modal" class="cg-ann-overlay" hidden aria-modal="true" role="dialog"></div>
+
   </body>
 </html>
