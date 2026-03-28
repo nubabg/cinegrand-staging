@@ -1002,6 +1002,78 @@
       body.low-perf .cg-fx-track { transition: none; }
       body.low-perf .cg-fx-label { transition: none; }
 
+      /* ── Day filter controls ── */
+      .day-filter-bar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+      .day-filter-btn {
+        padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
+        background: rgba(255,255,255,.07); color: var(--text);
+        border: 1px solid rgba(255,255,255,.12); cursor: pointer;
+        transition: background .2s, color .2s, border-color .2s;
+        font-family: inherit;
+      }
+      .day-filter-btn:hover { background: rgba(255,255,255,.14); }
+      .day-filter-btn.active { background: var(--gold); color: #000; border-color: var(--gold); }
+      .day-filter-sep { color: var(--muted); font-size: 12px; padding: 0 2px; }
+      .day-date-input {
+        padding: 4px 8px; border-radius: 6px; font-size: 12px;
+        background: rgba(255,255,255,.07); color: var(--text);
+        border: 1px solid rgba(255,255,255,.12);
+        font-family: inherit; cursor: pointer;
+        color-scheme: dark;
+      }
+      .day-date-input:focus { outline: 1px solid var(--gold); border-color: var(--gold); }
+      /* Mini calendar popup (custom, shown on date input click) */
+      .day-cal-popup {
+        position: absolute; z-index: 300; top: calc(100% + 6px); left: 0;
+        background: var(--panel-2, #1c1c24); border: 1px solid rgba(255,255,255,.12);
+        border-radius: 12px; padding: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.5);
+        display: none; min-width: 280px;
+      }
+      .day-cal-popup.open { display: block; }
+      .day-cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+      .day-cal-nav { background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; padding:4px 8px; border-radius:6px; }
+      .day-cal-nav:hover { background:rgba(255,255,255,.08); color:var(--text); }
+      .day-cal-title { font-size:13px; font-weight:600; color:var(--text); }
+      .day-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+      .day-cal-wday { text-align:center; font-size:10px; color:var(--muted); padding:4px 0; font-weight:600; }
+      .day-cal-cell {
+        text-align:center; font-size:12px; padding:5px 2px; border-radius:6px;
+        cursor:pointer; color:var(--text); transition:background .15s, color .15s;
+        border: 1px solid transparent;
+      }
+      .day-cal-cell:hover:not(.empty):not(.disabled) { background:rgba(255,255,255,.1); }
+      .day-cal-cell.empty { cursor:default; }
+      .day-cal-cell.disabled { color:rgba(255,255,255,.2); cursor:default; }
+      .day-cal-cell.today { border-color:rgba(200,120,24,.5); }
+      .day-cal-cell.in-range { background:rgba(200,120,24,.18); border-radius:0; }
+      .day-cal-cell.range-start, .day-cal-cell.range-end { background:var(--gold); color:#000; font-weight:700; }
+      .day-cal-cell.range-start { border-radius:6px 0 0 6px; }
+      .day-cal-cell.range-end   { border-radius:0 6px 6px 0; }
+      .day-cal-cell.range-start.range-end { border-radius:6px; }
+      .day-cal-cell.has-data::after {
+        content:''; display:block; width:4px; height:4px; border-radius:50%;
+        background:var(--gold); margin:1px auto 0;
+      }
+      .day-cal-cell.range-start.has-data::after,
+      .day-cal-cell.range-end.has-data::after { background:#000; }
+      .day-cal-actions { display:flex; gap:6px; margin-top:10px; justify-content:flex-end; }
+      .day-cal-apply { padding:5px 14px; border-radius:6px; font-size:12px; font-weight:700;
+        background:var(--gold); color:#000; border:none; cursor:pointer; font-family:inherit; }
+      .day-cal-clear { padding:5px 10px; border-radius:6px; font-size:12px; font-weight:600;
+        background:rgba(255,255,255,.07); color:var(--muted); border:1px solid rgba(255,255,255,.12);
+        cursor:pointer; font-family:inherit; }
+      .day-cal-wrap { position:relative; display:inline-block; }
+      .day-cal-trigger {
+        padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;
+        background:rgba(255,255,255,.07); color:var(--text);
+        border:1px solid rgba(255,255,255,.12); cursor:pointer;
+        font-family:inherit; display:flex; align-items:center; gap:5px;
+        transition:background .2s;
+      }
+      .day-cal-trigger:hover { background:rgba(255,255,255,.14); }
+      .day-cal-trigger.has-range { border-color:rgba(200,120,24,.6); color:var(--gold); }
+      .day-cal-max-note { font-size:10px; color:var(--muted); margin-top:4px; text-align:center; }
+
     </style>
   </head>
   <body>
@@ -2099,6 +2171,162 @@
         return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0');
       }
 
+      /* Converts yyyy-mm-dd (from date input) → dd.mm (byDay key) */
+      function isoToFmtChartDate(iso) {
+        const [, m, d] = iso.split('-');
+        return d + '.' + m;
+      }
+      /* Converts dd.mm key + year → Date object */
+      function fmtKeyToDate(key, year) {
+        const [d, m] = key.split('.');
+        return new Date(year || new Date().getFullYear(), +m - 1, +d);
+      }
+
+      /* Re-renders only the day-chart bars without rebuilding the whole dashboard */
+      function cgRenderDayChart(keys) {
+        const bars = document.getElementById('day-chart-bars');
+        const sub  = document.getElementById('day-chart-subtitle');
+        if (!bars || !window._cgByDay) return;
+        const byDay = window._cgByDay;
+        if (!keys || !keys.length) keys = (window._cgAllDayKeys || []).slice(-7);
+        const maxDay = Math.max(1, ...keys.map(k => byDay[k] || 0));
+        bars.innerHTML = keys.map(k => {
+          const v = byDay[k] || 0;
+          const barH = v ? Math.max(8, Math.round(150 * v / maxDay)) : 8;
+          const dimmed = v === 0 ? 'opacity:.35;' : '';
+          return `<div class="charts-vertical-col" title="${k}: ${v} проверки">
+            <div class="daily-bar-track"><div class="daily-bar-fill" style="height:${barH}px;${dimmed}"></div></div>
+            <span style="font-size:11px;color:var(--muted);">${k}</span>
+            <span style="font-weight:600;font-size:13px;${v===0?'color:var(--muted);':''}">${v}</span>
+          </div>`;
+        }).join('');
+        if (sub) {
+          if (keys.length === 1) sub.textContent = `Дневна активност · ${keys[0]}`;
+          else sub.textContent = `Дневна активност · ${keys[0]} – ${keys[keys.length-1]} (${keys.length} дни)`;
+        }
+      }
+
+      /* ── Mini calendar state & renderer ── */
+      const _cal = {
+        year: new Date().getFullYear(),
+        month: new Date().getMonth(),   // 0-based
+        rangeStart: null,  // Date | null
+        rangeEnd:   null,  // Date | null
+        step: 0            // 0 = picking start, 1 = picking end
+      };
+
+      function _calOpen() {
+        const popup = document.getElementById('day-cal-popup');
+        if (!popup) return;
+        // Default to current year/month if no selection yet
+        if (!_cal.rangeStart) {
+          _cal.year  = new Date().getFullYear();
+          _cal.month = new Date().getMonth();
+        } else {
+          _cal.year  = _cal.rangeStart.getFullYear();
+          _cal.month = _cal.rangeStart.getMonth();
+        }
+        _cal.step = 0;
+        _calRender();
+        popup.classList.add('open');
+        // Close on outside click
+        setTimeout(() => {
+          document.addEventListener('click', _calOutside, { once: false });
+        }, 0);
+      }
+
+      function _calClose() {
+        const popup = document.getElementById('day-cal-popup');
+        if (popup) popup.classList.remove('open');
+        document.removeEventListener('click', _calOutside);
+      }
+
+      function _calOutside(e) {
+        const wrap = document.getElementById('day-cal-wrap');
+        if (wrap && !wrap.contains(e.target)) _calClose();
+      }
+
+      function _calRender() {
+        const popup = document.getElementById('day-cal-popup');
+        if (!popup) return;
+        const byDay = window._cgByDay || {};
+        const MONTHS_BG = ['Яну','Фев','Мар','Апр','Май','Юни','Юли','Авг','Сеп','Окт','Ное','Дек'];
+        const WDAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+        const today = new Date(); today.setHours(0,0,0,0);
+        const y = _cal.year, mo = _cal.month;
+        const firstDay = new Date(y, mo, 1);
+        const lastDay  = new Date(y, mo + 1, 0);
+        // Monday-first offset
+        let startOffset = firstDay.getDay() - 1; if (startOffset < 0) startOffset = 6;
+
+        let cells = '';
+        // Empty cells before 1st
+        for (let i = 0; i < startOffset; i++) cells += `<div class="day-cal-cell empty"></div>`;
+        for (let d = 1; d <= lastDay.getDate(); d++) {
+          const date = new Date(y, mo, d);
+          date.setHours(0,0,0,0);
+          const key = fmtChartDate(date);
+          const hasData = !!byDay[key];
+          const isToday = date.getTime() === today.getTime();
+          const isFuture = date > today;
+          // Range highlighting
+          const rs = _cal.rangeStart, re = _cal.rangeEnd;
+          const isStart  = rs && date.getTime() === rs.getTime();
+          const isEnd    = re && date.getTime() === re.getTime();
+          const inRange  = rs && re && date > rs && date < re;
+          let cls = 'day-cal-cell';
+          if (isStart) cls += ' range-start';
+          if (isEnd)   cls += ' range-end';
+          if (inRange) cls += ' in-range';
+          if (isToday) cls += ' today';
+          if (isFuture) cls += ' disabled';
+          if (hasData) cls += ' has-data';
+          const dStr = `${y}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const clickAttr = isFuture ? '' : `data-action="day-cal-pick" data-date="${dStr}"`;
+          cells += `<div class="${cls}" ${clickAttr}>${d}</div>`;
+        }
+
+        // Range label for trigger button
+        let rangeLabel = '📅 Избери дати';
+        if (_cal.rangeStart && _cal.rangeEnd) {
+          rangeLabel = `${fmtChartDate(_cal.rangeStart)} – ${fmtChartDate(_cal.rangeEnd)}`;
+        } else if (_cal.rangeStart) {
+          rangeLabel = fmtChartDate(_cal.rangeStart);
+        }
+        const trigger = document.getElementById('day-cal-trigger');
+        if (trigger) {
+          trigger.textContent = rangeLabel;
+          trigger.classList.toggle('has-range', !!(_cal.rangeStart));
+        }
+
+        // Range size warning
+        let rangeSize = 0;
+        if (_cal.rangeStart && _cal.rangeEnd) {
+          rangeSize = Math.round((_cal.rangeEnd - _cal.rangeStart) / 86400000) + 1;
+        }
+        const maxNote = rangeSize > 7 ? `<div class="day-cal-max-note">⚠ Максимум 7 дни — показани първите 7</div>` : '';
+
+        popup.innerHTML = `
+          <div class="day-cal-header">
+            <button class="day-cal-nav" data-action="day-cal-prev">&#8249;</button>
+            <span class="day-cal-title">${MONTHS_BG[mo]} ${y}</span>
+            <button class="day-cal-nav" data-action="day-cal-next">&#8250;</button>
+          </div>
+          <div class="day-cal-grid">
+            ${WDAYS.map(w => `<div class="day-cal-wday">${w}</div>`).join('')}
+            ${cells}
+          </div>
+          ${maxNote}
+          <div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:center;">
+            ${_cal.step === 0 ? 'Избери начална дата' : 'Избери крайна дата (макс. 7 дни)'}
+          </div>
+          <div class="day-cal-actions">
+            <button class="day-cal-clear" data-action="day-cal-clear">Изчисти</button>
+            <button class="day-cal-apply" data-action="day-cal-apply">Приложи</button>
+          </div>`;
+      }
+
+
       let _chartsLoading = false;
       let _cachedChartRows = null;
       let _chartsFetchVersion = 0;
@@ -2244,6 +2472,10 @@
           return (ma+da).localeCompare(mb+db);
         }).slice(-30);
 
+        /* Store globally for filter re-renders */
+        window._cgByDay = byDay;
+        window._cgAllDayKeys = dayKeys;
+
         /* Часово разпределение — само последните 24 часа */
         const now24h = new Date();
         const cutoff24h = new Date(now24h.getTime() - 24 * 60 * 60 * 1000);
@@ -2308,13 +2540,20 @@
             </div>
             <div class="chart-card card-time">
               <div class="chart-title">Проверки по дни</div>
-              <div class="chart-subtitle">Дневна активност (последни ${dayKeys.length} дни)</div>
+              <div class="chart-subtitle" id="day-chart-subtitle">Дневна активност · последните 7 дни</div>
               <div class="chart-wrap" style="min-height:220px;">
-                <div class="charts-vertical-wrap">${dayKeys.map(k => {
-                  const v = byDay[k] || 0;
-                  const barH = maxDay ? Math.max(12, Math.round(150 * v / maxDay)) : 0;
-                  return `<div class="charts-vertical-col" title="${k}: ${v} проверки"><div class="daily-bar-track"><div class="daily-bar-fill" style="height:${barH}px;"></div></div><span style="font-size:11px;color:var(--muted);">${k}</span><span style="font-weight:600;font-size:13px;">${v}</span></div>`;
-                }).join('')}</div>
+                <!-- Filter bar -->
+                <div class="day-filter-bar">
+                  <button class="day-filter-btn" data-action="day-filter-today">Днес</button>
+                  <button class="day-filter-btn active" data-action="day-filter-7d">7 дни</button>
+                  <span class="day-filter-sep">|</span>
+                  <!-- Custom calendar popup -->
+                  <div class="day-cal-wrap" id="day-cal-wrap">
+                    <button class="day-cal-trigger" id="day-cal-trigger" data-action="day-cal-open">📅 Избери дати</button>
+                    <div class="day-cal-popup" id="day-cal-popup"></div>
+                  </div>
+                </div>
+                <div class="charts-vertical-wrap" id="day-chart-bars"></div>
               </div>
             </div>
           </div>
@@ -2394,6 +2633,12 @@
               </tbody>
             </table>
           </div>`;
+
+        /* Initial render: last 7 days */
+        cgRenderDayChart(dayKeys.slice(-7));
+        /* Reset calendar range state on full re-render */
+        _cal.rangeStart = null; _cal.rangeEnd = null; _cal.step = 0;
+
         console.log('[Charts] Rendered', rows.length, 'rows (HTML)');
       }
 
@@ -3154,6 +3399,66 @@
           applyPerfMode();
           return;
         }
+
+        /* ── Day filter actions ── */
+        if (action === "day-filter-today") {
+          document.querySelectorAll('.day-filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const todayKey = fmtChartDate(new Date());
+          cgRenderDayChart([todayKey]);
+          return;
+        }
+        if (action === "day-filter-7d") {
+          document.querySelectorAll('.day-filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          cgRenderDayChart((window._cgAllDayKeys || []).slice(-7));
+          return;
+        }
+        if (action === "day-cal-open") {
+          const popup = document.getElementById('day-cal-popup');
+          if (popup && popup.classList.contains('open')) { _calClose(); } else { _calOpen(); }
+          return;
+        }
+        if (action === "day-cal-prev") {
+          _cal.month--;
+          if (_cal.month < 0) { _cal.month = 11; _cal.year--; }
+          _calRender(); return;
+        }
+        if (action === "day-cal-next") {
+          _cal.month++;
+          if (_cal.month > 11) { _cal.month = 0; _cal.year++; }
+          _calRender(); return;
+        }
+        if (action === "day-cal-pick") {
+          const dateStr = btn.dataset.date;
+          if (!dateStr) return;
+          const picked = new Date(dateStr); picked.setHours(0,0,0,0);
+          if (_cal.step === 0) {
+            _cal.rangeStart = picked; _cal.rangeEnd = null; _cal.step = 1;
+          } else {
+            if (picked < _cal.rangeStart) { _cal.rangeEnd = _cal.rangeStart; _cal.rangeStart = picked; }
+            else _cal.rangeEnd = picked;
+            _cal.step = 0;
+          }
+          _calRender(); return;
+        }
+        if (action === "day-cal-clear") {
+          _cal.rangeStart = null; _cal.rangeEnd = null; _cal.step = 0;
+          _calRender(); return;
+        }
+        if (action === "day-cal-apply") {
+          if (!_cal.rangeStart) { _calClose(); return; }
+          const end = _cal.rangeEnd || _cal.rangeStart;
+          const keys = [];
+          for (let d = new Date(_cal.rangeStart); d <= end && keys.length < 7; d.setDate(d.getDate() + 1)) {
+            keys.push(fmtChartDate(new Date(d)));
+          }
+          document.querySelectorAll('.day-filter-btn').forEach(b => b.classList.remove('active'));
+          cgRenderDayChart(keys);
+          _calClose();
+          return;
+        }
+
         /* ── Changing Room module ── */
         if (action === "start-changing-room") {
           state.screen = "select-cr";
