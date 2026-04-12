@@ -105,6 +105,12 @@ function doPost(e) {
     sheet.getRange(nextRow, 5).setValue(status);
     sheet.getRange(nextRow, 6).setValue(issuesText);
     sheet.getRange(nextRow, 7).setValue(notes);
+    // Колона 8: Линк към снимка (ако има)
+    if (record.photoUrl) {
+      sheet.getRange(nextRow, 8).setFormula('=HYPERLINK("' + record.photoUrl + '";"📷 Виж снимка")');
+    } else {
+      sheet.getRange(nextRow, 8).setValue("—");
+    }
     // Автоматично форматиране на новия ред
     styleInfoRow(sheet, nextRow);
     return ContentService
@@ -121,7 +127,7 @@ function doPost(e) {
 // -----------------------------------------------------------
 function styleInfoRow(sheet, row) {
   try {
-    var range = sheet.getRange(row, 1, 1, 7);
+    var range = sheet.getRange(row, 1, 1, 8);
     // Редуване на цветове: четни = тъмно синьо, нечетни = малко по-светло
     var bgColor = (row % 2 === 0) ? "#1a2744" : "#1e3054";
     range.setBackground(bgColor);
@@ -135,9 +141,12 @@ function styleInfoRow(sheet, row) {
     range.setHorizontalAlignment("center");
     sheet.getRange(row, 6, 1, 1).setHorizontalAlignment("left"); // ПРОБЛЕМИ - ляво
     sheet.getRange(row, 7, 1, 1).setHorizontalAlignment("left"); // БЕЛЕЖКИ - ляво
+    sheet.getRange(row, 8, 1, 1).setHorizontalAlignment("center"); // СНИМКА - центрирано
     // Wrap text за ПРОБЛЕМИ и БЕЛЕЖКИ
     sheet.getRange(row, 6, 1, 1).setWrap(true);
     sheet.getRange(row, 7, 1, 1).setWrap(true);
+    // СНИМКА линк - синьо оцветяване
+    sheet.getRange(row, 8, 1, 1).setFontColor("#4da6ff").setFontWeight("bold");
     // Оцветяване на СТАТУС (колона 5)
     var statusCell = sheet.getRange(row, 5);
     var statusVal = statusCell.getValue();
@@ -155,6 +164,32 @@ function styleInfoRow(sheet, row) {
   } catch(err) {
     Logger.log("styleInfoRow error: " + err.toString());
   }
+}
+
+// -----------------------------------------------------------
+// setupInfoHeaders - добавя хедър "СНИМКА" в колона 8
+// -----------------------------------------------------------
+function setupInfoHeaders() {
+  var ss = SpreadsheetApp.openById("17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA");
+  var sheet = ss.getSheetByName("ИНФО") || ss.getSheetByName("Sheet1") || ss.getSheets()[0];
+  // Проверка дали има хедър в колона 8
+  var existingHeader = sheet.getRange(1, 8).getValue();
+  if (!existingHeader || existingHeader === "") {
+    sheet.getRange(1, 8).setValue("СНИМКА");
+    // Форматиране на хедъра (съвпада с останалите)
+    var headerCell = sheet.getRange(1, 8);
+    headerCell.setBackground("#1A1A1A");
+    headerCell.setFontColor("#C9A84C");
+    headerCell.setFontFamily("Arial");
+    headerCell.setFontSize(11);
+    headerCell.setFontWeight("bold");
+    headerCell.setVerticalAlignment("middle");
+    headerCell.setHorizontalAlignment("center");
+    headerCell.setBorder(true, true, true, true, true, true, "#C9A84C", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  }
+  // Задаване на ширина на колона 8
+  sheet.setColumnWidth(8, 140);
+  Logger.log("✅ Хедър СНИМКА добавен в колона 8.");
 }
 // -----------------------------------------------------------
 // 3. onEditHandler - тригер при ръчно редактиране в ИНФО
@@ -350,6 +385,7 @@ function formatInfoSheetFull() {
   sheet.setColumnWidth(5, 90);   // СТАТУС
   sheet.setColumnWidth(6, 220);  // ПРОБЛЕМИ
   sheet.setColumnWidth(7, 180);  // БЕЛЕЖКИ
+  sheet.setColumnWidth(8, 140);  // СНИМКА
   Logger.log("formatInfoSheetFull completed for " + (lastRow - 1) + " rows.");
   Logger.log("✅ Всички редове са форматирани!");
 }
@@ -372,7 +408,7 @@ function applyProfessionalDesign() {
   var COLOR_STATUS_ERR  = "#3A1A1A";
   var COLOR_STATUS_OK_TEXT  = "#4CAF50";
   var COLOR_STATUS_ERR_TEXT = "#F44336";
-  var headerRange = sheet.getRange(1, 1, 1, 7);
+  var headerRange = sheet.getRange(1, 1, 1, 8);
   headerRange.setBackground(COLOR_HEADER_BG);
   headerRange.setFontColor(COLOR_HEADER_TEXT);
   headerRange.setFontFamily("Arial");
@@ -382,8 +418,12 @@ function applyProfessionalDesign() {
   headerRange.setHorizontalAlignment("center");
   headerRange.setBorder(true, true, true, true, true, true, COLOR_BORDER, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   sheet.setRowHeight(1, 40);
+  // Добавяне на "СНИМКА" хедър ако липсва
+  if (!sheet.getRange(1, 8).getValue()) {
+    sheet.getRange(1, 8).setValue("СНИМКА");
+  }
   for (var r = 2; r <= totalRows; r++) {
-    var rowRange = sheet.getRange(r, 1, 1, 7);
+    var rowRange = sheet.getRange(r, 1, 1, 8);
     var bgColor = (r % 2 === 0) ? COLOR_ROW_EVEN : COLOR_ROW_ODD;
     rowRange.setBackground(bgColor);
     rowRange.setFontColor(COLOR_TEXT);
@@ -402,6 +442,7 @@ function applyProfessionalDesign() {
     sheet.getRange(r, 5, 1, 1).setHorizontalAlignment("center");
     sheet.getRange(r, 6, 1, 1).setHorizontalAlignment("left");
     sheet.getRange(r, 7, 1, 1).setHorizontalAlignment("left");
+    sheet.getRange(r, 8, 1, 1).setHorizontalAlignment("center");
     var statusCell = sheet.getRange(r, 5);
     var statusVal = statusCell.getValue();
     if (statusVal === "Чисто") {
@@ -417,7 +458,7 @@ function applyProfessionalDesign() {
     sheet.getRange(r, 7, 1, 1).setWrap(true);
     sheet.setRowHeight(r, 32);
   }
-  var fullRange = sheet.getRange(1, 1, totalRows, 7);
+  var fullRange = sheet.getRange(1, 1, totalRows, 8);
   fullRange.setBorder(true, true, true, true, null, null, COLOR_BORDER, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   sheet.setColumnWidth(1, 90);
   sheet.setColumnWidth(2, 145);
@@ -426,6 +467,7 @@ function applyProfessionalDesign() {
   sheet.setColumnWidth(5, 100);
   sheet.setColumnWidth(6, 230);
   sheet.setColumnWidth(7, 190);
+  sheet.setColumnWidth(8, 140);
   Logger.log("✅ Корпоративният дизайн е приложен успешно!");
   SpreadsheetApp.getActiveSpreadsheet().toast("✅ Корпоративен дизайн приложен!", "Ciné Grand Style", 5);
 }
@@ -443,7 +485,7 @@ function applyDesignFull1000() {
   var ROW_FG = "#E8E8E8";
   var GOLD   = "#C9A84C";
   var INNER  = "#2A2A2A";
-  var hdr = sheet.getRange(1, 1, 1, 7);
+  var hdr = sheet.getRange(1, 1, 1, 8);
   hdr.setBackground(HDR_BG);
   hdr.setFontColor(HDR_FG);
   hdr.setFontFamily("Arial");
@@ -453,7 +495,11 @@ function applyDesignFull1000() {
   hdr.setHorizontalAlignment("center");
   hdr.setBorder(true, true, true, true, true, true, GOLD, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   sheet.setRowHeight(1, 40);
-  var allData = sheet.getRange(2, 1, totalRows - 1, 7);
+  // Добавяне на "СНИМКА" хедър ако липсва
+  if (!sheet.getRange(1, 8).getValue()) {
+    sheet.getRange(1, 8).setValue("СНИМКА");
+  }
+  var allData = sheet.getRange(2, 1, totalRows - 1, 8);
   allData.setBackground(ODD_BG);
   allData.setFontColor(ROW_FG);
   allData.setFontFamily("Arial");
@@ -462,7 +508,7 @@ function applyDesignFull1000() {
   allData.setFontWeight("normal");
   allData.setBorder(true, true, true, true, true, true, INNER, SpreadsheetApp.BorderStyle.SOLID);
   for (var r = 3; r <= totalRows; r += 2) {
-    sheet.getRange(r, 1, 1, 7).setBackground(EVN_BG);
+    sheet.getRange(r, 1, 1, 8).setBackground(EVN_BG);
   }
   sheet.getRange(2, 1, totalRows - 1, 1).setHorizontalAlignment("center");
   sheet.getRange(2, 2, totalRows - 1, 1).setHorizontalAlignment("center");
@@ -471,10 +517,11 @@ function applyDesignFull1000() {
   sheet.getRange(2, 5, totalRows - 1, 1).setHorizontalAlignment("center");
   sheet.getRange(2, 6, totalRows - 1, 1).setHorizontalAlignment("left");
   sheet.getRange(2, 7, totalRows - 1, 1).setHorizontalAlignment("left");
+  sheet.getRange(2, 8, totalRows - 1, 1).setHorizontalAlignment("center");
   sheet.getRange(2, 6, totalRows - 1, 1).setWrap(true);
   sheet.getRange(2, 7, totalRows - 1, 1).setWrap(true);
   sheet.setRowHeightsForced(2, totalRows - 1, 30);
-  sheet.getRange(1, 1, totalRows, 7).setBorder(true, true, true, true, null, null, GOLD, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  sheet.getRange(1, 1, totalRows, 8).setBorder(true, true, true, true, null, null, GOLD, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   sheet.setColumnWidth(1, 90);
   sheet.setColumnWidth(2, 145);
   sheet.setColumnWidth(3, 160);
@@ -482,6 +529,7 @@ function applyDesignFull1000() {
   sheet.setColumnWidth(5, 100);
   sheet.setColumnWidth(6, 230);
   sheet.setColumnWidth(7, 190);
+  sheet.setColumnWidth(8, 140);
   var lastData = sheet.getLastRow();
   if (lastData >= 2) {
     var sv = sheet.getRange(2, 5, lastData - 1, 1).getValues();
