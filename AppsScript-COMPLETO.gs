@@ -21,6 +21,7 @@ function doPost(e) {
     if (data.action === "acquireLock") return handleAcquireLock_(data);
     if (data.action === "releaseLock") return handleReleaseLock_(data);
     if (data.action === "acquireLockFirstFree") return handleAcquireLockFirstFree_(data);
+    if (data.action === "uploadPhoto") return handleUploadPhoto_(data);
 
     var record = data.record;
     if (!record || typeof record !== 'object') {
@@ -465,4 +466,158 @@ function applyDesignFull1000() {
     }
   }
   Logger.log("applyDesignFull1000 done.");
+}
+
+// -------------------------------------------------------
+// Качване на снимка в Google Drive и логване в PHOTOS
+// -------------------------------------------------------
+function handleUploadPhoto_(data) {
+  try {
+    var photoData = data.photoData;
+    var fileName = data.fileName || "photo.jpg";
+    var comment = data.comment || "";
+    var location = data.location || "";
+    var inspector = data.inspector || "";
+    var timestamp = data.timestamp || new Date().toISOString();
+
+    if (!photoData || photoData.length === 0) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: false, error: "No photo data" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Преобразуване на base64 в blob
+    var binaryString = Utilities.newBlob(Utilities.base64Decode(photoData)).getDataAsString("iso-8859-1");
+    var blob = Utilities.newBlob(binaryString, "image/jpeg", fileName);
+
+    // Получаване или създаване на папка за снимки
+    var folder = getOrCreatePhotosFolder_();
+    if (!folder) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: false, error: "Failed to create/get photos folder" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Качване на файл в папката
+    var file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    // Логване на снимката в PHOTOS лист
+    var ss = SpreadsheetApp.openById("17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA");
+    logPhotoToSheet_(ss, file, comment, location, inspector, timestamp);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        success: true,
+        photoUrl: file.getDownloadUrl(),
+        fileName: file.getName()
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ success: false, error: error.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// -------------------------------------------------------
+// Получаване или създаване на папка за снимки
+// -------------------------------------------------------
+function getOrCreatePhotosFolder_() {
+  try {
+    var scriptProperties = PropertiesService.getScriptProperties();
+    var folderId = scriptProperties.getProperty("INSPECTION_PHOTOS_FOLDER_ID");
+
+    // Ако вече имаме папка, върни я
+    if (folderId) {
+      try {
+        return DriveApp.getFolderById(folderId);
+      } catch (e) {
+        // Папката е изтрита, създадем нова
+        scriptProperties.deleteProperty("INSPECTION_PHOTOS_FOLDER_ID");
+      }
+    }
+
+    // Създаване на нова папка
+    var folderName = "Cinegrand_InspectionPhotos";
+    var folders = DriveApp.getFoldersByName(folderName);
+
+    var folder;
+    if (folders.hasNext()) {
+      folder = folders.next();
+    } else {
+      folder = DriveApp.getRootFolder().createFolder(folderName);
+    }
+
+    // Съхранение на ID на папката
+    scriptProperties.setProperty("INSPECTION_PHOTOS_FOLDER_ID", folder.getId());
+
+    return folder;
+  } catch (error) {
+    Logger.log("Error in getOrCreatePhotosFolder_: " + error);
+    return null;
+  }
+}
+
+// -------------------------------------------------------
+// Логване на снимка в PHOTOS лист
+// -------------------------------------------------------
+function logPhotoToSheet_(ss, file, comment, location, inspector, timestamp) {
+  try {
+    // Получаване или създаване на PHOTOS лист
+    var sheet = ss.getSheetByName("PHOTOS");
+    if (!sheet) {
+      sheet = ss.insertSheet("PHOTOS");
+      // Добавяне на хедъри
+      sheet.getRange("A1").setValue("Линк към снимка");
+      sheet.getRange("B1").setValue("Дата и час");
+      sheet.getRange("C1").setValue("Коментар");
+      sheet.getRange("D1").setValue("Локация");
+      sheet.getRange("E1").setValue("Инспектор");
+
+      // Форматиране на хедър ред
+      var headerRange = sheet.getRange("A1:E1");
+      headerRange.setBackground("#1a2744");
+      headerRange.setFontColor("#FFFFFF");
+      headerRange.setFontWeight("bold");
+      headerRange.setHorizontalAlignment("center");
+
+      // Настройка на ширини на колони
+      sheet.setColumnWidth(1, 400);
+      sheet.setColumnWidth(2, 180);
+      sheet.setColumnWidth(3, 300);
+      sheet.setColumnWidth(4, 150);
+      sheet.setColumnWidth(5, 150);
+    }
+
+    // Получаване на последния ред и добавяне на нов запис
+    var lastRow = sheet.getLastRow();
+    var nextRow = lastRow + 1;
+
+    // Форматиране на дата/час
+    var date = new Date(timestamp);
+    var dateStr = Utilities.formatDate(date, "Europe/Sofia", "yyyy-MM-dd HH:mm:ss");
+
+    // Записване на данните
+    sheet.getRange(nextRow, 1).setValue(file.getDownloadUrl());
+    sheet.getRange(nextRow, 2).setValue(dateStr);
+    sheet.getRange(nextRow, 3).setValue(comment);
+    sheet.getRange(nextRow, 4).setValue(location);
+    sheet.getRange(nextRow, 5).setValue(inspector);
+
+    // Форматиране на новия ред
+    var dataRange = sheet.getRange(nextRow, 1, 1, 5);
+    dataRange.setBackground("#1e3054");
+    dataRange.setFontColor("#FFFFFF");
+    dataRange.setFontSize(10);
+    dataRange.setVerticalAlignment("top");
+    dataRange.setWrap(true);
+
+    // Линкът в колона A трябва да е синьо и подчертано
+    sheet.getRange(nextRow, 1).setFontColor("#4da6ff");
+
+    Logger.log("Photo logged to PHOTOS sheet: " + file.getName());
+  } catch (error) {
+    Logger.log("Error in logPhotoToSheet_: " + error);
+  }
 }
