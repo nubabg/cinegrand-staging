@@ -3084,7 +3084,7 @@
           </div>
 
           <div class="panel" style="margin-bottom:16px;">
-            <div class="field" style="margin:0;"><label>Бележки</label><textarea id="notes-input" rows="4" style="direction: ltr !important; unicode-bidi: plaintext !important;" placeholder="Допълнителни коментари…">${escapeHtml(state.notes)}</textarea></div>
+            <div class="field" style="margin:0;"><label>Бележки</label><textarea id="notes-input" dir="ltr" rows="4" style="direction: ltr !important; unicode-bidi: plaintext !important;" placeholder="Допълнителни коментари…">${escapeHtml(state.notes)}</textarea></div>
           </div>
 
           <div class="panel" style="margin-bottom:16px;">
@@ -3102,7 +3102,7 @@
           ${state.photoFile ? `<div class="panel" style="margin-bottom:16px;">
             <div class="field" style="margin:0;">
               <label>Коментар към снимка *</label>
-              <textarea id="photo-comment-input" rows="3" style="direction: ltr !important; unicode-bidi: plaintext !important;" placeholder="Описание на проблема и причина за снимката (минимум 20 символа)…">${escapeHtml(state.notes)}</textarea>
+              <textarea id="photo-comment-input" dir="ltr" rows="3" style="direction: ltr !important; unicode-bidi: plaintext !important;" placeholder="Описание на проблема и причина за снимката (минимум 20 символа)…">${escapeHtml(state.notes)}</textarea>
               ${state.notes.length < 20 ? `<div style="color:var(--red);font-size:12px;margin-top:6px;">Коментарът трябва да съдържа поне 20 символа (${state.notes.length}/20)</div>` : `<div style="color:#10b981;font-size:12px;margin-top:6px;">✓ Коментарът е достатъчен (${state.notes.length}/20)</div>`}
             </div>
           </div>` : ""}
