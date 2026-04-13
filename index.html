@@ -3788,15 +3788,25 @@
         bind("notes-input", "input", (e) => {
           state.notes = e.target.value;
           var wasFocused = document.activeElement === e.target;
+          var selStart = e.target.selectionStart;
+          var selEnd = e.target.selectionEnd;
           render();
-          if (wasFocused) document.getElementById("notes-input").focus();
+          if (wasFocused) {
+            var el = document.getElementById("notes-input");
+            if (el) { el.focus(); el.setSelectionRange(selStart, selEnd); }
+          }
         });
         bind("photo-input", "change", (e) => { handlePhotoSelect(e); });
         bind("photo-comment-input", "input", (e) => {
           state.notes = e.target.value;
           var wasFocused = document.activeElement === e.target;
+          var selStart = e.target.selectionStart;
+          var selEnd = e.target.selectionEnd;
           render();
-          if (wasFocused) document.getElementById("photo-comment-input").focus();
+          if (wasFocused) {
+            var el = document.getElementById("photo-comment-input");
+            if (el) { el.focus(); el.setSelectionRange(selStart, selEnd); }
+          }
         });
         bind("delete-pass-input", "input", (e) => { state.deletePass = e.target.value; state.deleteErr = ""; });
         bind("export-range-select", "change", (e) => { state.exportRange = e.target.value; render(); });
