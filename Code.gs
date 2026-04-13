@@ -6,6 +6,11 @@
 // ── Shared secret — трябва да съвпада с SHEETS_SECRET_TOKEN в index.html ──
 var SECRET_TOKEN = "cg-2025-secret-token";
 
+// ── Lock constants ──
+var LOCK_SHEET_NAME = "Locks";
+var LOCK_TIMEOUT_MIN = 10;
+var LOCK_SPREADSHEET_ID = "1UDZQAZU2WAs8G6Yh_II-PZp_0oTj6kGj__b8qecgMAU";
+
 // -----------------------------------------------------------
 // 1. doGet(e) - четене на данни от таблицата (частен достъп)
 // -----------------------------------------------------------
@@ -733,4 +738,164 @@ function logPhotoToSheet_(ss, file, comment, location, inspector, timestamp) {
   } catch (error) {
     Logger.log("Error in logPhotoToSheet_: " + error);
   }
+}
+
+// -------------------------------------------------------
+// LOCK FUNCTIONS — управление на заключванията
+// -------------------------------------------------------
+function getLockSheet_() {
+  var ss = SpreadsheetApp.openById(LOCK_SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(LOCK_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(LOCK_SHEET_NAME);
+    sheet.appendRow(["type", "location", "session_id", "locked_at", "expires_at"]);
+    sheet.setFrozenRows(1);
+    sheet.setColumnWidth(1, 100);
+    sheet.setColumnWidth(2, 180);
+    sheet.setColumnWidth(3, 280);
+    sheet.setColumnWidth(4, 200);
+    sheet.setColumnWidth(5, 200);
+  }
+  return sheet;
+}
+
+function cleanExpiredLocks_(sheet) {
+  var data = sheet.getDataRange().getValues();
+  var now = new Date();
+  for (var i = data.length - 1; i >= 1; i--) {
+    var expiresAt = new Date(data[i][4]);
+    if (now > expiresAt) {
+      sheet.deleteRow(i + 1);
+    }
+  }
+}
+
+function handleAcquireLock_(data) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+  } catch (e) {
+    return jsonResponse_({ success: false, error: "Сървърът е зает. Опитайте отново." });
+  }
+
+  try {
+    var sheet = getLockSheet_();
+    cleanExpiredLocks_(sheet);
+
+    var allData = sheet.getDataRange().getValues();
+    for (var i = 1; i < allData.length; i++) {
+      if (allData[i][0] === data.type && allData[i][1] === data.location) {
+        var expiresAt = new Date(allData[i][4]);
+        var minutesLeft = Math.max(1, Math.ceil((expiresAt - new Date()) / 60000));
+        lock.releaseLock();
+        return jsonResponse_({
+          success: false,
+          locked: true,
+          minutesLeft: minutesLeft,
+          error: data.location + " вече се проверява. Опитайте след ~" + minutesLeft + " мин."
+        });
+      }
+    }
+
+    var now = new Date();
+    var expires = new Date(now.getTime() + LOCK_TIMEOUT_MIN * 60 * 1000);
+    sheet.appendRow([
+      data.type,
+      data.location,
+      data.sessionId,
+      now.toISOString(),
+      expires.toISOString()
+    ]);
+
+    lock.releaseLock();
+    return jsonResponse_({ success: true });
+
+  } catch (e) {
+    lock.releaseLock();
+    return jsonResponse_({ success: false, error: e.message });
+  }
+}
+
+function handleReleaseLock_(data) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+  } catch (e) {
+    return jsonResponse_({ success: false, error: "Сървърът е зает." });
+  }
+
+  try {
+    var sheet = getLockSheet_();
+    var allData = sheet.getDataRange().getValues();
+    for (var i = allData.length - 1; i >= 1; i--) {
+      if (allData[i][2] === data.sessionId) {
+        sheet.deleteRow(i + 1);
+      }
+    }
+    lock.releaseLock();
+    return jsonResponse_({ success: true });
+  } catch (e) {
+    lock.releaseLock();
+    return jsonResponse_({ success: false, error: e.message });
+  }
+}
+
+function handleAcquireLockFirstFree_(data) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+  } catch (e) {
+    return jsonResponse_({ success: false, error: "Сървърът е зает. Опитайте отново." });
+  }
+
+  try {
+    var sheet = getLockSheet_();
+    cleanExpiredLocks_(sheet);
+    var allData = sheet.getDataRange().getValues();
+    var lockedLocations = {};
+    for (var i = 1; i < allData.length; i++) {
+      lockedLocations[allData[i][0] + "|" + allData[i][1]] = true;
+    }
+
+    var locations = data.locations || [];
+    var type = data.type || "";
+    var sessionId = data.sessionId || "";
+    for (var j = 0; j < locations.length; j++) {
+      var loc = locations[j];
+      if (!lockedLocations[type + "|" + loc]) {
+        var now = new Date();
+        var expires = new Date(now.getTime() + LOCK_TIMEOUT_MIN * 60 * 1000);
+        sheet.appendRow([type, loc, sessionId, now.toISOString(), expires.toISOString()]);
+        lock.releaseLock();
+        return jsonResponse_({ success: true, location: loc });
+      }
+    }
+
+    lock.releaseLock();
+    return jsonResponse_({ success: false, allLocked: true, error: "Всички локации са заети." });
+  } catch (e) {
+    lock.releaseLock();
+    return jsonResponse_({ success: false, error: e.message });
+  }
+}
+
+function handleCheckLock_(data) {
+  try {
+    var sheet = getLockSheet_();
+    cleanExpiredLocks_(sheet);
+    var allData = sheet.getDataRange().getValues();
+    for (var i = 1; i < allData.length; i++) {
+      if (allData[i][2] === data.sessionId) {
+        return jsonResponse_({ success: true, valid: true });
+      }
+    }
+    return jsonResponse_({ success: true, valid: false });
+  } catch (e) {
+    return jsonResponse_({ success: false, error: e.message });
+  }
+}
+
+function jsonResponse_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
 }
