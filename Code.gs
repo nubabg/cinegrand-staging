@@ -601,8 +601,7 @@ function handleUploadPhoto_(data) {
     }
 
     // Преобразуване на base64 в blob
-    var binaryString = Utilities.newBlob(Utilities.base64Decode(photoData)).getDataAsString("iso-8859-1");
-    var blob = Utilities.newBlob(binaryString, "image/jpeg", fileName);
+    var blob = Utilities.newBlob(Utilities.base64Decode(photoData), "image/jpeg", fileName);
 
     // Получаване или създаване на папка за снимки
     var folder = getOrCreatePhotosFolder_();
