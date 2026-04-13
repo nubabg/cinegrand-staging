@@ -3785,9 +3785,19 @@
           state.location = newLoc;
         });
         bind("inspector-input", "input", (e) => { const filtered = e.target.value.replace(/[^\u0400-\u04FF ]/g, ""); e.target.value = filtered; state.inspector = filtered; });
-        bind("notes-input", "input", (e) => { state.notes = e.target.value; });
+        bind("notes-input", "input", (e) => {
+          state.notes = e.target.value;
+          var wasFocused = document.activeElement === e.target;
+          render();
+          if (wasFocused) document.getElementById("notes-input").focus();
+        });
         bind("photo-input", "change", (e) => { handlePhotoSelect(e); });
-        bind("photo-comment-input", "input", (e) => { state.notes = e.target.value; });
+        bind("photo-comment-input", "input", (e) => {
+          state.notes = e.target.value;
+          var wasFocused = document.activeElement === e.target;
+          render();
+          if (wasFocused) document.getElementById("photo-comment-input").focus();
+        });
         bind("delete-pass-input", "input", (e) => { state.deletePass = e.target.value; state.deleteErr = ""; });
         bind("export-range-select", "change", (e) => { state.exportRange = e.target.value; render(); });
         bind("history-type-filter", "change", (e) => { state.historyTypeFilter = e.target.value; render(); });
