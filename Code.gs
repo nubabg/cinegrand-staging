@@ -11,6 +11,9 @@ var LOCK_SHEET_NAME = "Locks";
 var LOCK_TIMEOUT_MIN = 10;
 var LOCK_SPREADSHEET_ID = "1UDZQAZU2WAs8G6Yh_II-PZp_0oTj6kGj__b8qecgMAU";
 
+// ── Photos folder ID ──
+var INSPECTION_PHOTOS_FOLDER_ID = "1upFim6e3ToquhqJl9KO2u_6m9QoZ-Iek";
+
 // -----------------------------------------------------------
 // 1. doGet(e) - четене на данни от таблицата (частен достъп)
 // -----------------------------------------------------------
@@ -643,33 +646,39 @@ function handleUploadPhoto_(data) {
 // -------------------------------------------------------
 function getOrCreatePhotosFolder_() {
   try {
+    // Първо — опитай да ползваш hardcoded ID константата
+    if (INSPECTION_PHOTOS_FOLDER_ID && INSPECTION_PHOTOS_FOLDER_ID.length > 10) {
+      try {
+        return DriveApp.getFolderById(INSPECTION_PHOTOS_FOLDER_ID);
+      } catch (e) {
+        Logger.log("Cannot access hardcoded INSPECTION_PHOTOS_FOLDER_ID: " + e.message);
+      }
+    }
+
+    // Второ — опитай script properties
     var scriptProperties = PropertiesService.getScriptProperties();
     var folderId = scriptProperties.getProperty("INSPECTION_PHOTOS_FOLDER_ID");
-
-    // Ако вече имаме папка, върни я
     if (folderId) {
       try {
         return DriveApp.getFolderById(folderId);
       } catch (e) {
-        // Папката е изтрита, създадем нова
         scriptProperties.deleteProperty("INSPECTION_PHOTOS_FOLDER_ID");
       }
     }
 
-    // Създаване на нова папка
+    // Трето — опитай да намериш по име
     var folderName = "Cinegrand_InspectionPhotos";
     var folders = DriveApp.getFoldersByName(folderName);
-
     var folder;
     if (folders.hasNext()) {
       folder = folders.next();
-    } else {
-      folder = DriveApp.getRootFolder().createFolder(folderName);
+      scriptProperties.setProperty("INSPECTION_PHOTOS_FOLDER_ID", folder.getId());
+      return folder;
     }
 
-    // Съхранение на ID на папката
+    // Четвърто — създай нова папка (fallback)
+    folder = DriveApp.getRootFolder().createFolder(folderName);
     scriptProperties.setProperty("INSPECTION_PHOTOS_FOLDER_ID", folder.getId());
-
     return folder;
   } catch (error) {
     Logger.log("Error in getOrCreatePhotosFolder_: " + error);
