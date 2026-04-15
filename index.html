@@ -1955,22 +1955,36 @@
       async function uploadPhotoToGoogleDrive() {
         if (!state.photoFile) return null;
         if (state.notes.length < 20) {
-          showToast("Коментарът трябва да съдържа поне 20 символа", "error");
+          alert("⚠ Коментарът трябва да съдържа поне 20 символа");
+          return null;
+        }
+        if (!SHEETS_WEB_APP_URL || SHEETS_WEB_APP_URL.indexOf("script.google.com") === -1) {
+          alert("⚠ SHEETS_WEB_APP_URL не е конфигуриран правилно:\n" + SHEETS_WEB_APP_URL);
           return null;
         }
 
-        try {
-          const reader = new FileReader();
-          return new Promise((resolve) => {
+        return new Promise((resolve) => {
+          try {
+            const reader = new FileReader();
+            reader.onerror = () => {
+              alert("⚠ Грешка при четене на файла");
+              resolve(null);
+            };
             reader.onload = async (event) => {
-              const base64Data = event.target.result.split(',')[1];
-              const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -4);
-
               try {
+                const base64Data = event.target.result.split(',')[1];
+                if (!base64Data || base64Data.length === 0) {
+                  alert("⚠ Файлът е празен или невалиден");
+                  resolve(null);
+                  return;
+                }
+
+                const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -4);
+                const fileNameSafe = `photo_${timestamp}_${String(state.location || "unknown").replace(/\s+/g, "_")}.jpg`;
                 const payload = JSON.stringify({
                   action: "uploadPhoto",
                   photoData: base64Data,
-                  fileName: `photo_${timestamp}_${state.location.replace(/\s+/g, "_")}.jpg`,
+                  fileName: fileNameSafe,
                   comment: state.notes,
                   location: state.location,
                   inspector: state.inspector,
@@ -1978,36 +1992,57 @@
                   _token: SHEETS_SECRET_TOKEN,
                 });
 
-                const response = await fetch(SHEETS_WEB_APP_URL, {
-                  method: "POST",
-                  headers: { "Content-Type": "text/plain;charset=UTF-8" },
-                  body: payload,
-                });
-
-                if (!response.ok) {
-                  showToast("Грешка при качване на снимка (HTTP " + response.status + ")", "error");
+                let response;
+                try {
+                  response = await fetch(SHEETS_WEB_APP_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=UTF-8" },
+                    body: payload,
+                    redirect: "follow",
+                  });
+                } catch (netErr) {
+                  alert("⚠ Мрежова грешка при качване на снимка:\n" + (netErr && netErr.message ? netErr.message : netErr) + "\n\nПровери интернет връзката и опитай отново.");
                   resolve(null);
                   return;
                 }
 
-                const result = await response.json();
-                if (result.success && result.photoUrl) {
-                  resolve(result.photoUrl);
-                } else {
-                  showToast("Грешка при качване на снимка: " + (result.error || "неизвестна грешка"), "error");
+                const rawText = await response.text();
+                if (!response.ok) {
+                  alert("⚠ Сървърна грешка при качване на снимка\nHTTP " + response.status + "\n\nОтговор:\n" + rawText.substring(0, 500));
+                  try { localStorage.setItem("cg_last_photo_error", "HTTP " + response.status + " — " + rawText.substring(0, 1000)); } catch(_) {}
                   resolve(null);
+                  return;
                 }
-              } catch (err) {
-                showToast("Грешка при качване на снимка: " + err.message, "error");
+
+                let result;
+                try {
+                  result = JSON.parse(rawText);
+                } catch (parseErr) {
+                  alert("⚠ Сървърът върна невалиден отговор (не е JSON).\nВероятна причина: Apps Script не е деплойнат като 'Anyone' или URL-ът е грешен.\n\nНачало на отговор:\n" + rawText.substring(0, 400));
+                  try { localStorage.setItem("cg_last_photo_error", "Non-JSON response: " + rawText.substring(0, 1000)); } catch(_) {}
+                  resolve(null);
+                  return;
+                }
+
+                if (result && result.success && result.photoUrl) {
+                  try { localStorage.setItem("cg_last_photo_error", ""); } catch(_) {}
+                  resolve(result.photoUrl);
+                  return;
+                }
+                alert("⚠ Backend отказа качването:\n" + (result && result.error ? result.error : "неизвестна грешка") + "\n\nПълен отговор:\n" + rawText.substring(0, 500));
+                try { localStorage.setItem("cg_last_photo_error", "Backend error: " + rawText.substring(0, 1000)); } catch(_) {}
+                resolve(null);
+              } catch (innerErr) {
+                alert("⚠ Вътрешна грешка при качване:\n" + (innerErr && innerErr.message ? innerErr.message : innerErr));
                 resolve(null);
               }
             };
             reader.readAsDataURL(state.photoFile);
-          });
-        } catch (err) {
-          showToast("Грешка при подготовка на снимка: " + err.message, "error");
-          return null;
-        }
+          } catch (err) {
+            alert("⚠ Грешка при подготовка на снимка:\n" + (err && err.message ? err.message : err));
+            resolve(null);
+          }
+        });
       }
 
       let _submitBusy = false;
