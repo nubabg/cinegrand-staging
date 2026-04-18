@@ -627,7 +627,7 @@ function handleUploadPhoto_(data) {
     return ContentService
       .createTextOutput(JSON.stringify({
         success: true,
-        photoUrl: file.getDownloadUrl(),
+        photoUrl: file.getUrl(),
         fileName: file.getName()
       }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -717,7 +717,7 @@ function logPhotoToSheet_(ss, file, comment, location, inspector, timestamp) {
     var dateStr = Utilities.formatDate(date, "Europe/Sofia", "yyyy-MM-dd HH:mm:ss");
 
     // Записване на данните
-    sheet.getRange(nextRow, 1).setValue(file.getDownloadUrl());
+    sheet.getRange(nextRow, 1).setValue(file.getUrl());
     sheet.getRange(nextRow, 2).setValue(dateStr);
     sheet.getRange(nextRow, 3).setValue(comment);
     sheet.getRange(nextRow, 4).setValue(location);

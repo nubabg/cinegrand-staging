@@ -60,6 +60,12 @@ function doPost(e) {
     sheet.getRange(nextRow, 5).setValue(status);
     sheet.getRange(nextRow, 6).setValue(issuesText);
     sheet.getRange(nextRow, 7).setValue(notes);
+    // Колона 8: Линк към снимка (ако има)
+    if (record.photoUrl) {
+      sheet.getRange(nextRow, 8).setFormula('=HYPERLINK("' + record.photoUrl + '";"📷 Виж снимка")');
+    } else {
+      sheet.getRange(nextRow, 8).setValue("—");
+    }
 
     styleInfoRow(sheet, nextRow);
 
@@ -177,10 +183,33 @@ function jsonResponse_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
+// -----------------------------------------------------------
+// setupInfoHeaders - добавя хедър "СНИМКА" в колона 8 (run once)
+// -----------------------------------------------------------
+function setupInfoHeaders() {
+  var ss = SpreadsheetApp.openById("17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA");
+  var sheet = ss.getSheetByName("ИНФО") || ss.getSheetByName("Sheet1") || ss.getSheets()[0];
+  var existingHeader = sheet.getRange(1, 8).getValue();
+  if (!existingHeader || existingHeader === "") {
+    sheet.getRange(1, 8).setValue("СНИМКА");
+    var headerCell = sheet.getRange(1, 8);
+    headerCell.setBackground("#1A1A1A");
+    headerCell.setFontColor("#C9A84C");
+    headerCell.setFontFamily("Arial");
+    headerCell.setFontSize(11);
+    headerCell.setFontWeight("bold");
+    headerCell.setVerticalAlignment("middle");
+    headerCell.setHorizontalAlignment("center");
+    headerCell.setBorder(true, true, true, true, true, true, "#C9A84C", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  }
+  sheet.setColumnWidth(8, 140);
+  Logger.log("✅ Хедър СНИМКА добавен в колона 8.");
+}
+
 // --- styleInfoRow ---
 function styleInfoRow(sheet, row) {
   try {
-    var range = sheet.getRange(row, 1, 1, 7);
+    var range = sheet.getRange(row, 1, 1, 8);
     var bgColor = (row % 2 === 0) ? "#1a2744" : "#1e3054";
     range.setBackground(bgColor);
     range.setFontColor("#FFFFFF");
@@ -191,8 +220,11 @@ function styleInfoRow(sheet, row) {
     range.setHorizontalAlignment("center");
     sheet.getRange(row, 6, 1, 1).setHorizontalAlignment("left");
     sheet.getRange(row, 7, 1, 1).setHorizontalAlignment("left");
+    sheet.getRange(row, 8, 1, 1).setHorizontalAlignment("center");
     sheet.getRange(row, 6, 1, 1).setWrap(true);
     sheet.getRange(row, 7, 1, 1).setWrap(true);
+    // СНИМКА линк — синьо оцветяване
+    sheet.getRange(row, 8, 1, 1).setFontColor("#4da6ff").setFontWeight("bold");
     var statusCell = sheet.getRange(row, 5);
     var statusVal = statusCell.getValue();
     if (statusVal === "Чисто") {
@@ -486,9 +518,8 @@ function handleUploadPhoto_(data) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
-    // Преобразуване на base64 в blob
-    var binaryString = Utilities.newBlob(Utilities.base64Decode(photoData)).getDataAsString("iso-8859-1");
-    var blob = Utilities.newBlob(binaryString, "image/jpeg", fileName);
+    // Преобразуване на base64 в blob (директно от байтове — без string-кодиране, за да не се повреди изображението)
+    var blob = Utilities.newBlob(Utilities.base64Decode(photoData), "image/jpeg", fileName);
 
     // Получаване или създаване на папка за снимки
     var folder = getOrCreatePhotosFolder_();
@@ -509,7 +540,7 @@ function handleUploadPhoto_(data) {
     return ContentService
       .createTextOutput(JSON.stringify({
         success: true,
-        photoUrl: file.getDownloadUrl(),
+        photoUrl: file.getUrl(),
         fileName: file.getName()
       }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -599,7 +630,7 @@ function logPhotoToSheet_(ss, file, comment, location, inspector, timestamp) {
     var dateStr = Utilities.formatDate(date, "Europe/Sofia", "yyyy-MM-dd HH:mm:ss");
 
     // Записване на данните
-    sheet.getRange(nextRow, 1).setValue(file.getDownloadUrl());
+    sheet.getRange(nextRow, 1).setValue(file.getUrl());
     sheet.getRange(nextRow, 2).setValue(dateStr);
     sheet.getRange(nextRow, 3).setValue(comment);
     sheet.getRange(nextRow, 4).setValue(location);
