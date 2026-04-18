@@ -639,38 +639,13 @@ function handleUploadPhoto_(data) {
 }
 
 // -------------------------------------------------------
-// Получаване или създаване на папка за снимки
+// Получаване на папка за снимки по хардкоднато ID
 // -------------------------------------------------------
+var PHOTOS_FOLDER_ID = "1upFim6e3ToquhqJl9KO2u_6m9QoZ-Iek";
+
 function getOrCreatePhotosFolder_() {
   try {
-    var scriptProperties = PropertiesService.getScriptProperties();
-    var folderId = scriptProperties.getProperty("INSPECTION_PHOTOS_FOLDER_ID");
-
-    // Ако вече имаме папка, върни я
-    if (folderId) {
-      try {
-        return DriveApp.getFolderById(folderId);
-      } catch (e) {
-        // Папката е изтрита, създадем нова
-        scriptProperties.deleteProperty("INSPECTION_PHOTOS_FOLDER_ID");
-      }
-    }
-
-    // Създаване на нова папка
-    var folderName = "Cinegrand_InspectionPhotos";
-    var folders = DriveApp.getFoldersByName(folderName);
-
-    var folder;
-    if (folders.hasNext()) {
-      folder = folders.next();
-    } else {
-      folder = DriveApp.getRootFolder().createFolder(folderName);
-    }
-
-    // Съхранение на ID на папката
-    scriptProperties.setProperty("INSPECTION_PHOTOS_FOLDER_ID", folder.getId());
-
-    return folder;
+    return DriveApp.getFolderById(PHOTOS_FOLDER_ID);
   } catch (error) {
     Logger.log("Error in getOrCreatePhotosFolder_: " + error);
     return null;
