@@ -3138,7 +3138,7 @@
             <div class="field" style="margin:0;">
               <label>Коментар към снимка *</label>
               <textarea id="photo-comment-input" dir="ltr" rows="3" style="direction: ltr !important; unicode-bidi: plaintext !important;" placeholder="Описание на проблема и причина за снимката (минимум 20 символа)…">${escapeHtml(state.notes)}</textarea>
-              ${state.notes.length < 20 ? `<div style="color:var(--red);font-size:12px;margin-top:6px;">Коментарът трябва да съдържа поне 20 символа (${state.notes.length}/20)</div>` : `<div style="color:#10b981;font-size:12px;margin-top:6px;">✓ Коментарът е достатъчен (${state.notes.length}/20)</div>`}
+              <div id="photo-comment-counter" style="font-size:12px;margin-top:6px;color:${state.notes.length < 20 ? 'var(--red)' : '#10b981'};">${state.notes.length < 20 ? `Коментарът трябва да съдържа поне 20 символа (${state.notes.length}/20)` : `✓ Коментарът е достатъчен (${state.notes.length}/20)`}</div>
             </div>
           </div>` : ""}
 
@@ -3826,6 +3826,21 @@
         bind("photo-input", "change", (e) => { handlePhotoSelect(e); });
         bind("photo-comment-input", "input", (e) => {
           state.notes = e.target.value;
+          const len = e.target.value.length;
+          const counter = document.getElementById("photo-comment-counter");
+          if (counter) {
+            if (len < 20) {
+              counter.style.color = "var(--red)";
+              counter.textContent = `Коментарът трябва да съдържа поне 20 символа (${len}/20)`;
+            } else {
+              counter.style.color = "#10b981";
+              counter.textContent = `✓ Коментарът е достатъчен (${len}/20)`;
+            }
+          }
+          const submitBtn = document.querySelector('[data-action="submit-inspection"]');
+          if (submitBtn && state.photoFile) {
+            submitBtn.disabled = len < 20;
+          }
         });
         bind("delete-pass-input", "input", (e) => { state.deletePass = e.target.value; state.deleteErr = ""; });
         bind("export-range-select", "change", (e) => { state.exportRange = e.target.value; render(); });
