@@ -3358,13 +3358,17 @@
         return pad(d.getDate()) + "." + pad(d.getMonth() + 1) + "." + d.getFullYear();
       }
 
-      /* Today at midnight local */
-      function crToday() {
-        const t = new Date();
-        t.setHours(0, 0, 0, 0);
-        return t;
+          /* Today at midnight local — with 1-hour grace period after midnight */
+    function crToday() {
+      const now = new Date();
+      const t = new Date(now);
+      t.setHours(0, 0, 0, 0);
+      // Ако е преди 01:00 ч., третираме вчерашния ден като "днес"
+      if (now.getHours() < 1) {
+        t.setDate(t.getDate() - 1);
       }
-
+      return t;
+    }
       /* Fetch all rows from "Почистване съблекални" sheet via gviz */
       async function fetchChangingRoomData() {
         state.crLoading = true;
