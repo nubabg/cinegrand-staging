@@ -1639,6 +1639,8 @@
         photoFiles: [],
         photoPreviews: [],
         photoError: "",
+        remotePhotoUrls: [],
+        pcSessionId: null,
         records: [],
         syncHistory: JSON.parse(localStorage.getItem(STORAGE_KEYS.sync) || "{}"),
         exportRange: "week",
@@ -1848,9 +1850,12 @@
           photoFiles: [],
           photoPreviews: [],
           photoError: "",
+          remotePhotoUrls: [],
+          pcSessionId: null,
           showValidation: false,
           screen: "inspection",
         });
+        stopPhonePhotoPolling();
         render();
       }
 
@@ -1923,6 +1928,68 @@
           return true;
         } finally {
           _lockBusy = false;
+        }
+      }
+
+      /* ── Phone-photo polling: PC pulls phone-uploaded photos by pcSessionId ── */
+      let _phonePollTimer = null;
+      let _phonePollBusy = false;
+      const PHONE_POLL_INTERVAL_MS = 4000;
+
+      function startPhonePhotoPolling() {
+        stopPhonePhotoPolling();
+        if (!state.pcSessionId) {
+          state.pcSessionId = "pcs_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+        }
+        _phonePollTimer = setInterval(pollPhonePhotosOnce, PHONE_POLL_INTERVAL_MS);
+        pollPhonePhotosOnce(); // immediate first poll
+      }
+
+      function stopPhonePhotoPolling() {
+        if (_phonePollTimer) {
+          clearInterval(_phonePollTimer);
+          _phonePollTimer = null;
+        }
+        _phonePollBusy = false;
+      }
+
+      async function pollPhonePhotosOnce() {
+        if (_phonePollBusy) return;
+        if (!state.pcSessionId) return;
+        if (state.screen !== "inspection") { stopPhonePhotoPolling(); return; }
+        if (!SHEETS_WEB_APP_URL || SHEETS_WEB_APP_URL.indexOf("script.google.com") === -1) return;
+        _phonePollBusy = true;
+        try {
+          const payload = JSON.stringify({
+            action: "getPhotosBySession",
+            pcSessionId: state.pcSessionId,
+            _token: SHEETS_SECRET_TOKEN,
+          });
+          const response = await fetch(SHEETS_WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            body: payload,
+            redirect: "follow",
+          });
+          if (!response.ok) return;
+          const result = await response.json();
+          if (!result || !result.success) return;
+          const newUrls = (result.photos || []).map(p => p.url).filter(Boolean);
+          // Only re-render if the set actually changed (avoid input-loss re-renders)
+          const current = state.remotePhotoUrls || [];
+          const changed = newUrls.length !== current.length || newUrls.some((u, i) => u !== current[i]);
+          if (changed) {
+            state.remotePhotoUrls = newUrls;
+            render();
+            if (newUrls.length > current.length) {
+              const added = newUrls.length - current.length;
+              showToast(`📱 Получени са ${added} нови снимки от телефон.`);
+            }
+          }
+        } catch (_) {
+          /* silent — next poll will retry */
+        } finally {
+          _phonePollBusy = false;
         }
       }
 
@@ -2013,6 +2080,7 @@
                   location: state.location,
                   inspector: state.inspector,
                   timestamp: new Date().toISOString(),
+                  pcSessionId: state.pcSessionId || "",
                   _token: SHEETS_SECRET_TOKEN,
                 });
 
@@ -2097,8 +2165,9 @@
           return;
         }
 
-        // Validate photo comment if photos are selected
-        if (state.photoFiles.length > 0 && state.notes.length < 20) {
+        // Validate photo comment if any photos (local or phone-uploaded)
+        const hasAnyPhoto = state.photoFiles.length > 0 || (state.remotePhotoUrls && state.remotePhotoUrls.length > 0);
+        if (hasAnyPhoto && state.notes.length < 20) {
           showToast("Коментарът трябва да съдържа поне 20 символа", "error");
           render();
           return;
@@ -2113,15 +2182,18 @@
         _submitBusy = true;
         try {
           // Upload photos if present
-          let photoUrls = [];
+          let localUrls = [];
           if (state.photoFiles.length > 0) {
-            photoUrls = await uploadAllPhotos();
-            if (photoUrls.length === 0) {
+            localUrls = await uploadAllPhotos();
+            if (localUrls.length === 0) {
               showToast("Забележка: Снимките не са качени, но проверката ще бъде записана.", "error");
-            } else if (photoUrls.length < state.photoFiles.length) {
-              showToast(`Внимание: качени са ${photoUrls.length} от ${state.photoFiles.length} снимки.`, "error");
+            } else if (localUrls.length < state.photoFiles.length) {
+              showToast(`Внимание: качени са ${localUrls.length} от ${state.photoFiles.length} снимки.`, "error");
             }
           }
+          // Combine: phone-uploaded URLs first, then local uploads
+          const photoUrls = [...(state.remotePhotoUrls || []), ...localUrls];
+          stopPhonePhotoPolling();
 
           const record = {
             id: Date.now(),
@@ -2171,6 +2243,9 @@
           state.photoFiles = [];
           state.photoPreviews = [];
           state.photoError = "";
+          state.remotePhotoUrls = [];
+          state.pcSessionId = null;
+          stopPhonePhotoPolling();
           state.screen = "home";
           render();
         } finally {
@@ -3171,18 +3246,27 @@
               <button type="button" class="btn btn-outline" data-action="open-phone-photo-qr" style="margin-top:10px;width:100%;padding:10px;font-size:14px;">📱 Качи снимки от телефон (QR код)</button>
               ${state.photoError ? `<div style="color:var(--red);font-size:12px;margin-top:6px;">${escapeHtml(state.photoError)}</div>` : ""}
               ${state.photoPreviews.length > 0 ? `<div style="margin-top:12px;padding:12px;background:rgba(255,255,255,.05);border-radius:12px;border:1px solid rgba(255,255,255,.1);">
-                <div style="font-size:12px;color:#888;margin-bottom:8px;">Преглед на снимки (${state.photoPreviews.length}):</div>
+                <div style="font-size:12px;color:#888;margin-bottom:8px;">Преглед на снимки от PC (${state.photoPreviews.length}):</div>
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">
                   ${state.photoPreviews.map((src, idx) => `<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.1);">
                     ${src ? `<img src="${src}" style="width:100%;height:120px;object-fit:cover;display:block;" alt="Photo ${idx + 1}" />` : `<div style="width:100%;height:120px;background:#222;"></div>`}
-                    <span style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,.7);color:#fff;font-size:11px;padding:2px 6px;border-radius:4px;">${idx + 1}/${state.photoPreviews.length}</span>
+                    <span style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,.7);color:#fff;font-size:11px;padding:2px 6px;border-radius:4px;">PC ${idx + 1}/${state.photoPreviews.length}</span>
                   </div>`).join("")}
+                </div>
+              </div>` : ""}
+              ${(state.remotePhotoUrls && state.remotePhotoUrls.length > 0) ? `<div style="margin-top:12px;padding:12px;background:rgba(16,185,129,.08);border-radius:12px;border:1px solid rgba(16,185,129,.25);">
+                <div style="font-size:12px;color:#10b981;margin-bottom:8px;font-weight:600;">📱 Снимки получени от телефон (${state.remotePhotoUrls.length}):</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">
+                  ${state.remotePhotoUrls.map((url, idx) => `<a href="${url}" target="_blank" rel="noopener" style="position:relative;border-radius:8px;overflow:hidden;border:1px solid rgba(16,185,129,.35);text-decoration:none;display:block;">
+                    <img src="${url}" style="width:100%;height:120px;object-fit:cover;display:block;background:#222;" alt="Phone photo ${idx + 1}" referrerpolicy="no-referrer" onerror="this.style.display='none';this.parentElement.innerHTML+='<div style=&quot;width:100%;height:120px;display:flex;align-items:center;justify-content:center;color:#10b981;font-size:11px;text-align:center;padding:6px;&quot;>📱 Снимка ${idx + 1}<br/>(виж в Drive)</div>';" />
+                    <span style="position:absolute;top:4px;left:4px;background:rgba(16,185,129,.85);color:#000;font-size:11px;padding:2px 6px;border-radius:4px;font-weight:600;">📱 ${idx + 1}</span>
+                  </a>`).join("")}
                 </div>
               </div>` : ""}
             </div>
           </div>
 
-          ${state.photoFiles.length > 0 ? `<div class="panel" style="margin-bottom:16px;">
+          ${(state.photoFiles.length > 0 || (state.remotePhotoUrls && state.remotePhotoUrls.length > 0)) ? `<div class="panel" style="margin-bottom:16px;">
             <div class="field" style="margin:0;">
               <label>Коментар към снимките *</label>
               <textarea id="photo-comment-input" dir="ltr" rows="3" style="direction: ltr !important; unicode-bidi: plaintext !important;" placeholder="Описание на проблема и причина за снимките (минимум 20 символа)…">${escapeHtml(state.notes)}</textarea>
@@ -3190,7 +3274,7 @@
             </div>
           </div>` : ""}
 
-          <button class="btn btn-gold" data-action="submit-inspection" style="width:100%;padding:16px;font-size:16px;" ${state.photoFiles.length > 0 && state.notes.length < 20 ? "disabled" : ""}>
+          <button class="btn btn-gold" data-action="submit-inspection" style="width:100%;padding:16px;font-size:16px;" ${(state.photoFiles.length > 0 || (state.remotePhotoUrls && state.remotePhotoUrls.length > 0)) && state.notes.length < 20 ? "disabled" : ""}>
             ${allFilled && state.inspector.trim() ? `Запази${isSheetsConfigured() ? " и изпрати" : ""}` : `Попълни всички полета (${filledCount}/${config.items.length})`}
           </button>
         </div>`;
@@ -3363,7 +3447,9 @@
         const url = base + sep + "phonephoto=1"
           + "&type=" + encodeURIComponent(state.inspectionType || "")
           + "&loc=" + encodeURIComponent(state.location || "")
-          + "&inspector=" + encodeURIComponent(state.inspector || "");
+          + "&inspector=" + encodeURIComponent(state.inspector || "")
+          + "&sid=" + encodeURIComponent(state.pcSessionId || "");
+        const remoteCount = (state.remotePhotoUrls || []).length;
         const imgSrc = "https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=2&data=" + encodeURIComponent(url);
         return `
           <div class="modal-backdrop" id="phone-photo-qr-backdrop" data-action="close-phone-photo-qr" role="presentation">
@@ -3371,9 +3457,12 @@
               <h2 id="phone-photo-qr-title" class="section-title" style="margin:0 0 12px;">📱 Качи снимки от телефон</h2>
               <p class="muted" style="margin:0 0 16px;font-size:13px;">Сканирай QR кода с телефона си, за да отвориш страницата за качване на снимки за <b>${escapeHtml(state.location || "")}</b>.</p>
               <img src="${imgSrc}" width="260" height="260" alt="QR код за качване на снимки" style="display:block;margin:0 auto;border-radius:12px;background:#fff;padding:6px;" />
-              <p class="muted" style="margin:14px 0 4px;font-size:12px;">Снимките ще бъдат записани в Google Sheets (PHOTOS).</p>
+              <div id="phone-photo-qr-status" style="margin:14px 0 4px;font-size:13px;color:${remoteCount > 0 ? '#10b981' : '#888'};">
+                ${remoteCount > 0 ? `✅ Получени ${remoteCount} снимки от телефон` : "⏳ Очакване на снимки от телефон…"}
+              </div>
+              <p class="muted" style="margin:4px 0;font-size:11px;">Може да затвориш модала — снимките ще се появят на страницата автоматично.</p>
               <div style="margin-top:18px;">
-                <button type="button" class="btn btn-outline" data-action="close-phone-photo-qr">Затвори</button>
+                <button type="button" class="btn btn-gold" data-action="close-phone-photo-qr">Готово</button>
               </div>
             </div>
           </div>`;
@@ -4018,7 +4107,8 @@
             }
           }
           const submitBtn = document.querySelector('[data-action="submit-inspection"]');
-          if (submitBtn && state.photoFiles.length > 0) {
+          const hasAnyPhoto = state.photoFiles.length > 0 || (state.remotePhotoUrls && state.remotePhotoUrls.length > 0);
+          if (submitBtn && hasAnyPhoto) {
             submitBtn.disabled = len < 20;
           }
         });
@@ -4176,7 +4266,7 @@
           return;
         }
 
-        if (action === "go-home") { cleanupSessionLock(); state.screen = "home"; render(); return; }
+        if (action === "go-home") { cleanupSessionLock(); stopPhonePhotoPolling(); state.pcSessionId = null; state.remotePhotoUrls = []; state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
         if (action === "go-charts") {
           if (Date.now() < chartsCooldownUntil) {
@@ -4257,7 +4347,15 @@
         /* QR modal — само updateModals(), не презареждаме съдържанието, данните остават */
         if (action === "open-qr") { state.showQRModal = true; updateModals(); return; }
         if (action === "close-qr") { state.showQRModal = false; updateModals(); return; }
-        if (action === "open-phone-photo-qr") { state.showPhonePhotoQRModal = true; updateModals(); return; }
+        if (action === "open-phone-photo-qr") {
+          if (!state.pcSessionId) {
+            state.pcSessionId = "pcs_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+          }
+          startPhonePhotoPolling();
+          state.showPhonePhotoQRModal = true;
+          updateModals();
+          return;
+        }
         if (action === "close-phone-photo-qr") { state.showPhonePhotoQRModal = false; updateModals(); return; }
 
         /* Phone-photo screen submit */
@@ -4346,6 +4444,7 @@
           state.phonePhotoLoc = decodeURIComponent((params.get("loc") || "").replace(/\+/g, "%20"));
           state.phonePhotoType = params.get("type") || "";
           state.phonePhotoInspector = decodeURIComponent((params.get("inspector") || "").replace(/\+/g, "%20"));
+          state.pcSessionId = params.get("sid") || "";
           state.photoFiles = [];
           state.photoPreviews = [];
           state.notes = "";

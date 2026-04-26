@@ -77,6 +77,7 @@ function doPost(e) {
     if (data.action === "acquireLockFirstFree") return handleAcquireLockFirstFree_(data);
     if (data.action === "updateChangingRoom") return handleUpdateChangingRoom_(data);
     if (data.action === "uploadPhoto") return handleUploadPhoto_(data);
+    if (data.action === "getPhotosBySession") return handleGetPhotosBySession_(data);
 
     var record = data.record;
     var ss = SpreadsheetApp.openById("17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA");
@@ -608,6 +609,7 @@ function handleUploadPhoto_(data) {
     var location = data.location || "";
     var inspector = data.inspector || "";
     var timestamp = data.timestamp || new Date().toISOString();
+    var pcSessionId = data.pcSessionId || "";
 
     if (!photoData || photoData.length === 0) {
       return ContentService
@@ -632,7 +634,7 @@ function handleUploadPhoto_(data) {
 
     // Логване на снимката в PHOTOS лист
     var ss = SpreadsheetApp.openById("17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA");
-    logPhotoToSheet_(ss, file, comment, location, inspector, timestamp);
+    logPhotoToSheet_(ss, file, comment, location, inspector, timestamp, pcSessionId);
 
     return ContentService
       .createTextOutput(JSON.stringify({
@@ -665,21 +667,22 @@ function getOrCreatePhotosFolder_() {
 // -------------------------------------------------------
 // Логване на снимка в PHOTOS лист
 // -------------------------------------------------------
-function logPhotoToSheet_(ss, file, comment, location, inspector, timestamp) {
+function logPhotoToSheet_(ss, file, comment, location, inspector, timestamp, pcSessionId) {
   try {
     // Получаване или създаване на PHOTOS лист
     var sheet = ss.getSheetByName("PHOTOS");
     if (!sheet) {
       sheet = ss.insertSheet("PHOTOS");
-      // Добавяне на хедъри
+      // Добавяне на хедъри (включително PC сесия)
       sheet.getRange("A1").setValue("Линк към снимка");
       sheet.getRange("B1").setValue("Дата и час");
       sheet.getRange("C1").setValue("Коментар");
       sheet.getRange("D1").setValue("Локация");
       sheet.getRange("E1").setValue("Инспектор");
+      sheet.getRange("F1").setValue("PC сесия");
 
       // Форматиране на хедър ред
-      var headerRange = sheet.getRange("A1:E1");
+      var headerRange = sheet.getRange("A1:F1");
       headerRange.setBackground("#1a2744");
       headerRange.setFontColor("#FFFFFF");
       headerRange.setFontWeight("bold");
@@ -691,6 +694,15 @@ function logPhotoToSheet_(ss, file, comment, location, inspector, timestamp) {
       sheet.setColumnWidth(3, 300);
       sheet.setColumnWidth(4, 150);
       sheet.setColumnWidth(5, 150);
+      sheet.setColumnWidth(6, 220);
+    } else {
+      // Ако листът съществува без F хедър — добави го
+      var fHeader = sheet.getRange("F1").getValue();
+      if (!fHeader) {
+        sheet.getRange("F1").setValue("PC сесия");
+        sheet.getRange("F1").setBackground("#1a2744").setFontColor("#FFFFFF").setFontWeight("bold").setHorizontalAlignment("center");
+        sheet.setColumnWidth(6, 220);
+      }
     }
 
     // Получаване на последния ред и добавяне на нов запис
@@ -707,9 +719,10 @@ function logPhotoToSheet_(ss, file, comment, location, inspector, timestamp) {
     sheet.getRange(nextRow, 3).setValue(comment);
     sheet.getRange(nextRow, 4).setValue(location);
     sheet.getRange(nextRow, 5).setValue(inspector);
+    sheet.getRange(nextRow, 6).setValue(pcSessionId || "");
 
     // Форматиране на новия ред
-    var dataRange = sheet.getRange(nextRow, 1, 1, 5);
+    var dataRange = sheet.getRange(nextRow, 1, 1, 6);
     dataRange.setBackground("#1e3054");
     dataRange.setFontColor("#FFFFFF");
     dataRange.setFontSize(10);
@@ -719,9 +732,40 @@ function logPhotoToSheet_(ss, file, comment, location, inspector, timestamp) {
     // Линкът в колона A трябва да е синьо и подчертано
     sheet.getRange(nextRow, 1).setFontColor("#4da6ff");
 
-    Logger.log("Photo logged to PHOTOS sheet: " + file.getName());
+    Logger.log("Photo logged to PHOTOS sheet: " + file.getName() + " (sid=" + (pcSessionId || "") + ")");
   } catch (error) {
     Logger.log("Error in logPhotoToSheet_: " + error);
+  }
+}
+
+// -------------------------------------------------------
+// Връща всички снимки за дадена PC сесия (за live polling от PC)
+// -------------------------------------------------------
+function handleGetPhotosBySession_(data) {
+  try {
+    var pcSessionId = data.pcSessionId || "";
+    if (!pcSessionId) return jsonResponse_({ success: false, error: "No pcSessionId" });
+    var ss = SpreadsheetApp.openById("17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA");
+    var sheet = ss.getSheetByName("PHOTOS");
+    if (!sheet) return jsonResponse_({ success: true, photos: [] });
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return jsonResponse_({ success: true, photos: [] });
+    var values = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
+    var photos = [];
+    for (var i = 0; i < values.length; i++) {
+      if (String(values[i][5]) === String(pcSessionId)) {
+        photos.push({
+          url: values[i][0],
+          timestamp: values[i][1],
+          comment: values[i][2],
+          location: values[i][3],
+          inspector: values[i][4]
+        });
+      }
+    }
+    return jsonResponse_({ success: true, photos: photos });
+  } catch (err) {
+    return jsonResponse_({ success: false, error: err.toString() });
   }
 }
 
