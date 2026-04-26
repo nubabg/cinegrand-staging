@@ -110,9 +110,19 @@ function doPost(e) {
     sheet.getRange(nextRow, 5).setValue(status);
     sheet.getRange(nextRow, 6).setValue(issuesText);
     sheet.getRange(nextRow, 7).setValue(notes);
-    // Колона 8: Линк към снимка (ако има)
-    if (record.photoUrl) {
-      sheet.getRange(nextRow, 8).setFormula('=HYPERLINK("' + record.photoUrl + '";"📷 Виж снимка")');
+    // Колона 8: Линк(ове) към снимка/снимки (ако има)
+    var photoUrls = [];
+    if (record.photoUrls && record.photoUrls.length) {
+      photoUrls = record.photoUrls;
+    } else if (record.photoUrl) {
+      photoUrls = [record.photoUrl];
+    }
+    if (photoUrls.length === 1) {
+      sheet.getRange(nextRow, 8).setFormula('=HYPERLINK("' + photoUrls[0] + '";"📷 Виж снимка")');
+    } else if (photoUrls.length > 1) {
+      var label = "📷 " + photoUrls.length + " снимки";
+      sheet.getRange(nextRow, 8).setFormula('=HYPERLINK("' + photoUrls[0] + '";"' + label + '")');
+      sheet.getRange(nextRow, 8).setNote(photoUrls.join("\n"));
     } else {
       sheet.getRange(nextRow, 8).setValue("—");
     }
