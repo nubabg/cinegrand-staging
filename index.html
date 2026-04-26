@@ -1550,6 +1550,16 @@
         sessionStorage.setItem(LOCK_WHITELISTED_KEY, isWhitelistedIP ? "1" : "0");
 
         const params = new URLSearchParams(window.location.search || (window.location.hash.startsWith("#") ? window.location.hash.slice(1) : ""));
+        /* Phone-photo flow — отделна страница за качване на снимки от телефон чрез QR.
+           Без IP/cooldown/lock проверки; гео-проверката важи за не-whitelisted IP. */
+        if (params.get("phonephoto") === "1") {
+          if (!isWhitelistedIP) {
+            updateLoadingText("Проверка на локация…");
+            const pos = await getGeolocation();
+            if (!pos || !isNearCinema(pos.lat, pos.lng)) return "outside";
+          }
+          return true;
+        }
         /* QR достъп — URL съдържа QR параметри */
         if (params.get("open") === "inspection") {
           const type = params.get("type") || "";
@@ -1637,6 +1647,14 @@
         showValidation: false,
         showDeleteModal: false,
         showQRModal: false,
+        showPhonePhotoQRModal: false,
+        phonePhotoLoc: "",
+        phonePhotoType: "",
+        phonePhotoInspector: "",
+        phonePhotoBusy: false,
+        phonePhotoDone: false,
+        phonePhotoUploaded: 0,
+        phonePhotoTotal: 0,
         deletePass: "",
         deleteErr: "",
         showPassword: false,
@@ -2234,7 +2252,7 @@
       function isQROnlySession() { return sessionStorage.getItem(QR_MODE_KEY) === "1"; }
 
       function renderTopbar() {
-        const navItems = isQROnlySession() ? "" : [
+        const navItems = (isQROnlySession() || state.screen === "phone-photo-upload") ? "" : [
           state.screen !== "home" ? `<button class="nav-btn" data-action="go-home" aria-label="Начална страница">Начало</button>` : "",
           `<button class="nav-btn" data-action="open-qr" aria-label="QR кодове за печат">QR кодове</button>`,
           `<a class="nav-btn${isSheetsConfigured() ? ' state' : ''}" href="${SHEETS_SPREADSHEET_URL}" target="_blank" rel="noopener" aria-label="Отвори Sheets таблица">${isSheetsConfigured() ? "Sheets ✓" : "Sheets ✗"}</a>`,
@@ -3150,6 +3168,7 @@
               <label>Снимки при проблем (опционално, до 5)</label>
               <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp" multiple />
               <div style="font-size:11px;color:#888;margin-top:4px;">Може да изберете от 1 до 5 снимки наведнъж (Ctrl/Cmd + клик за избор на повече).</div>
+              <button type="button" class="btn btn-outline" data-action="open-phone-photo-qr" style="margin-top:10px;width:100%;padding:10px;font-size:14px;">📱 Качи снимки от телефон (QR код)</button>
               ${state.photoError ? `<div style="color:var(--red);font-size:12px;margin-top:6px;">${escapeHtml(state.photoError)}</div>` : ""}
               ${state.photoPreviews.length > 0 ? `<div style="margin-top:12px;padding:12px;background:rgba(255,255,255,.05);border-radius:12px;border:1px solid rgba(255,255,255,.1);">
                 <div style="font-size:12px;color:#888;margin-bottom:8px;">Преглед на снимки (${state.photoPreviews.length}):</div>
@@ -3194,6 +3213,114 @@
           </div>`;
       }
 
+      /* ── Phone-only photo upload screen (opened via QR scan from PC) ── */
+      function renderPhonePhotoUpload() {
+        const loc = state.phonePhotoLoc || "—";
+        const inspector = state.phonePhotoInspector || "—";
+        const typeLabel = state.phonePhotoType === "bathroom" ? "Тоалетна" : (state.phonePhotoType === "hall" ? "Кинозала" : "");
+        const uploadedCount = state.phonePhotoUploaded || 0;
+        const totalCount = state.phonePhotoTotal || 0;
+        const isUploading = !!state.phonePhotoBusy;
+        const isDone = !!state.phonePhotoDone;
+
+        if (isDone) {
+          return `<div style="max-width:640px;margin:0 auto;padding:16px;text-align:center;">
+            <div style="font-size:64px;margin:24px 0 12px;">✅</div>
+            <h2 class="section-title" style="margin:0 0 12px;">Снимките са качени успешно!</h2>
+            <p class="muted" style="margin:0 0 8px;">Качени са <b>${uploadedCount}</b> от <b>${totalCount}</b> снимки за <b>${escapeHtml(loc)}</b>.</p>
+            <p class="muted" style="margin:0 0 24px;font-size:13px;">Записани са в Google Sheets — лист „PHOTOS". Може да затворите страницата.</p>
+            <button class="btn btn-outline" data-action="phone-photo-reset" style="padding:12px 20px;">Качи още снимки</button>
+          </div>`;
+        }
+
+        return `<div style="max-width:640px;margin:0 auto;padding:16px;">
+          <div class="panel" style="margin-bottom:16px;text-align:center;">
+            <div style="font-size:32px;margin-bottom:6px;">📱📸</div>
+            <h2 class="section-title" style="margin:0 0 8px;">Качване на снимки</h2>
+            <div style="font-size:14px;color:#aaa;">${escapeHtml(typeLabel)}${typeLabel ? " — " : ""}<b style="color:#fff;">${escapeHtml(loc)}</b></div>
+            ${inspector !== "—" ? `<div style="font-size:12px;color:#888;margin-top:4px;">Проверяващ: ${escapeHtml(inspector)}</div>` : ""}
+          </div>
+
+          <div class="panel" style="margin-bottom:16px;">
+            <div class="field" style="margin:0;">
+              <label>Изберете до 5 снимки от галерията</label>
+              <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp" multiple ${isUploading ? "disabled" : ""} />
+              <div style="font-size:11px;color:#888;margin-top:4px;">JPEG / PNG / WebP, максимум 10MB на файл.</div>
+              ${state.photoError ? `<div style="color:var(--red);font-size:12px;margin-top:6px;">${escapeHtml(state.photoError)}</div>` : ""}
+              ${state.photoPreviews.length > 0 ? `<div style="margin-top:12px;padding:12px;background:rgba(255,255,255,.05);border-radius:12px;border:1px solid rgba(255,255,255,.1);">
+                <div style="font-size:12px;color:#888;margin-bottom:8px;">Преглед на снимки (${state.photoPreviews.length}):</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;">
+                  ${state.photoPreviews.map((src, idx) => `<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.1);">
+                    ${src ? `<img src="${src}" style="width:100%;height:110px;object-fit:cover;display:block;" alt="Photo ${idx + 1}" />` : `<div style="width:100%;height:110px;background:#222;"></div>`}
+                    <span style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,.7);color:#fff;font-size:11px;padding:2px 6px;border-radius:4px;">${idx + 1}/${state.photoPreviews.length}</span>
+                  </div>`).join("")}
+                </div>
+              </div>` : ""}
+            </div>
+          </div>
+
+          ${state.photoFiles.length > 0 ? `<div class="panel" style="margin-bottom:16px;">
+            <div class="field" style="margin:0;">
+              <label>Коментар към снимките *</label>
+              <textarea id="photo-comment-input" dir="ltr" rows="3" style="direction: ltr !important; unicode-bidi: plaintext !important;" placeholder="Описание на проблема (минимум 20 символа)…" ${isUploading ? "disabled" : ""}>${escapeHtml(state.notes)}</textarea>
+              <div id="photo-comment-counter" style="font-size:12px;margin-top:6px;color:${state.notes.length < 20 ? 'var(--red)' : '#10b981'};">${state.notes.length < 20 ? `Коментарът трябва да съдържа поне 20 символа (${state.notes.length}/20)` : `✓ Коментарът е достатъчен (${state.notes.length}/20)`}</div>
+            </div>
+          </div>` : ""}
+
+          ${isUploading ? `<div class="panel" style="margin-bottom:16px;text-align:center;">
+            <div style="font-size:14px;">Качване… ${uploadedCount}/${totalCount}</div>
+          </div>` : ""}
+
+          <button class="btn btn-gold" data-action="submit-phone-photos" style="width:100%;padding:16px;font-size:16px;" ${state.photoFiles.length === 0 || state.notes.length < 20 || isUploading ? "disabled" : ""}>
+            ${isUploading ? "Качване…" : (state.photoFiles.length === 0 ? "Изберете снимки" : `Качи ${state.photoFiles.length} снимки`)}
+          </button>
+        </div>`;
+      }
+
+      async function submitPhonePhotos() {
+        if (state.phonePhotoBusy) return;
+        if (state.photoFiles.length === 0) {
+          showToast("Изберете поне една снимка.", "error");
+          return;
+        }
+        if (state.notes.length < 20) {
+          showToast("Коментарът трябва да съдържа поне 20 символа.", "error");
+          return;
+        }
+        state.phonePhotoBusy = true;
+        state.phonePhotoTotal = state.photoFiles.length;
+        state.phonePhotoUploaded = 0;
+        render();
+
+        try {
+          // Use the location/inspector from URL params for the upload metadata
+          const savedLoc = state.location;
+          const savedInspector = state.inspector;
+          state.location = state.phonePhotoLoc || state.location || "";
+          state.inspector = state.phonePhotoInspector || state.inspector || "";
+
+          let uploaded = 0;
+          for (let i = 0; i < state.photoFiles.length; i++) {
+            const label = `${i + 1}/${state.photoFiles.length}`;
+            const url = await uploadOnePhoto_(state.photoFiles[i], label);
+            if (url) uploaded++;
+            state.phonePhotoUploaded = uploaded;
+            render();
+          }
+
+          state.location = savedLoc;
+          state.inspector = savedInspector;
+
+          state.phonePhotoBusy = false;
+          state.phonePhotoDone = true;
+          render();
+        } catch (err) {
+          state.phonePhotoBusy = false;
+          showToast("Грешка при качване: " + (err && err.message ? err.message : err), "error");
+          render();
+        }
+      }
+
       /* ── Targeted DOM update for item status (avoids full re-render) ── */
       function updateItemRow(itemId) {
         const config = getConfig(state.inspectionType);
@@ -3225,8 +3352,31 @@
           </div>`;
         }
         if (state.showQRModal) html += renderQRModal();
+        if (state.showPhonePhotoQRModal) html += renderPhonePhotoQRModal();
         if (state.toast) html += `<div class="toast ${escapeHtml(state.toast.type)}" role="status" aria-live="polite">${escapeHtml(state.toast.msg)}</div>`;
         return html;
+      }
+
+      function renderPhonePhotoQRModal() {
+        const base = getQRBaseUrl().replace(/\/?$/, "");
+        const sep = base.includes("?") ? "&" : "?";
+        const url = base + sep + "phonephoto=1"
+          + "&type=" + encodeURIComponent(state.inspectionType || "")
+          + "&loc=" + encodeURIComponent(state.location || "")
+          + "&inspector=" + encodeURIComponent(state.inspector || "");
+        const imgSrc = "https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=2&data=" + encodeURIComponent(url);
+        return `
+          <div class="modal-backdrop" id="phone-photo-qr-backdrop" data-action="close-phone-photo-qr" role="presentation">
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="phone-photo-qr-title" onclick="if(!event.target.closest('[data-action]'))event.stopPropagation()" style="max-width:420px;text-align:center;">
+              <h2 id="phone-photo-qr-title" class="section-title" style="margin:0 0 12px;">📱 Качи снимки от телефон</h2>
+              <p class="muted" style="margin:0 0 16px;font-size:13px;">Сканирай QR кода с телефона си, за да отвориш страницата за качване на снимки за <b>${escapeHtml(state.location || "")}</b>.</p>
+              <img src="${imgSrc}" width="260" height="260" alt="QR код за качване на снимки" style="display:block;margin:0 auto;border-radius:12px;background:#fff;padding:6px;" />
+              <p class="muted" style="margin:14px 0 4px;font-size:12px;">Снимките ще бъдат записани в Google Sheets (PHOTOS).</p>
+              <div style="margin-top:18px;">
+                <button type="button" class="btn btn-outline" data-action="close-phone-photo-qr">Затвори</button>
+              </div>
+            </div>
+          </div>`;
       }
 
       function renderQRModal() {
@@ -3682,6 +3832,7 @@
           state.screen === "charts" ? renderCharts() :
           state.screen === "select-cr" ? renderChangingRoomSelect() :
           state.screen === "cr-detail" ? renderChangingRoomDetail() :
+          state.screen === "phone-photo-upload" ? renderPhonePhotoUpload() :
           renderHome();
         app.innerHTML = renderShell(content);
         updateModals();
@@ -4106,6 +4257,23 @@
         /* QR modal — само updateModals(), не презареждаме съдържанието, данните остават */
         if (action === "open-qr") { state.showQRModal = true; updateModals(); return; }
         if (action === "close-qr") { state.showQRModal = false; updateModals(); return; }
+        if (action === "open-phone-photo-qr") { state.showPhonePhotoQRModal = true; updateModals(); return; }
+        if (action === "close-phone-photo-qr") { state.showPhonePhotoQRModal = false; updateModals(); return; }
+
+        /* Phone-photo screen submit */
+        if (action === "submit-phone-photos") { submitPhonePhotos(); return; }
+        if (action === "phone-photo-reset") {
+          state.photoFiles = [];
+          state.photoPreviews = [];
+          state.notes = "";
+          state.photoError = "";
+          state.phonePhotoDone = false;
+          state.phonePhotoBusy = false;
+          state.phonePhotoUploaded = 0;
+          state.phonePhotoTotal = 0;
+          render();
+          return;
+        }
       });
 
       document.addEventListener("keydown", (e) => {
@@ -4116,6 +4284,9 @@
         } else if (state.showQRModal) {
           state.showQRModal = false;
           updateModals();
+        } else if (state.showPhonePhotoQRModal) {
+          state.showPhonePhotoQRModal = false;
+          updateModals();
         }
       });
 
@@ -4125,6 +4296,7 @@
         if (sid) releaseLockBeacon(sid);
       }
       window.addEventListener("beforeunload", (e) => {
+        if (state.screen === "phone-photo-upload") return;
         e.preventDefault();
         e.returnValue = "";
       });
@@ -4136,6 +4308,7 @@
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState !== "hidden") return;
         if (state.screen !== "inspection") return;
+        if (state.screen === "phone-photo-upload") return;
         if (!_isMobileDevice) return;
         const sid = state.currentSessionId || sessionStorage.getItem(LOCK_SESSION_KEY);
         if (sid) releaseLockBeacon(sid);
@@ -4168,6 +4341,23 @@
         const search = window.location.search || "";
         const hash = window.location.hash || "";
         const params = new URLSearchParams(search || (hash.startsWith("#") ? hash.slice(1) : ""));
+        if (params.get("phonephoto") === "1") {
+          /* Phone photo upload mode — самостоятелна страница, без lock/inspection */
+          state.phonePhotoLoc = decodeURIComponent((params.get("loc") || "").replace(/\+/g, "%20"));
+          state.phonePhotoType = params.get("type") || "";
+          state.phonePhotoInspector = decodeURIComponent((params.get("inspector") || "").replace(/\+/g, "%20"));
+          state.photoFiles = [];
+          state.photoPreviews = [];
+          state.notes = "";
+          state.photoError = "";
+          state.phonePhotoBusy = false;
+          state.phonePhotoDone = false;
+          state.phonePhotoUploaded = 0;
+          state.phonePhotoTotal = 0;
+          state.screen = "phone-photo-upload";
+          render();
+          return;
+        }
         if (params.get("open") === "inspection") {
           const type = params.get("type");
           const loc = params.get("location");
