@@ -1626,8 +1626,8 @@
         inspector: "",
         itemState: {},
         notes: "",
-        photoFile: null,
-        photoPreview: null,
+        photoFiles: [],
+        photoPreviews: [],
         photoError: "",
         records: [],
         syncHistory: JSON.parse(localStorage.getItem(STORAGE_KEYS.sync) || "{}"),
@@ -1827,8 +1827,8 @@
           inspector: "",
           itemState: {},
           notes: "",
-          photoFile: null,
-          photoPreview: null,
+          photoFiles: [],
+          photoPreviews: [],
           photoError: "",
           showValidation: false,
           screen: "inspection",
@@ -1909,78 +1909,84 @@
       }
 
       /* ── Photo Upload Utilities ── */
+      const MAX_PHOTOS = 5;
       function handlePhotoSelect(e) {
-        const file = e.target.files[0];
-        state.photoFile = null;
-        state.photoPreview = null;
+        const files = Array.from(e.target.files || []);
+        state.photoFiles = [];
+        state.photoPreviews = [];
         state.photoError = "";
         state.notes = "";
 
-        if (!file) {
+        if (files.length === 0) {
           render();
           return;
         }
 
-        // Validate file type
+        if (files.length > MAX_PHOTOS) {
+          state.photoError = `Може да изберете максимум ${MAX_PHOTOS} снимки. Избрахте ${files.length}.`;
+          render();
+          return;
+        }
+
         const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-        if (!validTypes.includes(file.type)) {
-          state.photoError = "Невалидна снимка. Приемат се само JPEG, PNG, WebP";
-          render();
-          return;
-        }
-
-        // Validate file size (max 10MB)
         const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-        if (file.size > MAX_FILE_SIZE) {
-          state.photoError = "Снимката трябва да бъде под 10MB";
-          render();
-          return;
+        for (const f of files) {
+          if (!validTypes.includes(f.type)) {
+            state.photoError = `Невалиден файл „${f.name}". Приемат се само JPEG, PNG, WebP.`;
+            render();
+            return;
+          }
+          if (f.size > MAX_FILE_SIZE) {
+            state.photoError = `Файлът „${f.name}" е над 10MB.`;
+            render();
+            return;
+          }
         }
 
-        // Create preview
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          state.photoFile = file;
-          state.photoPreview = event.target.result;
-          state.photoError = "";
-          render();
-        };
-        reader.onerror = () => {
-          state.photoError = "Грешка при четене на файла";
-          render();
-        };
-        reader.readAsDataURL(file);
+        state.photoFiles = files;
+        state.photoPreviews = new Array(files.length).fill(null);
+        let loaded = 0;
+        files.forEach((file, idx) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            state.photoPreviews[idx] = event.target.result;
+            loaded++;
+            if (loaded === files.length) render();
+          };
+          reader.onerror = () => {
+            state.photoError = `Грешка при четене на файл „${file.name}".`;
+            state.photoFiles = [];
+            state.photoPreviews = [];
+            render();
+          };
+          reader.readAsDataURL(file);
+        });
       }
 
-      async function uploadPhotoToGoogleDrive() {
-        if (!state.photoFile) return null;
-        if (state.notes.length < 20) {
-          alert("⚠ Коментарът трябва да съдържа поне 20 символа");
-          return null;
-        }
+      async function uploadOnePhoto_(file, indexLabel) {
         if (!SHEETS_WEB_APP_URL || SHEETS_WEB_APP_URL.indexOf("script.google.com") === -1) {
           alert("⚠ SHEETS_WEB_APP_URL не е конфигуриран правилно:\n" + SHEETS_WEB_APP_URL);
           return null;
         }
-
         return new Promise((resolve) => {
           try {
             const reader = new FileReader();
             reader.onerror = () => {
-              alert("⚠ Грешка при четене на файла");
+              alert(`⚠ Грешка при четене на файла ${indexLabel}`);
               resolve(null);
             };
             reader.onload = async (event) => {
               try {
                 const base64Data = event.target.result.split(',')[1];
                 if (!base64Data || base64Data.length === 0) {
-                  alert("⚠ Файлът е празен или невалиден");
+                  alert(`⚠ Файлът ${indexLabel} е празен или невалиден`);
                   resolve(null);
                   return;
                 }
 
                 const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -4);
-                const fileNameSafe = `photo_${timestamp}_${String(state.location || "unknown").replace(/\s+/g, "_")}.jpg`;
+                const safeLoc = String(state.location || "unknown").replace(/\s+/g, "_");
+                const fileNameSafe = `photo_${timestamp}_${safeLoc}_${indexLabel}.jpg`;
                 const payload = JSON.stringify({
                   action: "uploadPhoto",
                   photoData: base64Data,
@@ -2001,14 +2007,14 @@
                     redirect: "follow",
                   });
                 } catch (netErr) {
-                  alert("⚠ Мрежова грешка при качване на снимка:\n" + (netErr && netErr.message ? netErr.message : netErr) + "\n\nПровери интернет връзката и опитай отново.");
+                  alert(`⚠ Мрежова грешка при качване на снимка ${indexLabel}:\n` + (netErr && netErr.message ? netErr.message : netErr));
                   resolve(null);
                   return;
                 }
 
                 const rawText = await response.text();
                 if (!response.ok) {
-                  alert("⚠ Сървърна грешка при качване на снимка\nHTTP " + response.status + "\n\nОтговор:\n" + rawText.substring(0, 500));
+                  alert(`⚠ Сървърна грешка при качване на снимка ${indexLabel}\nHTTP ` + response.status + "\n\nОтговор:\n" + rawText.substring(0, 500));
                   try { localStorage.setItem("cg_last_photo_error", "HTTP " + response.status + " — " + rawText.substring(0, 1000)); } catch(_) {}
                   resolve(null);
                   return;
@@ -2029,20 +2035,36 @@
                   resolve(result.photoUrl);
                   return;
                 }
-                alert("⚠ Backend отказа качването:\n" + (result && result.error ? result.error : "неизвестна грешка") + "\n\nПълен отговор:\n" + rawText.substring(0, 500));
+                alert(`⚠ Backend отказа качването на снимка ${indexLabel}:\n` + (result && result.error ? result.error : "неизвестна грешка"));
                 try { localStorage.setItem("cg_last_photo_error", "Backend error: " + rawText.substring(0, 1000)); } catch(_) {}
                 resolve(null);
               } catch (innerErr) {
-                alert("⚠ Вътрешна грешка при качване:\n" + (innerErr && innerErr.message ? innerErr.message : innerErr));
+                alert(`⚠ Вътрешна грешка при качване на снимка ${indexLabel}:\n` + (innerErr && innerErr.message ? innerErr.message : innerErr));
                 resolve(null);
               }
             };
-            reader.readAsDataURL(state.photoFile);
+            reader.readAsDataURL(file);
           } catch (err) {
-            alert("⚠ Грешка при подготовка на снимка:\n" + (err && err.message ? err.message : err));
+            alert(`⚠ Грешка при подготовка на снимка ${indexLabel}:\n` + (err && err.message ? err.message : err));
             resolve(null);
           }
         });
+      }
+
+      async function uploadAllPhotos() {
+        if (!state.photoFiles || state.photoFiles.length === 0) return [];
+        if (state.notes.length < 20) {
+          alert("⚠ Коментарът трябва да съдържа поне 20 символа");
+          return [];
+        }
+        const urls = [];
+        for (let i = 0; i < state.photoFiles.length; i++) {
+          const label = `${i + 1}/${state.photoFiles.length}`;
+          showToast(`Качване на снимка ${label}...`);
+          const url = await uploadOnePhoto_(state.photoFiles[i], label);
+          if (url) urls.push(url);
+        }
+        return urls;
       }
 
       let _submitBusy = false;
@@ -2057,8 +2079,8 @@
           return;
         }
 
-        // Validate photo comment if photo is selected
-        if (state.photoFile && state.notes.length < 20) {
+        // Validate photo comment if photos are selected
+        if (state.photoFiles.length > 0 && state.notes.length < 20) {
           showToast("Коментарът трябва да съдържа поне 20 символа", "error");
           render();
           return;
@@ -2072,14 +2094,14 @@
         if (!allFilled) { showToast("Всички точки трябва да бъдат попълнени.", "error"); render(); return; }
         _submitBusy = true;
         try {
-          // Upload photo if present
-          let photoUrl = null;
-          if (state.photoFile) {
-            showToast("Качване на снимка...");
-            photoUrl = await uploadPhotoToGoogleDrive();
-            if (!photoUrl) {
-              // Photo upload failed, but don't block the inspection submission
-              showToast("Забележка: Снимката не е качена, но проверката ще бъде записана.", "error");
+          // Upload photos if present
+          let photoUrls = [];
+          if (state.photoFiles.length > 0) {
+            photoUrls = await uploadAllPhotos();
+            if (photoUrls.length === 0) {
+              showToast("Забележка: Снимките не са качени, но проверката ще бъде записана.", "error");
+            } else if (photoUrls.length < state.photoFiles.length) {
+              showToast(`Внимание: качени са ${photoUrls.length} от ${state.photoFiles.length} снимки.`, "error");
             }
           }
 
@@ -2091,7 +2113,8 @@
             timestamp: new Date().toISOString(),
             items: config.items.map((i) => ({ id: i.id, label: i.label, icon: i.icon, status: state.itemState[i.id] })),
             notes: state.notes,
-            photoUrl: photoUrl || null,
+            photoUrl: photoUrls[0] || null,
+            photoUrls: photoUrls.length > 0 ? photoUrls : null,
           };
           state.records = [record, ...state.records];
           cleanupOldRecords(); /* Изчистване на стари записи >7 дни */
@@ -2127,8 +2150,8 @@
             return;
           }
           // Clear photo state
-          state.photoFile = null;
-          state.photoPreview = null;
+          state.photoFiles = [];
+          state.photoPreviews = [];
           state.photoError = "";
           state.screen = "home";
           render();
@@ -3124,25 +3147,31 @@
 
           <div class="panel" style="margin-bottom:16px;">
             <div class="field" style="margin:0;">
-              <label>Снимка при проблем (опционално)</label>
-              <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp" />
+              <label>Снимки при проблем (опционално, до 5)</label>
+              <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp" multiple />
+              <div style="font-size:11px;color:#888;margin-top:4px;">Може да изберете от 1 до 5 снимки наведнъж (Ctrl/Cmd + клик за избор на повече).</div>
               ${state.photoError ? `<div style="color:var(--red);font-size:12px;margin-top:6px;">${escapeHtml(state.photoError)}</div>` : ""}
-              ${state.photoPreview ? `<div style="margin-top:12px;padding:12px;background:rgba(255,255,255,.05);border-radius:12px;border:1px solid rgba(255,255,255,.1);">
-                <div style="font-size:12px;color:#888;margin-bottom:8px;">Преглед на снимка:</div>
-                <img src="${state.photoPreview}" style="max-width:100%;max-height:200px;border-radius:8px;" alt="Photo preview" />
+              ${state.photoPreviews.length > 0 ? `<div style="margin-top:12px;padding:12px;background:rgba(255,255,255,.05);border-radius:12px;border:1px solid rgba(255,255,255,.1);">
+                <div style="font-size:12px;color:#888;margin-bottom:8px;">Преглед на снимки (${state.photoPreviews.length}):</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">
+                  ${state.photoPreviews.map((src, idx) => `<div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.1);">
+                    ${src ? `<img src="${src}" style="width:100%;height:120px;object-fit:cover;display:block;" alt="Photo ${idx + 1}" />` : `<div style="width:100%;height:120px;background:#222;"></div>`}
+                    <span style="position:absolute;top:4px;left:4px;background:rgba(0,0,0,.7);color:#fff;font-size:11px;padding:2px 6px;border-radius:4px;">${idx + 1}/${state.photoPreviews.length}</span>
+                  </div>`).join("")}
+                </div>
               </div>` : ""}
             </div>
           </div>
 
-          ${state.photoFile ? `<div class="panel" style="margin-bottom:16px;">
+          ${state.photoFiles.length > 0 ? `<div class="panel" style="margin-bottom:16px;">
             <div class="field" style="margin:0;">
-              <label>Коментар към снимка *</label>
-              <textarea id="photo-comment-input" dir="ltr" rows="3" style="direction: ltr !important; unicode-bidi: plaintext !important;" placeholder="Описание на проблема и причина за снимката (минимум 20 символа)…">${escapeHtml(state.notes)}</textarea>
+              <label>Коментар към снимките *</label>
+              <textarea id="photo-comment-input" dir="ltr" rows="3" style="direction: ltr !important; unicode-bidi: plaintext !important;" placeholder="Описание на проблема и причина за снимките (минимум 20 символа)…">${escapeHtml(state.notes)}</textarea>
               <div id="photo-comment-counter" style="font-size:12px;margin-top:6px;color:${state.notes.length < 20 ? 'var(--red)' : '#10b981'};">${state.notes.length < 20 ? `Коментарът трябва да съдържа поне 20 символа (${state.notes.length}/20)` : `✓ Коментарът е достатъчен (${state.notes.length}/20)`}</div>
             </div>
           </div>` : ""}
 
-          <button class="btn btn-gold" data-action="submit-inspection" style="width:100%;padding:16px;font-size:16px;" ${state.photoFile && state.notes.length < 20 ? "disabled" : ""}>
+          <button class="btn btn-gold" data-action="submit-inspection" style="width:100%;padding:16px;font-size:16px;" ${state.photoFiles.length > 0 && state.notes.length < 20 ? "disabled" : ""}>
             ${allFilled && state.inspector.trim() ? `Запази${isSheetsConfigured() ? " и изпрати" : ""}` : `Попълни всички полета (${filledCount}/${config.items.length})`}
           </button>
         </div>`;
@@ -3838,7 +3867,7 @@
             }
           }
           const submitBtn = document.querySelector('[data-action="submit-inspection"]');
-          if (submitBtn && state.photoFile) {
+          if (submitBtn && state.photoFiles.length > 0) {
             submitBtn.disabled = len < 20;
           }
         });
