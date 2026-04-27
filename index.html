@@ -2115,23 +2115,34 @@
         });
       }
 
+      let _lastUploadError = "";
+
       async function uploadOnePhoto_(file, indexLabel) {
+        _lastUploadError = "";
+        const isPhoneScreen = state.screen === "phone-photo-upload";
+        const reportErr = (msg) => {
+          _lastUploadError = msg;
+          console.warn("[upload]", msg);
+          if (isPhoneScreen) setPhonePhotoStatus(`❌ ${msg}`, "error");
+          else alert("⚠ " + msg);
+        };
+
         if (!SHEETS_WEB_APP_URL || SHEETS_WEB_APP_URL.indexOf("script.google.com") === -1) {
-          alert("⚠ SHEETS_WEB_APP_URL не е конфигуриран правилно:\n" + SHEETS_WEB_APP_URL);
+          reportErr("SHEETS_WEB_APP_URL не е конфигуриран:\n" + SHEETS_WEB_APP_URL);
           return null;
         }
         return new Promise((resolve) => {
           try {
             const reader = new FileReader();
             reader.onerror = () => {
-              alert(`⚠ Грешка при четене на файла ${indexLabel}`);
+              reportErr(`Грешка при четене на файла ${indexLabel}`);
               resolve(null);
             };
             reader.onload = async (event) => {
               try {
                 const base64Data = event.target.result.split(',')[1];
                 if (!base64Data || base64Data.length === 0) {
-                  alert(`⚠ Файлът ${indexLabel} е празен или невалиден`);
+                  reportErr(`Файлът ${indexLabel} е празен или невалиден`);
                   resolve(null);
                   return;
                 }
@@ -2151,6 +2162,8 @@
                   _token: SHEETS_SECRET_TOKEN,
                 });
 
+                if (isPhoneScreen) setPhonePhotoStatus(`Изпращам снимка ${indexLabel} към Google Drive (${Math.round(base64Data.length / 1024)} KB)…`, "info");
+
                 let response;
                 try {
                   response = await fetch(SHEETS_WEB_APP_URL, {
@@ -2160,14 +2173,14 @@
                     redirect: "follow",
                   });
                 } catch (netErr) {
-                  alert(`⚠ Мрежова грешка при качване на снимка ${indexLabel}:\n` + (netErr && netErr.message ? netErr.message : netErr));
+                  reportErr(`Мрежова грешка при качване ${indexLabel}: ` + (netErr && netErr.message ? netErr.message : netErr));
                   resolve(null);
                   return;
                 }
 
                 const rawText = await response.text();
                 if (!response.ok) {
-                  alert(`⚠ Сървърна грешка при качване на снимка ${indexLabel}\nHTTP ` + response.status + "\n\nОтговор:\n" + rawText.substring(0, 500));
+                  reportErr(`Apps Script HTTP ${response.status} (снимка ${indexLabel}). Отговор: ${rawText.substring(0, 200)}`);
                   try { localStorage.setItem("cg_last_photo_error", "HTTP " + response.status + " — " + rawText.substring(0, 1000)); } catch(_) {}
                   resolve(null);
                   return;
@@ -2177,7 +2190,7 @@
                 try {
                   result = JSON.parse(rawText);
                 } catch (parseErr) {
-                  alert("⚠ Сървърът върна невалиден отговор (не е JSON).\nВероятна причина: Apps Script не е деплойнат като 'Anyone' или URL-ът е грешен.\n\nНачало на отговор:\n" + rawText.substring(0, 400));
+                  reportErr(`Apps Script върна невалиден отговор (не е JSON). Деплойнат ли е като 'Anyone'? Начало: ${rawText.substring(0, 200)}`);
                   try { localStorage.setItem("cg_last_photo_error", "Non-JSON response: " + rawText.substring(0, 1000)); } catch(_) {}
                   resolve(null);
                   return;
@@ -2187,22 +2200,31 @@
                   try { localStorage.setItem("cg_last_photo_error", ""); } catch(_) {}
                   // Live-sync to PC if there's an active pcSessionId (phone QR flow)
                   if (state.pcSessionId) {
-                    notifyPCOfPhoto(result.photoUrl).catch(() => {});
+                    if (isPhoneScreen) setPhonePhotoStatus(`Снимка ${indexLabel} качена. Изпращам сигнал към PC…`, "info");
+                    try {
+                      const r = await fetch(NTFY_BASE + "/" + encodeURIComponent("cg-photos-" + state.pcSessionId), {
+                        method: "POST",
+                        body: result.photoUrl,
+                      });
+                      if (!r.ok) _lastUploadError = `ntfy.sh HTTP ${r.status} (снимка ${indexLabel})`;
+                    } catch (e) {
+                      _lastUploadError = `ntfy.sh: ${e && e.message ? e.message : e}`;
+                    }
                   }
                   resolve(result.photoUrl);
                   return;
                 }
-                alert(`⚠ Backend отказа качването на снимка ${indexLabel}:\n` + (result && result.error ? result.error : "неизвестна грешка"));
+                reportErr(`Backend отказа качването ${indexLabel}: ` + (result && result.error ? result.error : "неизвестна грешка"));
                 try { localStorage.setItem("cg_last_photo_error", "Backend error: " + rawText.substring(0, 1000)); } catch(_) {}
                 resolve(null);
               } catch (innerErr) {
-                alert(`⚠ Вътрешна грешка при качване на снимка ${indexLabel}:\n` + (innerErr && innerErr.message ? innerErr.message : innerErr));
+                reportErr(`Вътрешна грешка при качване ${indexLabel}: ` + (innerErr && innerErr.message ? innerErr.message : innerErr));
                 resolve(null);
               }
             };
             reader.readAsDataURL(file);
           } catch (err) {
-            alert(`⚠ Грешка при подготовка на снимка ${indexLabel}:\n` + (err && err.message ? err.message : err));
+            reportErr(`Грешка при подготовка на снимка ${indexLabel}: ` + (err && err.message ? err.message : err));
             resolve(null);
           }
         });
@@ -3329,8 +3351,8 @@
               ${(state.remotePhotoUrls && state.remotePhotoUrls.length > 0) ? `<div style="margin-top:12px;padding:12px;background:rgba(16,185,129,.08);border-radius:12px;border:1px solid rgba(16,185,129,.25);">
                 <div style="font-size:12px;color:#10b981;margin-bottom:8px;font-weight:600;">📱 Снимки получени от телефон (${state.remotePhotoUrls.length}):</div>
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">
-                  ${state.remotePhotoUrls.map((url, idx) => `<a href="${url}" target="_blank" rel="noopener" style="position:relative;border-radius:8px;overflow:hidden;border:1px solid rgba(16,185,129,.35);text-decoration:none;display:block;">
-                    <img src="${url}" style="width:100%;height:120px;object-fit:cover;display:block;background:#222;" alt="Phone photo ${idx + 1}" referrerpolicy="no-referrer" onerror="this.style.display='none';this.parentElement.innerHTML+='<div style=&quot;width:100%;height:120px;display:flex;align-items:center;justify-content:center;color:#10b981;font-size:11px;text-align:center;padding:6px;&quot;>📱 Снимка ${idx + 1}<br/>(виж в Drive)</div>';" />
+                  ${state.remotePhotoUrls.map((url, idx) => `<a href="${url}" target="_blank" rel="noopener" style="position:relative;border-radius:8px;overflow:hidden;border:1px solid rgba(16,185,129,.35);text-decoration:none;display:block;background:#1a1a1a;height:120px;">
+                    <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#10b981;font-size:11px;text-align:center;padding:6px;">📱 Снимка ${idx + 1}<br/>(отвори в Drive)</div>
                     <span style="position:absolute;top:4px;left:4px;background:rgba(16,185,129,.85);color:#000;font-size:11px;padding:2px 6px;border-radius:4px;font-weight:600;">📱 ${idx + 1}</span>
                   </a>`).join("")}
                 </div>
@@ -3485,22 +3507,10 @@
             const url = await uploadOnePhoto_(state.photoFiles[i], label);
             if (url) {
               uploaded++;
-              setPhonePhotoStatus(`Снимка ${label} качена. Изпращам сигнал към PC…`, "info");
-              // notifyPCOfPhoto is also called inside uploadOnePhoto_, but call again
-              // explicitly so we can surface errors.
-              try {
-                const r = await fetch(NTFY_BASE + "/" + encodeURIComponent("cg-photos-" + state.pcSessionId), {
-                  method: "POST",
-                  body: url,
-                });
-                if (!r.ok) lastError = "ntfy.sh HTTP " + r.status;
-              } catch (e) {
-                lastError = "ntfy.sh: " + (e && e.message ? e.message : e);
-              }
             } else {
               failed++;
-              lastError = lastError || "Качването не върна URL (виж alert-а).";
             }
+            if (_lastUploadError) lastError = _lastUploadError;
             state.phonePhotoUploaded = uploaded;
             render();
           }
