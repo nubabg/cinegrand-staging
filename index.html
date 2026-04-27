@@ -3406,8 +3406,9 @@
             <div style="font-size:64px;margin:24px 0 12px;">✅</div>
             <h2 class="section-title" style="margin:0 0 12px;">Снимките са качени успешно!</h2>
             <p class="muted" style="margin:0 0 8px;">Качени са <b>${uploadedCount}</b> от <b>${totalCount}</b> снимки за <b>${escapeHtml(loc)}</b>.</p>
-            <p class="muted" style="margin:0 0 24px;font-size:13px;">Записани са в Google Sheets — лист „PHOTOS". Може да затворите страницата.</p>
-            <button class="btn btn-outline" data-action="phone-photo-reset" style="padding:12px 20px;">Качи още снимки</button>
+            <p class="muted" style="margin:0 0 24px;font-size:13px;">Записани са в Google Sheets и пратени към компютъра на проверяващия.</p>
+            <button class="btn btn-gold" data-action="phone-photo-done" style="padding:14px 24px;width:100%;font-size:16px;margin-bottom:10px;">✅ Готово (затвори страницата)</button>
+            <button class="btn btn-outline" data-action="phone-photo-reset" style="padding:12px 20px;width:100%;">Качи още снимки</button>
           </div>`;
         }
 
@@ -4528,6 +4529,21 @@
           } catch (e) {
             setPhonePhotoStatus(`❌ Не мога да достигна ntfy.sh: ${e && e.message ? e.message : e}`, "error");
           }
+          return;
+        }
+        if (action === "phone-photo-done") {
+          // Show a goodbye screen and try to close the tab. iOS/Android Safari
+          // typically can't auto-close a user-opened tab — fall back to a
+          // friendly message.
+          document.body.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#fff;text-align:center;">
+              <div>
+                <div style="font-size:80px;margin-bottom:16px;">✅</div>
+                <div style="font-size:22px;color:#10b981;margin-bottom:12px;font-weight:600;">Готово!</div>
+                <div style="font-size:14px;color:#888;line-height:1.5;">Снимките са изпратени.<br/>Може да затворите тази страница.</div>
+              </div>
+            </div>`;
+          try { window.close(); } catch (_) {}
           return;
         }
         if (action === "phone-photo-reset") {
