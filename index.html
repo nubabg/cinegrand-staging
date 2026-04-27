@@ -2062,6 +2062,43 @@
 
       /* ── Photo Upload Utilities ── */
       const MAX_PHOTOS = 5;
+      /* ── Compress an image data URL to fit within ~1MB JPEG ──
+         Inspection photos don't need full 12MP resolution — 1920px max edge
+         and JPEG 0.8 quality is plenty for spotting issues, and shrinks a
+         10MB iPhone photo to ~400-700KB so the upload to Apps Script is
+         reliable on mobile networks. */
+      function compressImageDataUrl(dataUrl, maxDim, quality) {
+        maxDim = maxDim || 1920;
+        quality = quality || 0.82;
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            try {
+              let { width, height } = img;
+              if (width > maxDim || height > maxDim) {
+                const scale = maxDim / Math.max(width, height);
+                width = Math.round(width * scale);
+                height = Math.round(height * scale);
+              }
+              const canvas = document.createElement("canvas");
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext("2d");
+              ctx.drawImage(img, 0, 0, width, height);
+              resolve(canvas.toDataURL("image/jpeg", quality));
+            } catch (e) {
+              console.warn("[compress] failed, using original:", e);
+              resolve(dataUrl);
+            }
+          };
+          img.onerror = () => {
+            console.warn("[compress] image load failed, using original");
+            resolve(dataUrl);
+          };
+          img.src = dataUrl;
+        });
+      }
+
       function handlePhotoSelect(e) {
         const files = Array.from(e.target.files || []);
         state.photoFiles = [];
@@ -2081,7 +2118,7 @@
         }
 
         const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-        const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+        const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB raw input — we compress before upload
         for (const f of files) {
           if (!validTypes.includes(f.type)) {
             state.photoError = `Невалиден файл „${f.name}". Приемат се само JPEG, PNG, WebP.`;
@@ -2089,7 +2126,7 @@
             return;
           }
           if (f.size > MAX_FILE_SIZE) {
-            state.photoError = `Файлът „${f.name}" е над 10MB.`;
+            state.photoError = `Файлът „${f.name}" е над 25MB.`;
             render();
             return;
           }
@@ -2100,8 +2137,19 @@
         let loaded = 0;
         files.forEach((file, idx) => {
           const reader = new FileReader();
-          reader.onload = (event) => {
-            state.photoPreviews[idx] = event.target.result;
+          reader.onload = async (event) => {
+            const originalDataUrl = event.target.result;
+            // Compress before storing — this is what gets uploaded later
+            let dataUrl = originalDataUrl;
+            try {
+              dataUrl = await compressImageDataUrl(originalDataUrl, 1920, 0.82);
+              const origKB = Math.round((originalDataUrl.length * 3 / 4) / 1024);
+              const newKB = Math.round((dataUrl.length * 3 / 4) / 1024);
+              console.log(`[photo ${idx + 1}] compressed ${origKB}KB → ${newKB}KB`);
+            } catch (e) {
+              console.warn("[photo] compression failed:", e);
+            }
+            state.photoPreviews[idx] = dataUrl;
             loaded++;
             if (loaded === files.length) render();
           };
@@ -4638,6 +4686,17 @@
           state.phonePhotoUploaded = 0;
           state.phonePhotoTotal = 0;
           state.screen = "phone-photo-upload";
+          // Warm up the Apps Script + ntfy connections so the first real
+          // POST after photo selection isn't blocked by iOS's transient-
+          // activation gate. Fire-and-forget; failures are ignored.
+          if (SHEETS_WEB_APP_URL) {
+            fetch(SHEETS_WEB_APP_URL, { method: "GET", mode: "no-cors", cache: "no-store" }).catch(() => {});
+          }
+          if (state.pcSessionId) {
+            fetch(NTFY_BASE + "/" + encodeURIComponent("cg-photos-" + state.pcSessionId), {
+              method: "POST", body: "warmup-init-" + Date.now(), keepalive: true,
+            }).catch(() => {});
+          }
           render();
           return;
         }
