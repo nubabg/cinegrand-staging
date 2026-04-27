@@ -1949,75 +1949,107 @@
       }
 
       /* ── Phone-photo live sync via ntfy.sh (no backend redeploy needed) ──
-         PC subscribes to ntfy.sh/<topic> via SSE; phone POSTs each uploaded
-         photo URL to the same topic. Topic = "cg-photos-{pcSessionId}". */
+         PC long-polls ntfy.sh JSON endpoint (more reliable than SSE across
+         browsers/networks); phone POSTs each uploaded photo URL to the same
+         topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      let _phoneSseSource = null;
-      let _phoneSseRetryTimer = null;
+      const NTFY_POLL_INTERVAL_MS = 3500;
+      let _phonePollTimer = null;
+      let _phonePollBusy = false;
 
       function startPhonePhotoPolling() {
         stopPhonePhotoPolling();
         if (!state.pcSessionId) {
           state.pcSessionId = "pcs_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
         }
-        const topic = "cg-photos-" + state.pcSessionId;
-        const url = NTFY_BASE + "/" + encodeURIComponent(topic) + "/sse?since=all";
-        try {
-          _phoneSseSource = new EventSource(url);
-          _phoneSseSource.onopen = () => updatePhonePollStatus("");
-          _phoneSseSource.onmessage = (e) => {
-            try {
-              const data = JSON.parse(e.data);
-              if (!data || data.event !== "message" || !data.message) return;
-              const photoUrl = String(data.message).trim();
-              if (!photoUrl || !/^https?:\/\//.test(photoUrl)) return;
-              const current = state.remotePhotoUrls || [];
-              if (current.indexOf(photoUrl) !== -1) return;
-              state.remotePhotoUrls = [...current, photoUrl];
-              render();
-              showToast("📱 Получена нова снимка от телефон.");
-            } catch (_) {}
-          };
-          _phoneSseSource.onerror = () => {
-            // Browser auto-reconnects; surface a soft warning if we never get open
-            updatePhonePollStatus("Връзката с ntfy.sh е прекъсната — опитвам пак…");
-          };
-        } catch (err) {
-          updatePhonePollStatus("Не мога да отворя SSE: " + (err && err.message ? err.message : err));
-        }
+        console.log("[ntfy] start polling for topic cg-photos-" + state.pcSessionId);
+        updatePhonePollStatus("🟢 Слушане за снимки от телефон…", "ok");
+        pollNtfyOnce(); // immediate
+        _phonePollTimer = setInterval(pollNtfyOnce, NTFY_POLL_INTERVAL_MS);
       }
 
       function stopPhonePhotoPolling() {
-        if (_phoneSseSource) {
-          try { _phoneSseSource.close(); } catch (_) {}
-          _phoneSseSource = null;
+        if (_phonePollTimer) {
+          clearInterval(_phonePollTimer);
+          _phonePollTimer = null;
         }
-        if (_phoneSseRetryTimer) {
-          clearTimeout(_phoneSseRetryTimer);
-          _phoneSseRetryTimer = null;
+        _phonePollBusy = false;
+      }
+
+      async function pollNtfyOnce() {
+        if (_phonePollBusy) return;
+        if (!state.pcSessionId) return;
+        if (state.screen !== "inspection") { stopPhonePhotoPolling(); return; }
+        _phonePollBusy = true;
+        try {
+          const topic = "cg-photos-" + state.pcSessionId;
+          const url = NTFY_BASE + "/" + encodeURIComponent(topic) + "/json?poll=1&since=all";
+          const res = await fetch(url, { method: "GET", cache: "no-store" });
+          if (!res.ok) {
+            updatePhonePollStatus("ntfy.sh HTTP " + res.status, "error");
+            return;
+          }
+          const text = await res.text();
+          const lines = text.split("\n").filter(Boolean);
+          const newUrls = [];
+          for (const line of lines) {
+            try {
+              const data = JSON.parse(line);
+              if (!data || data.event !== "message" || !data.message) continue;
+              const photoUrl = String(data.message).trim();
+              if (photoUrl && /^https?:\/\//.test(photoUrl)) newUrls.push(photoUrl);
+            } catch (_) {}
+          }
+          // Dedupe + add only new
+          const current = state.remotePhotoUrls || [];
+          const seen = new Set(current);
+          const additions = [];
+          for (const u of newUrls) {
+            if (!seen.has(u)) { additions.push(u); seen.add(u); }
+          }
+          if (additions.length > 0) {
+            state.remotePhotoUrls = [...current, ...additions];
+            render();
+            showToast(`📱 Получена ${additions.length === 1 ? "нова снимка" : additions.length + " нови снимки"} от телефон.`);
+          }
+          // Status: connected, showing count
+          updatePhonePollStatus(
+            (state.remotePhotoUrls && state.remotePhotoUrls.length > 0)
+              ? `🟢 Получени ${state.remotePhotoUrls.length} снимки от телефон`
+              : "🟢 Слушане за снимки от телефон…",
+            "ok"
+          );
+        } catch (err) {
+          console.warn("[ntfy] poll error:", err);
+          updatePhonePollStatus("Мрежова грешка към ntfy.sh: " + (err && err.message ? err.message : err), "error");
+        } finally {
+          _phonePollBusy = false;
         }
       }
 
       async function notifyPCOfPhoto(photoUrl) {
         if (!state.pcSessionId || !photoUrl) return;
         const topic = "cg-photos-" + state.pcSessionId;
+        const url = NTFY_BASE + "/" + encodeURIComponent(topic);
+        console.log("[ntfy] publishing photo URL to", topic);
         try {
-          await fetch(NTFY_BASE + "/" + encodeURIComponent(topic), {
-            method: "POST",
-            body: photoUrl,
-          });
-        } catch (_) { /* best effort */ }
+          const res = await fetch(url, { method: "POST", body: photoUrl });
+          if (!res.ok) console.warn("[ntfy] publish failed: HTTP " + res.status);
+        } catch (err) {
+          console.warn("[ntfy] publish error:", err);
+        }
       }
 
-      function updatePhonePollStatus(msg) {
+      function updatePhonePollStatus(msg, kind) {
         const prev = state.phonePhotoPollError || "";
         if (msg === prev) return;
-        state.phonePhotoPollError = msg;
+        state.phonePhotoPollError = msg || "";
         const el = document.getElementById("phone-photo-poll-status");
         if (el) {
           if (msg) {
-            el.textContent = "⚠ " + msg;
-            el.style.color = "#f59e0b";
+            const color = kind === "ok" ? "#10b981" : (kind === "info" ? "#888" : "#f59e0b");
+            el.textContent = msg;
+            el.style.color = color;
             el.style.display = "";
           } else {
             el.textContent = "";
