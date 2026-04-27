@@ -1396,18 +1396,33 @@
 
       async function acquireLock(type, location, sessionId) {
         if (!isSheetsConfigured()) return { success: true };
-        try {
-          const res = await fetch(SHEETS_WEB_APP_URL, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=UTF-8" },
-            body: JSON.stringify({ action: "acquireLock", type, location, sessionId, _token: SHEETS_SECRET_TOKEN }),
-          });
-          if (!res.ok) return { success: true, offline: true };
-          try { return await res.json(); } catch (_) { return { success: true, offline: true }; }
-        } catch (err) {
-          console.warn("[Lock] acquireLock failed:", err.message);
-          return { success: true, offline: true };
+        const MAX_ATTEMPTS = 4;
+        const BACKOFF_MS = [0, 1500, 3500, 7000];
+        let lastResult = null;
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+          if (attempt > 0) await new Promise(r => setTimeout(r, BACKOFF_MS[attempt]));
+          try {
+            const res = await fetch(SHEETS_WEB_APP_URL, {
+              method: "POST",
+              headers: { "Content-Type": "text/plain;charset=UTF-8" },
+              body: JSON.stringify({ action: "acquireLock", type, location, sessionId, _token: SHEETS_SECRET_TOKEN }),
+            });
+            if (!res.ok) { lastResult = { success: true, offline: true }; continue; }
+            try {
+              const result = await res.json();
+              // Retry only on the transient "Сървърът е зает" path; honor real-locked / success immediately
+              if (result && result.success === false && /зает|busy/i.test(result.error || "") && !result.locked) {
+                lastResult = result;
+                continue;
+              }
+              return result;
+            } catch (_) { return { success: true, offline: true }; }
+          } catch (err) {
+            console.warn("[Lock] acquireLock attempt " + (attempt + 1) + " failed:", err.message);
+            lastResult = { success: true, offline: true };
+          }
         }
+        return lastResult || { success: false, error: "Сървърът е зает. Опитайте отново след минута." };
       }
 
       async function releaseLock(sessionId) {
