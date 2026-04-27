@@ -2117,7 +2117,7 @@
 
       let _lastUploadError = "";
 
-      async function uploadOnePhoto_(file, indexLabel) {
+      async function uploadOnePhoto_(fileOrDataUrl, indexLabel) {
         _lastUploadError = "";
         const isPhoneScreen = state.screen === "phone-photo-upload";
         const reportErr = (msg) => {
@@ -2131,103 +2131,103 @@
           reportErr("SHEETS_WEB_APP_URL не е конфигуриран:\n" + SHEETS_WEB_APP_URL);
           return null;
         }
-        return new Promise((resolve) => {
-          try {
-            const reader = new FileReader();
-            reader.onerror = () => {
-              reportErr(`Грешка при четене на файла ${indexLabel}`);
-              resolve(null);
-            };
-            reader.onload = async (event) => {
-              try {
-                const base64Data = event.target.result.split(',')[1];
-                if (!base64Data || base64Data.length === 0) {
-                  reportErr(`Файлът ${indexLabel} е празен или невалиден`);
-                  resolve(null);
-                  return;
-                }
 
-                const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -4);
-                const safeLoc = String(state.location || "unknown").replace(/\s+/g, "_");
-                const fileNameSafe = `photo_${timestamp}_${safeLoc}_${indexLabel}.jpg`;
-                const payload = JSON.stringify({
-                  action: "uploadPhoto",
-                  photoData: base64Data,
-                  fileName: fileNameSafe,
-                  comment: state.notes,
-                  location: state.location,
-                  inspector: state.inspector,
-                  timestamp: new Date().toISOString(),
-                  pcSessionId: state.pcSessionId || "",
-                  _token: SHEETS_SECRET_TOKEN,
-                });
-
-                if (isPhoneScreen) setPhonePhotoStatus(`Изпращам снимка ${indexLabel} към Google Drive (${Math.round(base64Data.length / 1024)} KB)…`, "info");
-
-                let response;
-                try {
-                  response = await fetch(SHEETS_WEB_APP_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain;charset=UTF-8" },
-                    body: payload,
-                    redirect: "follow",
-                  });
-                } catch (netErr) {
-                  reportErr(`Мрежова грешка при качване ${indexLabel}: ` + (netErr && netErr.message ? netErr.message : netErr));
-                  resolve(null);
-                  return;
-                }
-
-                const rawText = await response.text();
-                if (!response.ok) {
-                  reportErr(`Apps Script HTTP ${response.status} (снимка ${indexLabel}). Отговор: ${rawText.substring(0, 200)}`);
-                  try { localStorage.setItem("cg_last_photo_error", "HTTP " + response.status + " — " + rawText.substring(0, 1000)); } catch(_) {}
-                  resolve(null);
-                  return;
-                }
-
-                let result;
-                try {
-                  result = JSON.parse(rawText);
-                } catch (parseErr) {
-                  reportErr(`Apps Script върна невалиден отговор (не е JSON). Деплойнат ли е като 'Anyone'? Начало: ${rawText.substring(0, 200)}`);
-                  try { localStorage.setItem("cg_last_photo_error", "Non-JSON response: " + rawText.substring(0, 1000)); } catch(_) {}
-                  resolve(null);
-                  return;
-                }
-
-                if (result && result.success && result.photoUrl) {
-                  try { localStorage.setItem("cg_last_photo_error", ""); } catch(_) {}
-                  // Live-sync to PC if there's an active pcSessionId (phone QR flow)
-                  if (state.pcSessionId) {
-                    if (isPhoneScreen) setPhonePhotoStatus(`Снимка ${indexLabel} качена. Изпращам сигнал към PC…`, "info");
-                    try {
-                      const r = await fetch(NTFY_BASE + "/" + encodeURIComponent("cg-photos-" + state.pcSessionId), {
-                        method: "POST",
-                        body: result.photoUrl,
-                      });
-                      if (!r.ok) _lastUploadError = `ntfy.sh HTTP ${r.status} (снимка ${indexLabel})`;
-                    } catch (e) {
-                      _lastUploadError = `ntfy.sh: ${e && e.message ? e.message : e}`;
-                    }
-                  }
-                  resolve(result.photoUrl);
-                  return;
-                }
-                reportErr(`Backend отказа качването ${indexLabel}: ` + (result && result.error ? result.error : "неизвестна грешка"));
-                try { localStorage.setItem("cg_last_photo_error", "Backend error: " + rawText.substring(0, 1000)); } catch(_) {}
-                resolve(null);
-              } catch (innerErr) {
-                reportErr(`Вътрешна грешка при качване ${indexLabel}: ` + (innerErr && innerErr.message ? innerErr.message : innerErr));
-                resolve(null);
-              }
-            };
-            reader.readAsDataURL(file);
-          } catch (err) {
-            reportErr(`Грешка при подготовка на снимка ${indexLabel}: ` + (err && err.message ? err.message : err));
-            resolve(null);
+        // Resolve to base64 — accept either a data URL string (already loaded
+        // by handlePhotoSelect into state.photoPreviews) or a File object.
+        let base64Data, fileNameHint;
+        try {
+          if (typeof fileOrDataUrl === "string" && fileOrDataUrl.startsWith("data:")) {
+            base64Data = fileOrDataUrl.split(",")[1] || "";
+            fileNameHint = "photo";
+          } else if (fileOrDataUrl instanceof Blob || (fileOrDataUrl && typeof fileOrDataUrl === "object" && fileOrDataUrl.size)) {
+            base64Data = await new Promise((res, rej) => {
+              const reader = new FileReader();
+              reader.onload = (ev) => res(String(ev.target.result || "").split(",")[1] || "");
+              reader.onerror = () => rej(new Error("FileReader failed"));
+              reader.readAsDataURL(fileOrDataUrl);
+            });
+            fileNameHint = (fileOrDataUrl.name || "photo").replace(/[^a-zA-Z0-9._-]/g, "_");
+          } else {
+            reportErr(`Невалиден формат на снимка ${indexLabel}`);
+            return null;
           }
+        } catch (e) {
+          reportErr(`Грешка при четене на файла ${indexLabel}: ${e && e.message ? e.message : e}`);
+          return null;
+        }
+
+        if (!base64Data || base64Data.length === 0) {
+          reportErr(`Файлът ${indexLabel} е празен или невалиден`);
+          return null;
+        }
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -4);
+        const safeLoc = String(state.location || "unknown").replace(/\s+/g, "_");
+        const fileNameSafe = `photo_${timestamp}_${safeLoc}_${indexLabel}.jpg`;
+        const payload = JSON.stringify({
+          action: "uploadPhoto",
+          photoData: base64Data,
+          fileName: fileNameSafe,
+          comment: state.notes,
+          location: state.location,
+          inspector: state.inspector,
+          timestamp: new Date().toISOString(),
+          pcSessionId: state.pcSessionId || "",
+          _token: SHEETS_SECRET_TOKEN,
         });
+
+        if (isPhoneScreen) setPhonePhotoStatus(`Изпращам снимка ${indexLabel} към Google Drive (${Math.round(base64Data.length / 1024)} KB)…`, "info");
+
+        let response;
+        try {
+          response = await fetch(SHEETS_WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            body: payload,
+            redirect: "follow",
+          });
+        } catch (netErr) {
+          reportErr(`Мрежова грешка при качване ${indexLabel}: ` + (netErr && netErr.message ? netErr.message : netErr));
+          return null;
+        }
+
+        const rawText = await response.text();
+        if (!response.ok) {
+          reportErr(`Apps Script HTTP ${response.status} (снимка ${indexLabel}). Отговор: ${rawText.substring(0, 200)}`);
+          try { localStorage.setItem("cg_last_photo_error", "HTTP " + response.status + " — " + rawText.substring(0, 1000)); } catch(_) {}
+          return null;
+        }
+
+        let result;
+        try {
+          result = JSON.parse(rawText);
+        } catch (parseErr) {
+          reportErr(`Apps Script върна невалиден отговор (не е JSON). Деплойнат ли е като 'Anyone'? Начало: ${rawText.substring(0, 200)}`);
+          try { localStorage.setItem("cg_last_photo_error", "Non-JSON response: " + rawText.substring(0, 1000)); } catch(_) {}
+          return null;
+        }
+
+        if (result && result.success && result.photoUrl) {
+          try { localStorage.setItem("cg_last_photo_error", ""); } catch(_) {}
+          // Live-sync to PC if there's an active pcSessionId (phone QR flow)
+          if (state.pcSessionId) {
+            if (isPhoneScreen) setPhonePhotoStatus(`Снимка ${indexLabel} качена. Изпращам сигнал към PC…`, "info");
+            try {
+              const r = await fetch(NTFY_BASE + "/" + encodeURIComponent("cg-photos-" + state.pcSessionId), {
+                method: "POST",
+                body: result.photoUrl,
+              });
+              if (!r.ok) _lastUploadError = `ntfy.sh HTTP ${r.status} (снимка ${indexLabel})`;
+            } catch (e) {
+              _lastUploadError = `ntfy.sh: ${e && e.message ? e.message : e}`;
+            }
+          }
+          return result.photoUrl;
+        }
+
+        reportErr(`Backend отказа качването ${indexLabel}: ` + (result && result.error ? result.error : "неизвестна грешка"));
+        try { localStorage.setItem("cg_last_photo_error", "Backend error: " + rawText.substring(0, 1000)); } catch(_) {}
+        return null;
       }
 
       async function uploadAllPhotos() {
@@ -3491,6 +3491,17 @@
         state.phonePhotoUploaded = 0;
         setPhonePhotoStatus("Започва качване…", "info");
 
+        // Warm-up fetch — на iOS Safari/Chrome първото POST повикване след
+        // изтичането на user-gesture-а понякога мълчи. Кратък fetch към ntfy
+        // веднага след клика гарантира че мрежовият стак е жив.
+        try {
+          await fetch(NTFY_BASE + "/" + encodeURIComponent("cg-photos-" + state.pcSessionId), {
+            method: "POST",
+            body: "warmup-" + Date.now(),
+            keepalive: true,
+          });
+        } catch (_) { /* best effort */ }
+
         try {
           // Use the location/inspector from URL params for the upload metadata
           const savedLoc = state.location;
@@ -3504,7 +3515,10 @@
           for (let i = 0; i < state.photoFiles.length; i++) {
             const label = `${i + 1}/${state.photoFiles.length}`;
             setPhonePhotoStatus(`Качвам снимка ${label} към Google Drive…`, "info");
-            const url = await uploadOnePhoto_(state.photoFiles[i], label);
+            // Pass already-loaded data URL (from preview) to avoid a second
+            // FileReader pass that would lose user-gesture activation on iOS.
+            const photoSource = (state.photoPreviews && state.photoPreviews[i]) || state.photoFiles[i];
+            const url = await uploadOnePhoto_(photoSource, label);
             if (url) {
               uploaded++;
             } else {
