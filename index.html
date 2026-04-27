@@ -1657,6 +1657,8 @@
         phonePhotoDone: false,
         phonePhotoUploaded: 0,
         phonePhotoTotal: 0,
+        phonePhotoPollStatus: "",
+        phonePhotoPollError: "",
         deletePass: "",
         deleteErr: "",
         showPassword: false,
@@ -1971,11 +1973,29 @@
             body: payload,
             redirect: "follow",
           });
-          if (!response.ok) return;
-          const result = await response.json();
-          if (!result || !result.success) return;
+          const rawText = await response.text();
+          if (!response.ok) {
+            updatePhonePollStatus(`HTTP ${response.status} от Apps Script. Re-deploy.`);
+            return;
+          }
+          let result;
+          try { result = JSON.parse(rawText); }
+          catch (_) {
+            updatePhonePollStatus("Invalid response (не е JSON). Re-deploy Apps Script.");
+            return;
+          }
+          if (!result || !result.success) {
+            const errMsg = (result && result.error) ? result.error : "unknown";
+            // Common case: stale Apps Script doesn't recognise the action and falls
+            // through to the inspection-write branch which throws on missing record.
+            const isStale = /undefined|record|action|cannot/i.test(errMsg);
+            updatePhonePollStatus(isStale
+              ? "⚠ Apps Script е стар (нямa getPhotosBySession). Re-deploy задължителен."
+              : `Apps Script грешка: ${errMsg}`);
+            return;
+          }
+          updatePhonePollStatus(""); // clear error if previously set
           const newUrls = (result.photos || []).map(p => p.url).filter(Boolean);
-          // Only re-render if the set actually changed (avoid input-loss re-renders)
           const current = state.remotePhotoUrls || [];
           const changed = newUrls.length !== current.length || newUrls.some((u, i) => u !== current[i]);
           if (changed) {
@@ -1986,10 +2006,28 @@
               showToast(`📱 Получени са ${added} нови снимки от телефон.`);
             }
           }
-        } catch (_) {
-          /* silent — next poll will retry */
+        } catch (err) {
+          updatePhonePollStatus("Мрежова грешка при polling: " + (err && err.message ? err.message : err));
         } finally {
           _phonePollBusy = false;
+        }
+      }
+
+      function updatePhonePollStatus(msg) {
+        const prev = state.phonePhotoPollError || "";
+        if (msg === prev) return;
+        state.phonePhotoPollError = msg;
+        // Update only the small status DOM node, no full re-render (avoids input loss)
+        const el = document.getElementById("phone-photo-poll-status");
+        if (el) {
+          if (msg) {
+            el.textContent = "⚠ " + msg;
+            el.style.color = "#f59e0b";
+            el.style.display = "";
+          } else {
+            el.textContent = "";
+            el.style.display = "none";
+          }
         }
       }
 
@@ -3244,6 +3282,7 @@
               <input type="file" id="photo-input" accept="image/jpeg,image/png,image/webp" multiple />
               <div style="font-size:11px;color:#888;margin-top:4px;">Може да изберете от 1 до 5 снимки наведнъж (Ctrl/Cmd + клик за избор на повече).</div>
               <button type="button" class="btn btn-outline" data-action="open-phone-photo-qr" style="margin-top:10px;width:100%;padding:10px;font-size:14px;">📱 Качи снимки от телефон (QR код)</button>
+              <div id="phone-photo-poll-status" style="font-size:12px;margin-top:6px;color:#f59e0b;display:${state.phonePhotoPollError ? '' : 'none'};">${state.phonePhotoPollError ? "⚠ " + escapeHtml(state.phonePhotoPollError) : ""}</div>
               ${state.photoError ? `<div style="color:var(--red);font-size:12px;margin-top:6px;">${escapeHtml(state.photoError)}</div>` : ""}
               ${state.photoPreviews.length > 0 ? `<div style="margin-top:12px;padding:12px;background:rgba(255,255,255,.05);border-radius:12px;border:1px solid rgba(255,255,255,.1);">
                 <div style="font-size:12px;color:#888;margin-bottom:8px;">Преглед на снимки от PC (${state.photoPreviews.length}):</div>
