@@ -1933,91 +1933,71 @@
         }
       }
 
-      /* ── Phone-photo polling: PC pulls phone-uploaded photos by pcSessionId ── */
-      let _phonePollTimer = null;
-      let _phonePollBusy = false;
-      const PHONE_POLL_INTERVAL_MS = 4000;
+      /* ── Phone-photo live sync via ntfy.sh (no backend redeploy needed) ──
+         PC subscribes to ntfy.sh/<topic> via SSE; phone POSTs each uploaded
+         photo URL to the same topic. Topic = "cg-photos-{pcSessionId}". */
+      const NTFY_BASE = "https://ntfy.sh";
+      let _phoneSseSource = null;
+      let _phoneSseRetryTimer = null;
 
       function startPhonePhotoPolling() {
         stopPhonePhotoPolling();
         if (!state.pcSessionId) {
           state.pcSessionId = "pcs_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
         }
-        _phonePollTimer = setInterval(pollPhonePhotosOnce, PHONE_POLL_INTERVAL_MS);
-        pollPhonePhotosOnce(); // immediate first poll
+        const topic = "cg-photos-" + state.pcSessionId;
+        const url = NTFY_BASE + "/" + encodeURIComponent(topic) + "/sse?since=all";
+        try {
+          _phoneSseSource = new EventSource(url);
+          _phoneSseSource.onopen = () => updatePhonePollStatus("");
+          _phoneSseSource.onmessage = (e) => {
+            try {
+              const data = JSON.parse(e.data);
+              if (!data || data.event !== "message" || !data.message) return;
+              const photoUrl = String(data.message).trim();
+              if (!photoUrl || !/^https?:\/\//.test(photoUrl)) return;
+              const current = state.remotePhotoUrls || [];
+              if (current.indexOf(photoUrl) !== -1) return;
+              state.remotePhotoUrls = [...current, photoUrl];
+              render();
+              showToast("📱 Получена нова снимка от телефон.");
+            } catch (_) {}
+          };
+          _phoneSseSource.onerror = () => {
+            // Browser auto-reconnects; surface a soft warning if we never get open
+            updatePhonePollStatus("Връзката с ntfy.sh е прекъсната — опитвам пак…");
+          };
+        } catch (err) {
+          updatePhonePollStatus("Не мога да отворя SSE: " + (err && err.message ? err.message : err));
+        }
       }
 
       function stopPhonePhotoPolling() {
-        if (_phonePollTimer) {
-          clearInterval(_phonePollTimer);
-          _phonePollTimer = null;
+        if (_phoneSseSource) {
+          try { _phoneSseSource.close(); } catch (_) {}
+          _phoneSseSource = null;
         }
-        _phonePollBusy = false;
+        if (_phoneSseRetryTimer) {
+          clearTimeout(_phoneSseRetryTimer);
+          _phoneSseRetryTimer = null;
+        }
       }
 
-      async function pollPhonePhotosOnce() {
-        if (_phonePollBusy) return;
-        if (!state.pcSessionId) return;
-        if (state.screen !== "inspection") { stopPhonePhotoPolling(); return; }
-        if (!SHEETS_WEB_APP_URL || SHEETS_WEB_APP_URL.indexOf("script.google.com") === -1) return;
-        _phonePollBusy = true;
+      async function notifyPCOfPhoto(photoUrl) {
+        if (!state.pcSessionId || !photoUrl) return;
+        const topic = "cg-photos-" + state.pcSessionId;
         try {
-          const payload = JSON.stringify({
-            action: "getPhotosBySession",
-            pcSessionId: state.pcSessionId,
-            _token: SHEETS_SECRET_TOKEN,
-          });
-          const response = await fetch(SHEETS_WEB_APP_URL, {
+          await fetch(NTFY_BASE + "/" + encodeURIComponent(topic), {
             method: "POST",
-            headers: { "Content-Type": "text/plain;charset=UTF-8" },
-            body: payload,
-            redirect: "follow",
+            body: photoUrl,
           });
-          const rawText = await response.text();
-          if (!response.ok) {
-            updatePhonePollStatus(`HTTP ${response.status} от Apps Script. Re-deploy.`);
-            return;
-          }
-          let result;
-          try { result = JSON.parse(rawText); }
-          catch (_) {
-            updatePhonePollStatus("Invalid response (не е JSON). Re-deploy Apps Script.");
-            return;
-          }
-          if (!result || !result.success) {
-            const errMsg = (result && result.error) ? result.error : "unknown";
-            // Common case: stale Apps Script doesn't recognise the action and falls
-            // through to the inspection-write branch which throws on missing record.
-            const isStale = /undefined|record|action|cannot/i.test(errMsg);
-            updatePhonePollStatus(isStale
-              ? "⚠ Apps Script е стар (нямa getPhotosBySession). Re-deploy задължителен."
-              : `Apps Script грешка: ${errMsg}`);
-            return;
-          }
-          updatePhonePollStatus(""); // clear error if previously set
-          const newUrls = (result.photos || []).map(p => p.url).filter(Boolean);
-          const current = state.remotePhotoUrls || [];
-          const changed = newUrls.length !== current.length || newUrls.some((u, i) => u !== current[i]);
-          if (changed) {
-            state.remotePhotoUrls = newUrls;
-            render();
-            if (newUrls.length > current.length) {
-              const added = newUrls.length - current.length;
-              showToast(`📱 Получени са ${added} нови снимки от телефон.`);
-            }
-          }
-        } catch (err) {
-          updatePhonePollStatus("Мрежова грешка при polling: " + (err && err.message ? err.message : err));
-        } finally {
-          _phonePollBusy = false;
-        }
+        } catch (_) { /* best effort */ }
       }
 
       function updatePhonePollStatus(msg) {
         const prev = state.phonePhotoPollError || "";
         if (msg === prev) return;
         state.phonePhotoPollError = msg;
-        // Update only the small status DOM node, no full re-render (avoids input loss)
         const el = document.getElementById("phone-photo-poll-status");
         if (el) {
           if (msg) {
@@ -2156,6 +2136,10 @@
 
                 if (result && result.success && result.photoUrl) {
                   try { localStorage.setItem("cg_last_photo_error", ""); } catch(_) {}
+                  // Live-sync to PC if there's an active pcSessionId (phone QR flow)
+                  if (state.pcSessionId) {
+                    notifyPCOfPhoto(result.photoUrl).catch(() => {});
+                  }
                   resolve(result.photoUrl);
                   return;
                 }
