@@ -1674,6 +1674,8 @@
         phonePhotoTotal: 0,
         phonePhotoPollStatus: "",
         phonePhotoPollError: "",
+        phonePhotoStatus: "",
+        phonePhotoStatusKind: "",
         deletePass: "",
         deleteErr: "",
         showPassword: false,
@@ -3425,26 +3427,47 @@
             <div style="font-size:14px;">Качване… ${uploadedCount}/${totalCount}</div>
           </div>` : ""}
 
+          ${state.phonePhotoStatus ? `<div class="panel" style="margin-bottom:16px;background:${state.phonePhotoStatusKind === 'error' ? 'rgba(239,68,68,.1)' : 'rgba(16,185,129,.1)'};border:1px solid ${state.phonePhotoStatusKind === 'error' ? 'rgba(239,68,68,.3)' : 'rgba(16,185,129,.3)'};">
+            <div style="font-size:13px;color:${state.phonePhotoStatusKind === 'error' ? '#fca5a5' : '#10b981'};white-space:pre-wrap;">${escapeHtml(state.phonePhotoStatus)}</div>
+          </div>` : ""}
+
           <button class="btn btn-gold" data-action="submit-phone-photos" style="width:100%;padding:16px;font-size:16px;" ${state.photoFiles.length === 0 || state.notes.length < 20 || isUploading ? "disabled" : ""}>
             ${isUploading ? "Качване…" : (state.photoFiles.length === 0 ? "Изберете снимки" : `Качи ${state.photoFiles.length} снимки`)}
           </button>
+
+          <button type="button" class="btn btn-outline" data-action="phone-test-ntfy" style="width:100%;padding:10px;font-size:13px;margin-top:10px;">🧪 Тест: изпрати сигнал към PC</button>
+
+          <div style="margin-top:14px;padding:10px;background:rgba(255,255,255,.04);border-radius:8px;font-size:11px;color:#888;font-family:monospace;word-break:break-all;">
+            PC сесия: ${state.pcSessionId ? escapeHtml(state.pcSessionId) : '<span style="color:#fca5a5;">⚠ ЛИПСВА — QR кодът няма sid параметър</span>'}
+          </div>
         </div>`;
       }
 
+      function setPhonePhotoStatus(msg, kind) {
+        state.phonePhotoStatus = msg || "";
+        state.phonePhotoStatusKind = kind || "info";
+        render();
+      }
+
       async function submitPhonePhotos() {
+        console.log("[phone] submitPhonePhotos called");
         if (state.phonePhotoBusy) return;
         if (state.photoFiles.length === 0) {
-          showToast("Изберете поне една снимка.", "error");
+          setPhonePhotoStatus("Изберете поне една снимка.", "error");
           return;
         }
         if (state.notes.length < 20) {
-          showToast("Коментарът трябва да съдържа поне 20 символа.", "error");
+          setPhonePhotoStatus("Коментарът трябва да съдържа поне 20 символа.", "error");
+          return;
+        }
+        if (!state.pcSessionId) {
+          setPhonePhotoStatus("⚠ ЛИПСВА PC сесия — сканирай QR кода отново от компютъра.", "error");
           return;
         }
         state.phonePhotoBusy = true;
         state.phonePhotoTotal = state.photoFiles.length;
         state.phonePhotoUploaded = 0;
-        render();
+        setPhonePhotoStatus("Започва качване…", "info");
 
         try {
           // Use the location/inspector from URL params for the upload metadata
@@ -3454,10 +3477,30 @@
           state.inspector = state.phonePhotoInspector || state.inspector || "";
 
           let uploaded = 0;
+          let failed = 0;
+          let lastError = "";
           for (let i = 0; i < state.photoFiles.length; i++) {
             const label = `${i + 1}/${state.photoFiles.length}`;
+            setPhonePhotoStatus(`Качвам снимка ${label} към Google Drive…`, "info");
             const url = await uploadOnePhoto_(state.photoFiles[i], label);
-            if (url) uploaded++;
+            if (url) {
+              uploaded++;
+              setPhonePhotoStatus(`Снимка ${label} качена. Изпращам сигнал към PC…`, "info");
+              // notifyPCOfPhoto is also called inside uploadOnePhoto_, but call again
+              // explicitly so we can surface errors.
+              try {
+                const r = await fetch(NTFY_BASE + "/" + encodeURIComponent("cg-photos-" + state.pcSessionId), {
+                  method: "POST",
+                  body: url,
+                });
+                if (!r.ok) lastError = "ntfy.sh HTTP " + r.status;
+              } catch (e) {
+                lastError = "ntfy.sh: " + (e && e.message ? e.message : e);
+              }
+            } else {
+              failed++;
+              lastError = lastError || "Качването не върна URL (виж alert-а).";
+            }
             state.phonePhotoUploaded = uploaded;
             render();
           }
@@ -3466,7 +3509,14 @@
           state.inspector = savedInspector;
 
           state.phonePhotoBusy = false;
-          state.phonePhotoDone = true;
+          state.phonePhotoDone = (uploaded > 0 && failed === 0 && !lastError);
+          if (state.phonePhotoDone) {
+            setPhonePhotoStatus(`✅ Всички ${uploaded} снимки са качени и пратени към PC.`, "info");
+          } else if (uploaded > 0) {
+            setPhonePhotoStatus(`Качени ${uploaded}/${state.photoFiles.length} снимки. Грешка: ${lastError || "неизвестна"}`, "error");
+          } else {
+            setPhonePhotoStatus(`Не успях да кача нито една снимка. ${lastError || ""}`, "error");
+          }
           render();
         } catch (err) {
           state.phonePhotoBusy = false;
@@ -4434,6 +4484,28 @@
 
         /* Phone-photo screen submit */
         if (action === "submit-phone-photos") { submitPhonePhotos(); return; }
+        if (action === "phone-test-ntfy") {
+          if (!state.pcSessionId) {
+            setPhonePhotoStatus("⚠ Няма PC сесия — сканирай QR-а отново.", "error");
+            return;
+          }
+          setPhonePhotoStatus("Изпращам тестов сигнал към PC…", "info");
+          try {
+            const testUrl = "https://drive.google.com/test-" + Date.now();
+            const r = await fetch(NTFY_BASE + "/" + encodeURIComponent("cg-photos-" + state.pcSessionId), {
+              method: "POST",
+              body: testUrl,
+            });
+            if (r.ok) {
+              setPhonePhotoStatus(`✅ Тестов сигнал изпратен. Виж дали се появи на PC в зеления панел (като "test-${Date.now()}"). Ако да — ntfy работи.`, "info");
+            } else {
+              setPhonePhotoStatus(`❌ ntfy.sh върна HTTP ${r.status}.`, "error");
+            }
+          } catch (e) {
+            setPhonePhotoStatus(`❌ Не мога да достигна ntfy.sh: ${e && e.message ? e.message : e}`, "error");
+          }
+          return;
+        }
         if (action === "phone-photo-reset") {
           state.photoFiles = [];
           state.photoPreviews = [];
@@ -4443,6 +4515,8 @@
           state.phonePhotoBusy = false;
           state.phonePhotoUploaded = 0;
           state.phonePhotoTotal = 0;
+          state.phonePhotoStatus = "";
+          state.phonePhotoStatusKind = "";
           render();
           return;
         }
