@@ -2226,23 +2226,42 @@
 
         if (isPhoneScreen) setPhonePhotoStatus(`Изпращам снимка ${indexLabel} към Google Drive (${Math.round(base64Data.length / 1024)} KB)…`, "info");
 
-        let response;
-        try {
-          response = await fetch(SHEETS_WEB_APP_URL, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=UTF-8" },
-            body: payload,
-            redirect: "follow",
-          });
-        } catch (netErr) {
-          reportErr(`Мрежова грешка при качване ${indexLabel}: ` + (netErr && netErr.message ? netErr.message : netErr));
+        // Use XHR instead of fetch so we get upload-progress events on iOS
+        // (fetch in iOS/WKWebView silently buffers and sometimes drops large
+        // bodies; XHR has been reliable here for years).
+        const xhrResult = await new Promise((resolve) => {
+          try {
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", SHEETS_WEB_APP_URL, true);
+            xhr.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
+            xhr.timeout = 90000;
+            xhr.upload.onprogress = (e) => {
+              if (!isPhoneScreen || !e.lengthComputable) return;
+              const pct = Math.round((e.loaded / e.total) * 100);
+              const kb = Math.round(e.loaded / 1024);
+              const total = Math.round(e.total / 1024);
+              setPhonePhotoStatus(`Качвам снимка ${indexLabel}: ${pct}% (${kb}/${total} KB)…`, "info");
+            };
+            xhr.onload = () => {
+              if (isPhoneScreen) setPhonePhotoStatus(`Снимка ${indexLabel} изпратена, чакам отговор от Apps Script…`, "info");
+              resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, text: xhr.responseText || "" });
+            };
+            xhr.onerror = () => resolve({ ok: false, status: 0, text: "", err: "XHR network error" });
+            xhr.ontimeout = () => resolve({ ok: false, status: 0, text: "", err: "Timeout (>90s)" });
+            xhr.send(payload);
+          } catch (e) {
+            resolve({ ok: false, status: 0, text: "", err: (e && e.message) ? e.message : String(e) });
+          }
+        });
+
+        if (xhrResult.err) {
+          reportErr(`Мрежова грешка при качване ${indexLabel}: ${xhrResult.err}`);
           return null;
         }
-
-        const rawText = await response.text();
-        if (!response.ok) {
-          reportErr(`Apps Script HTTP ${response.status} (снимка ${indexLabel}). Отговор: ${rawText.substring(0, 200)}`);
-          try { localStorage.setItem("cg_last_photo_error", "HTTP " + response.status + " — " + rawText.substring(0, 1000)); } catch(_) {}
+        const rawText = xhrResult.text;
+        if (!xhrResult.ok) {
+          reportErr(`Apps Script HTTP ${xhrResult.status} (снимка ${indexLabel}). Отговор: ${rawText.substring(0, 200)}`);
+          try { localStorage.setItem("cg_last_photo_error", "HTTP " + xhrResult.status + " — " + rawText.substring(0, 1000)); } catch(_) {}
           return null;
         }
 
@@ -3540,16 +3559,13 @@
         state.phonePhotoUploaded = 0;
         setPhonePhotoStatus("Започва качване…", "info");
 
-        // Warm-up fetch — на iOS Safari/Chrome първото POST повикване след
-        // изтичането на user-gesture-а понякога мълчи. Кратък fetch към ntfy
-        // веднага след клика гарантира че мрежовият стак е жив.
-        try {
-          await fetch(NTFY_BASE + "/" + encodeURIComponent("cg-photos-" + state.pcSessionId), {
-            method: "POST",
-            body: "warmup-" + Date.now(),
-            keepalive: true,
-          });
-        } catch (_) { /* best effort */ }
+        // Fire-and-forget warmup (NO await) so the very next request below
+        // still runs inside iOS's user-activation window.
+        if (state.pcSessionId) {
+          fetch(NTFY_BASE + "/" + encodeURIComponent("cg-photos-" + state.pcSessionId), {
+            method: "POST", body: "warmup-" + Date.now(), keepalive: true,
+          }).catch(() => {});
+        }
 
         try {
           // Use the location/inspector from URL params for the upload metadata
