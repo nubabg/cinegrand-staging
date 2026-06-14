@@ -1955,7 +1955,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.06.14-10:05 (no-recursion)";
+      const BUILD_VERSION = "v.2026.06.14-10:15 (fetch+ITP)";
       const NTFY_POLL_INTERVAL_MS = 3500;
       let _phonePollTimer = null;
       let _phonePollBusy = false;
@@ -2225,44 +2225,65 @@
           _token: SHEETS_SECRET_TOKEN,
         });
 
+        if (isPhoneScreen) setPhonePhotoStatus(`Подготвям връзката към Apps Script…`, "info");
+
+        // Warm up the Apps Script connection RIGHT before the upload so iOS
+        // has a live cellular/wifi connection and won't bail with "network
+        // error" on the redirected POST. We deliberately await this — the
+        // upload that follows is the network-critical call.
+        try {
+          await fetch(SHEETS_WEB_APP_URL, { method: "GET", credentials: "omit", cache: "no-store" });
+        } catch (_) { /* ignore — even a failed warmup primes TLS/DNS */ }
+
         if (isPhoneScreen) setPhonePhotoStatus(`Изпращам снимка ${indexLabel} към Google Drive (${Math.round(base64Data.length / 1024)} KB)…`, "info");
 
-        // Use XHR instead of fetch so we get upload-progress events on iOS
-        // (fetch in iOS/WKWebView silently buffers and sometimes drops large
-        // bodies; XHR has been reliable here for years).
-        const xhrResult = await new Promise((resolve) => {
-          try {
-            const xhr = new XMLHttpRequest();
-            xhr.open("POST", SHEETS_WEB_APP_URL, true);
-            xhr.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
-            xhr.timeout = 90000;
-            xhr.upload.onprogress = (e) => {
-              if (!isPhoneScreen || !e.lengthComputable) return;
-              const pct = Math.round((e.loaded / e.total) * 100);
-              const kb = Math.round(e.loaded / 1024);
-              const total = Math.round(e.total / 1024);
-              setPhonePhotoStatus(`Качвам снимка ${indexLabel}: ${pct}% (${kb}/${total} KB)…`, "info");
-            };
-            xhr.onload = () => {
-              if (isPhoneScreen) setPhonePhotoStatus(`Снимка ${indexLabel} изпратена, чакам отговор от Apps Script…`, "info");
-              resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, text: xhr.responseText || "" });
-            };
-            xhr.onerror = () => resolve({ ok: false, status: 0, text: "", err: "XHR network error" });
-            xhr.ontimeout = () => resolve({ ok: false, status: 0, text: "", err: "Timeout (>90s)" });
-            xhr.send(payload);
-          } catch (e) {
-            resolve({ ok: false, status: 0, text: "", err: (e && e.message) ? e.message : String(e) });
+        // Use fetch with credentials:"omit" — iOS Safari's Intelligent
+        // Tracking Prevention can block the script.google.com →
+        // script.googleusercontent.com redirect when cookies are involved,
+        // producing the "XHR network error" we saw. Omitting credentials
+        // sidesteps that path.
+        let response;
+        try {
+          response = await fetch(SHEETS_WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            body: payload,
+            redirect: "follow",
+            credentials: "omit",
+            cache: "no-store",
+          });
+        } catch (netErr) {
+          // fetch died — fall back to XHR as a last resort
+          if (isPhoneScreen) setPhonePhotoStatus(`fetch падна (${netErr.message || netErr}), опитвам XHR…`, "info");
+          const xhrResult = await new Promise((resolve) => {
+            try {
+              const xhr = new XMLHttpRequest();
+              xhr.open("POST", SHEETS_WEB_APP_URL, true);
+              xhr.setRequestHeader("Content-Type", "text/plain;charset=UTF-8");
+              xhr.timeout = 90000;
+              xhr.onload = () => resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, text: xhr.responseText || "" });
+              xhr.onerror = () => resolve({ ok: false, status: 0, text: "", err: "XHR network error" });
+              xhr.ontimeout = () => resolve({ ok: false, status: 0, text: "", err: "Timeout (>90s)" });
+              xhr.send(payload);
+            } catch (e) {
+              resolve({ ok: false, status: 0, text: "", err: (e && e.message) ? e.message : String(e) });
+            }
+          });
+          if (xhrResult.err) {
+            reportErr(`Мрежова грешка ${indexLabel} (fetch + XHR fall back failed): ${xhrResult.err}`);
+            return null;
           }
-        });
-
-        if (xhrResult.err) {
-          reportErr(`Мрежова грешка при качване ${indexLabel}: ${xhrResult.err}`);
-          return null;
+          if (!xhrResult.ok) {
+            reportErr(`Apps Script HTTP ${xhrResult.status} (снимка ${indexLabel}). Отговор: ${xhrResult.text.substring(0, 200)}`);
+            return null;
+          }
+          response = { ok: true, status: xhrResult.status, text: () => Promise.resolve(xhrResult.text) };
         }
-        const rawText = xhrResult.text;
-        if (!xhrResult.ok) {
-          reportErr(`Apps Script HTTP ${xhrResult.status} (снимка ${indexLabel}). Отговор: ${rawText.substring(0, 200)}`);
-          try { localStorage.setItem("cg_last_photo_error", "HTTP " + xhrResult.status + " — " + rawText.substring(0, 1000)); } catch(_) {}
+
+        const rawText = typeof response.text === "function" ? await response.text() : "";
+        if (!response.ok) {
+          reportErr(`Apps Script HTTP ${response.status} (снимка ${indexLabel}). Отговор: ${rawText.substring(0, 200)}`);
+          try { localStorage.setItem("cg_last_photo_error", "HTTP " + response.status + " — " + rawText.substring(0, 1000)); } catch(_) {}
           return null;
         }
 
