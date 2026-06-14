@@ -1955,7 +1955,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.06.14-09:55 (type=button)";
+      const BUILD_VERSION = "v.2026.06.14-10:05 (no-recursion)";
       const NTFY_POLL_INTERVAL_MS = 3500;
       let _phonePollTimer = null;
       let _phonePollBusy = false;
@@ -3540,7 +3540,7 @@
           </div>` : ""}
 
           <button type="button" class="btn btn-gold" data-action="submit-phone-photos" id="yellow-upload-btn" style="width:100%;padding:16px;font-size:16px;${isUploading ? 'opacity:.6;' : ''}"
-            onclick="try{document.getElementById('phone-click-proof').textContent='⚡ КЛИК ПОЛУЧЕН '+new Date().toLocaleTimeString();}catch(_){}; try{window.submitPhonePhotos&&window.submitPhonePhotos();}catch(e){try{document.getElementById('phone-click-proof').textContent='❌ '+e.message;}catch(_){}}"
+            onclick="try{document.getElementById('phone-click-proof').textContent='⚡ КЛИК ПОЛУЧЕН '+new Date().toLocaleTimeString();}catch(_){}; try{window.cgUploadFromPhone&&window.cgUploadFromPhone();}catch(e){try{document.getElementById('phone-click-proof').textContent='❌ '+e.message;}catch(_){}}"
             ontouchend="try{document.getElementById('phone-click-proof').textContent='👆 TOUCH '+new Date().toLocaleTimeString();}catch(_){}">
             ${isUploading ? "Качване…" : (state.photoFiles.length === 0 ? "Изберете снимки" : `Качи ${state.photoFiles.length} снимки`)}
           </button>
@@ -3561,9 +3561,11 @@
         render();
       }
 
-      // Expose for inline onclick diagnostic — needed because the IIFE scope
-      // is invisible to inline handlers.
-      window.submitPhonePhotos = function () { submitPhonePhotos(); };
+      // Expose for inline onclick under a UNIQUE name so we don't collide
+      // with the original submitPhonePhotos symbol on window (which iOS
+      // Safari/JSCore was resolving to *itself* — infinite recursion → max
+      // call stack).
+      window.cgUploadFromPhone = function () { return submitPhonePhotos(); };
 
       // Update the click-proof element reference after each render so the
       // inline onclick can write to it.
