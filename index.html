@@ -1955,7 +1955,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.06.14-09:00 (beacon)";
+      const BUILD_VERSION = "v.2026.06.14-09:45 (click-proof)";
       const NTFY_POLL_INTERVAL_MS = 3500;
       let _phonePollTimer = null;
       let _phonePollBusy = false;
@@ -3539,9 +3539,11 @@
             <div style="font-size:13px;color:${state.phonePhotoStatusKind === 'error' ? '#fca5a5' : '#10b981'};white-space:pre-wrap;">${escapeHtml(state.phonePhotoStatus)}</div>
           </div>` : ""}
 
-          <button class="btn btn-gold" data-action="submit-phone-photos" style="width:100%;padding:16px;font-size:16px;" ${state.photoFiles.length === 0 || state.notes.length < 20 || isUploading ? "disabled" : ""}>
+          <button class="btn btn-gold" data-action="submit-phone-photos" id="yellow-upload-btn" style="width:100%;padding:16px;font-size:16px;" ${state.photoFiles.length === 0 || state.notes.length < 20 || isUploading ? "disabled" : ""}
+            onclick="window.__phoneClickProof && (window.__phoneClickProof.textContent='⚡ КЛИК ПОЛУЧЕН в '+new Date().toLocaleTimeString()+' — извиквам качване'); if(window.submitPhonePhotos)window.submitPhonePhotos(); else if(window.__phoneClickProof)window.__phoneClickProof.textContent='❌ submitPhonePhotos не е достъпен на window';">
             ${isUploading ? "Качване…" : (state.photoFiles.length === 0 ? "Изберете снимки" : `Качи ${state.photoFiles.length} снимки`)}
           </button>
+          <div id="phone-click-proof" style="margin-top:6px;padding:8px;background:rgba(245,158,11,.1);border:1px dashed rgba(245,158,11,.5);border-radius:6px;font-size:11px;color:#f59e0b;text-align:center;font-family:monospace;">⏳ Очаквам клик…</div>
 
           <button type="button" class="btn btn-outline" data-action="phone-test-ntfy" style="width:100%;padding:10px;font-size:13px;margin-top:10px;">🧪 Тест: изпрати сигнал към PC</button>
 
@@ -3556,6 +3558,16 @@
         state.phonePhotoStatus = msg || "";
         state.phonePhotoStatusKind = kind || "info";
         render();
+      }
+
+      // Expose for inline onclick diagnostic — needed because the IIFE scope
+      // is invisible to inline handlers.
+      window.submitPhonePhotos = function () { submitPhonePhotos(); };
+
+      // Update the click-proof element reference after each render so the
+      // inline onclick can write to it.
+      function refreshPhoneClickProofRef() {
+        window.__phoneClickProof = document.getElementById("phone-click-proof");
       }
 
       async function submitPhonePhotos() {
@@ -4155,6 +4167,7 @@
         updateModals();
         bindInputs();
         decorateHallSelectionIcons();
+        if (typeof refreshPhoneClickProofRef === "function") refreshPhoneClickProofRef();
         /* Charts: HTML визуализации (без Chart.js) — синхронно от кеш */
         if (state.screen === "charts" && _cachedChartRows && _cachedChartRows.length > 0) {
           const c = document.getElementById('charts-container');
