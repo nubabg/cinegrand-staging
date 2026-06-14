@@ -1955,7 +1955,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.06.14-10:15 (fetch+ITP)";
+      const BUILD_VERSION = "v.2026.06.14-10:35 (feature-ann)";
       const NTFY_POLL_INTERVAL_MS = 3500;
       let _phonePollTimer = null;
       let _phonePollBusy = false;
@@ -1995,13 +1995,27 @@
           const text = await res.text();
           const lines = text.split("\n").filter(Boolean);
           const newUrls = [];
+          let sawTest = false;
           for (const line of lines) {
             try {
               const data = JSON.parse(line);
               if (!data || data.event !== "message" || !data.message) continue;
               const photoUrl = String(data.message).trim();
-              if (photoUrl && /^https?:\/\//.test(photoUrl)) newUrls.push(photoUrl);
+              if (!photoUrl) continue;
+              // Detect test/warmup signals separately so we can confirm the
+              // relay is alive without showing them as fake photos.
+              if (photoUrl.indexOf("example.invalid") !== -1 || photoUrl.indexOf("/cg-test/") !== -1 || photoUrl.indexOf("warmup-") === 0) {
+                sawTest = true;
+                continue;
+              }
+              if (!/^https?:\/\//.test(photoUrl)) continue;
+              if (photoUrl.indexOf("/test-") !== -1) continue;
+              if (!/drive\.google\.com|googleusercontent\.com/.test(photoUrl)) continue;
+              newUrls.push(photoUrl);
             } catch (_) {}
+          }
+          if (sawTest) {
+            console.log("[ntfy] test signal received — relay alive");
           }
           // Dedupe + add only new
           const current = state.remotePhotoUrls || [];
@@ -2569,6 +2583,48 @@
           </div>`;
       }
 
+      /* ── Feature announcement (new phone photo upload) ── */
+      const FEATURE_ANN_KEY = "cg_feature_ann_phone_upload_v1";
+      function isFeatureAnnDismissed() {
+        try { return localStorage.getItem(FEATURE_ANN_KEY) === "1"; } catch (_) { return false; }
+      }
+      function renderFeatureAnnouncement() {
+        if (isFeatureAnnDismissed()) return "";
+        return `
+          <div style="background:linear-gradient(135deg, rgba(16,185,129,.12), rgba(96,165,250,.08));border:1px solid rgba(16,185,129,.3);border-radius:14px;padding:18px 20px;margin-bottom:18px;position:relative;overflow:hidden;">
+            <button type="button" data-action="dismiss-feature-ann" style="position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#ccc;cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;" aria-label="Затвори съобщението">✕</button>
+            <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;">
+              <div style="font-size:32px;line-height:1;flex-shrink:0;">📱📸</div>
+              <div style="flex:1;min-width:260px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                  <span style="font-size:11px;font-weight:800;letter-spacing:.14em;color:#10b981;background:rgba(16,185,129,.18);padding:2px 8px;border-radius:4px;">НОВА ФУНКЦИЯ</span>
+                </div>
+                <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px;">Качване на снимки от телефон чрез QR код</div>
+                <div style="font-size:13px;color:rgba(255,255,255,.75);line-height:1.55;margin-bottom:10px;">
+                  По време на проверка може да изпратиш снимки от телефона си директно към компютъра. Снимките се качват автоматично в Google Drive и се показват веднага на проверяващия PC, готови за финално запазване.
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;font-size:12px;color:rgba(255,255,255,.7);">
+                  <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px;border:1px solid rgba(255,255,255,.07);">
+                    <b style="color:#10b981;">1.</b> Натисни <b>„📱 Качи снимки от телефон (QR код)"</b> в зоната за снимки
+                  </div>
+                  <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px;border:1px solid rgba(255,255,255,.07);">
+                    <b style="color:#10b981;">2.</b> Сканирай QR кода с телефона си — отваря се страница за качване
+                  </div>
+                  <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px;border:1px solid rgba(255,255,255,.07);">
+                    <b style="color:#10b981;">3.</b> Избери до <b>5 снимки</b>, напиши коментар (мин. 20 символа) и качи
+                  </div>
+                  <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px;border:1px solid rgba(255,255,255,.07);">
+                    <b style="color:#10b981;">4.</b> Снимките се появяват на PC в зелен панел — продължи проверката и я запази
+                  </div>
+                </div>
+                <div style="margin-top:10px;font-size:11px;color:rgba(255,255,255,.5);">
+                  💡 Удобно за служители работещи на PC — спестява time за импорт от телефона.
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }
+
       function renderAnnStrip() {
         const ann = cgGetAnn();
         if (!ann || !ann.text || state.screen === 'home') return '';
@@ -2761,6 +2817,7 @@
             </div>
           </div>
 
+          ${renderFeatureAnnouncement()}
           ${_annHtml}
 
           <div style="margin-bottom:24px;">
@@ -3561,11 +3618,9 @@
           </div>` : ""}
 
           <button type="button" class="btn btn-gold" data-action="submit-phone-photos" id="yellow-upload-btn" style="width:100%;padding:16px;font-size:16px;${isUploading ? 'opacity:.6;' : ''}"
-            onclick="try{document.getElementById('phone-click-proof').textContent='⚡ КЛИК ПОЛУЧЕН '+new Date().toLocaleTimeString();}catch(_){}; try{window.cgUploadFromPhone&&window.cgUploadFromPhone();}catch(e){try{document.getElementById('phone-click-proof').textContent='❌ '+e.message;}catch(_){}}"
-            ontouchend="try{document.getElementById('phone-click-proof').textContent='👆 TOUCH '+new Date().toLocaleTimeString();}catch(_){}">
+            onclick="try{window.cgUploadFromPhone&&window.cgUploadFromPhone();}catch(e){console.warn(e);}">
             ${isUploading ? "Качване…" : (state.photoFiles.length === 0 ? "Изберете снимки" : `Качи ${state.photoFiles.length} снимки`)}
           </button>
-          <div id="phone-click-proof" style="margin-top:6px;padding:8px;background:rgba(245,158,11,.1);border:1px dashed rgba(245,158,11,.5);border-radius:6px;font-size:11px;color:#f59e0b;text-align:center;font-family:monospace;">⏳ Очаквам клик…</div>
 
           <button type="button" class="btn btn-outline" data-action="phone-test-ntfy" style="width:100%;padding:10px;font-size:13px;margin-top:10px;">🧪 Тест: изпрати сигнал към PC</button>
 
@@ -3587,12 +3642,6 @@
       // Safari/JSCore was resolving to *itself* — infinite recursion → max
       // call stack).
       window.cgUploadFromPhone = function () { return submitPhonePhotos(); };
-
-      // Update the click-proof element reference after each render so the
-      // inline onclick can write to it.
-      function refreshPhoneClickProofRef() {
-        window.__phoneClickProof = document.getElementById("phone-click-proof");
-      }
 
       async function submitPhonePhotos() {
         console.log("[phone] submitPhonePhotos called");
@@ -3708,11 +3757,15 @@
       function renderPhonePhotoQRModal() {
         const base = getQRBaseUrl().replace(/\/?$/, "");
         const sep = base.includes("?") ? "&" : "?";
+        // Include a build-version cache buster — iOS Safari aggressively
+        // caches HTML for the same URL and was serving an old bundle. A
+        // changing _v query string forces it to re-fetch.
         const url = base + sep + "phonephoto=1"
           + "&type=" + encodeURIComponent(state.inspectionType || "")
           + "&loc=" + encodeURIComponent(state.location || "")
           + "&inspector=" + encodeURIComponent(state.inspector || "")
-          + "&sid=" + encodeURIComponent(state.pcSessionId || "");
+          + "&sid=" + encodeURIComponent(state.pcSessionId || "")
+          + "&_v=" + encodeURIComponent(BUILD_VERSION.replace(/[^a-zA-Z0-9._-]/g, ""));
         const remoteCount = (state.remotePhotoUrls || []).length;
         const imgSrc = "https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=2&data=" + encodeURIComponent(url);
         return `
@@ -4195,7 +4248,6 @@
         updateModals();
         bindInputs();
         decorateHallSelectionIcons();
-        if (typeof refreshPhoneClickProofRef === "function") refreshPhoneClickProofRef();
         /* Charts: HTML визуализации (без Chart.js) — синхронно от кеш */
         if (state.screen === "charts" && _cachedChartRows && _cachedChartRows.length > 0) {
           const c = document.getElementById('charts-container');
@@ -4616,6 +4668,11 @@
         /* QR modal — само updateModals(), не презареждаме съдържанието, данните остават */
         if (action === "open-qr") { state.showQRModal = true; updateModals(); return; }
         if (action === "close-qr") { state.showQRModal = false; updateModals(); return; }
+        if (action === "dismiss-feature-ann") {
+          try { localStorage.setItem(FEATURE_ANN_KEY, "1"); } catch (_) {}
+          render();
+          return;
+        }
         if (action === "open-phone-photo-qr") {
           if (!state.pcSessionId) {
             state.pcSessionId = "pcs_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
@@ -4636,7 +4693,10 @@
           }
           setPhonePhotoStatus("Изпращам тестов сигнал към PC…", "info");
           try {
-            const testUrl = "https://drive.google.com/test-" + Date.now();
+            // Use a clearly non-Drive URL so the PC's poller correctly
+            // treats it as a test signal (and the PC just confirms receipt
+            // in the green status line instead of showing a fake photo).
+            const testUrl = "https://example.invalid/cg-test/" + Date.now();
             const r = await fetch(NTFY_BASE + "/" + encodeURIComponent("cg-photos-" + state.pcSessionId), {
               method: "POST",
               body: testUrl,
