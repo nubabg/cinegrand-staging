@@ -1955,6 +1955,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
+      const BUILD_VERSION = "v.2026.06.14-09:00 (beacon)";
       const NTFY_POLL_INTERVAL_MS = 3500;
       let _phonePollTimer = null;
       let _phonePollBusy = false;
@@ -2279,14 +2280,31 @@
           // Live-sync to PC if there's an active pcSessionId (phone QR flow)
           if (state.pcSessionId) {
             if (isPhoneScreen) setPhonePhotoStatus(`Снимка ${indexLabel} качена. Изпращам сигнал към PC…`, "info");
+            const ntfyUrl = NTFY_BASE + "/" + encodeURIComponent("cg-photos-" + state.pcSessionId);
+            // Try sendBeacon first — it's designed for fire-and-forget POSTs
+            // that survive page lifecycle changes and don't need a live
+            // user gesture. Falls back to fetch+keepalive if unavailable.
+            let beaconQueued = false;
             try {
-              const r = await fetch(NTFY_BASE + "/" + encodeURIComponent("cg-photos-" + state.pcSessionId), {
-                method: "POST",
-                body: result.photoUrl,
-              });
-              if (!r.ok) _lastUploadError = `ntfy.sh HTTP ${r.status} (снимка ${indexLabel})`;
+              if (navigator.sendBeacon) {
+                beaconQueued = navigator.sendBeacon(ntfyUrl, result.photoUrl);
+              }
             } catch (e) {
-              _lastUploadError = `ntfy.sh: ${e && e.message ? e.message : e}`;
+              console.warn("[ntfy] sendBeacon threw:", e);
+            }
+            if (!beaconQueued) {
+              try {
+                const r = await fetch(ntfyUrl, {
+                  method: "POST",
+                  body: result.photoUrl,
+                  keepalive: true,
+                });
+                if (!r.ok) _lastUploadError = `ntfy.sh HTTP ${r.status} (снимка ${indexLabel})`;
+              } catch (e) {
+                _lastUploadError = `ntfy.sh: ${e && e.message ? e.message : e}`;
+              }
+            } else {
+              console.log("[ntfy] queued via sendBeacon:", result.photoUrl.substring(0, 50));
             }
           }
           return result.photoUrl;
@@ -3530,6 +3548,7 @@
           <div style="margin-top:14px;padding:10px;background:rgba(255,255,255,.04);border-radius:8px;font-size:11px;color:#888;font-family:monospace;word-break:break-all;">
             PC сесия: ${state.pcSessionId ? escapeHtml(state.pcSessionId) : '<span style="color:#fca5a5;">⚠ ЛИПСВА — QR кодът няма sid параметър</span>'}
           </div>
+          <div style="margin-top:8px;text-align:center;font-size:10px;color:#444;">${BUILD_VERSION}</div>
         </div>`;
       }
 
