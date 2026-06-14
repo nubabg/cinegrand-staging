@@ -1955,7 +1955,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.06.14-10:15 (fetch+ITP)";
+      const BUILD_VERSION = "v.2026.06.14-10:25 (cache-bust)";
       const NTFY_POLL_INTERVAL_MS = 3500;
       let _phonePollTimer = null;
       let _phonePollBusy = false;
@@ -1995,13 +1995,27 @@
           const text = await res.text();
           const lines = text.split("\n").filter(Boolean);
           const newUrls = [];
+          let sawTest = false;
           for (const line of lines) {
             try {
               const data = JSON.parse(line);
               if (!data || data.event !== "message" || !data.message) continue;
               const photoUrl = String(data.message).trim();
-              if (photoUrl && /^https?:\/\//.test(photoUrl)) newUrls.push(photoUrl);
+              if (!photoUrl) continue;
+              // Detect test/warmup signals separately so we can confirm the
+              // relay is alive without showing them as fake photos.
+              if (photoUrl.indexOf("example.invalid") !== -1 || photoUrl.indexOf("/cg-test/") !== -1 || photoUrl.indexOf("warmup-") === 0) {
+                sawTest = true;
+                continue;
+              }
+              if (!/^https?:\/\//.test(photoUrl)) continue;
+              if (photoUrl.indexOf("/test-") !== -1) continue;
+              if (!/drive\.google\.com|googleusercontent\.com/.test(photoUrl)) continue;
+              newUrls.push(photoUrl);
             } catch (_) {}
+          }
+          if (sawTest) {
+            console.log("[ntfy] test signal received — relay alive");
           }
           // Dedupe + add only new
           const current = state.remotePhotoUrls || [];
@@ -3708,11 +3722,15 @@
       function renderPhonePhotoQRModal() {
         const base = getQRBaseUrl().replace(/\/?$/, "");
         const sep = base.includes("?") ? "&" : "?";
+        // Include a build-version cache buster — iOS Safari aggressively
+        // caches HTML for the same URL and was serving an old bundle. A
+        // changing _v query string forces it to re-fetch.
         const url = base + sep + "phonephoto=1"
           + "&type=" + encodeURIComponent(state.inspectionType || "")
           + "&loc=" + encodeURIComponent(state.location || "")
           + "&inspector=" + encodeURIComponent(state.inspector || "")
-          + "&sid=" + encodeURIComponent(state.pcSessionId || "");
+          + "&sid=" + encodeURIComponent(state.pcSessionId || "")
+          + "&_v=" + encodeURIComponent(BUILD_VERSION.replace(/[^a-zA-Z0-9._-]/g, ""));
         const remoteCount = (state.remotePhotoUrls || []).length;
         const imgSrc = "https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=2&data=" + encodeURIComponent(url);
         return `
@@ -4632,7 +4650,10 @@
           }
           setPhonePhotoStatus("Изпращам тестов сигнал към PC…", "info");
           try {
-            const testUrl = "https://drive.google.com/test-" + Date.now();
+            // Use a clearly non-Drive URL so the PC's poller correctly
+            // treats it as a test signal (and the PC just confirms receipt
+            // in the green status line instead of showing a fake photo).
+            const testUrl = "https://example.invalid/cg-test/" + Date.now();
             const r = await fetch(NTFY_BASE + "/" + encodeURIComponent("cg-photos-" + state.pcSessionId), {
               method: "POST",
               body: testUrl,
