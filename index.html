@@ -1394,27 +1394,34 @@
         return _lockAcquiredAt > 0 && (Date.now() - _lockAcquiredAt >= LOCK_TIMEOUT_MS);
       }
 
+      /* fetch с твърд timeout — пази UI-а от увисване при бавен/мъртъв backend.
+         Хвърля грешка с name "AbortError" при изтичане. */
+      async function fetchWithTimeout(url, options, timeoutMs) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeoutMs || 12000);
+        try {
+          return await fetch(url, Object.assign({}, options, { signal: controller.signal }));
+        } finally {
+          clearTimeout(id);
+        }
+      }
+
       async function acquireLock(type, location, sessionId) {
         if (!isSheetsConfigured()) return { success: true };
         // Single attempt with a hard 12 s client-side timeout. Apps Script's
         // own LockService.waitLock is 10 s, so 12 s gives it room to respond.
         // No client-side retry — retrying on "Сървърът е зает" actually made
         // things worse because each retry waited 10 s on the same script lock.
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000);
         try {
-          const res = await fetch(SHEETS_WEB_APP_URL, {
+          const res = await fetchWithTimeout(SHEETS_WEB_APP_URL, {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=UTF-8" },
             body: JSON.stringify({ action: "acquireLock", type, location, sessionId, _token: SHEETS_SECRET_TOKEN }),
-            signal: controller.signal,
-          });
-          clearTimeout(timeoutId);
+          }, 12000);
           if (!res.ok) return { success: true, offline: true };
           try { return await res.json(); }
           catch (_) { return { success: true, offline: true }; }
         } catch (err) {
-          clearTimeout(timeoutId);
           if (err && err.name === "AbortError") {
             return { success: false, error: "Сървърът не отговаря (>12 сек). Опитайте отново след минута." };
           }
@@ -1549,13 +1556,13 @@
         /* IP проверка — whitelisted IP-та имат достъп отвсякъде */
         let isWhitelistedIP = false;
         try {
-          const res = await fetch("https://api.ipify.org?format=json");
+          const res = await fetchWithTimeout("https://api.ipify.org?format=json", {}, 6000);
           const { ip } = await res.json();
           isWhitelistedIP = ACCESS_ALLOWED_IPS.includes(ip);
         } catch (_) {
           /* Fallback: опитай втори IP сервис ако първият не отговори */
           try {
-            const res2 = await fetch("https://api.my-ip.io/v2/ip.json");
+            const res2 = await fetchWithTimeout("https://api.my-ip.io/v2/ip.json", {}, 6000);
             const data2 = await res2.json();
             if (data2 && data2.ip) isWhitelistedIP = ACCESS_ALLOWED_IPS.includes(data2.ip);
           } catch (_2) {}
@@ -1889,14 +1896,20 @@
       async function acquireLockFirstFree(type, locations, sessionId) {
         if (!isSheetsConfigured()) return { success: true, location: locations[0] };
         try {
-          const res = await fetch(SHEETS_WEB_APP_URL, {
+          const res = await fetchWithTimeout(SHEETS_WEB_APP_URL, {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=UTF-8" },
             body: JSON.stringify({ action: "acquireLockFirstFree", type, locations, sessionId, _token: SHEETS_SECRET_TOKEN }),
-          });
+          }, 12000);
           if (!res.ok) return { success: true, location: locations[0], offline: true };
           try { return await res.json(); } catch (_) { return { success: true, location: locations[0], offline: true }; }
         } catch (err) {
+          if (err && err.name === "AbortError") {
+            // Server too slow — don't hang the locking screen; proceed without
+            // a lock so the inspector can still work.
+            console.warn("[Lock] acquireLockFirstFree timed out — proceeding offline");
+            return { success: true, location: locations[0], offline: true };
+          }
           console.warn("[Lock] acquireLockFirstFree failed:", err.message);
           return { success: true, location: locations[0], offline: true };
         }
@@ -1955,7 +1968,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.06.14-10:35 (feature-ann)";
+      const BUILD_VERSION = "v.2026.06.24-status-cards";
       const NTFY_POLL_INTERVAL_MS = 3500;
       let _phonePollTimer = null;
       let _phonePollBusy = false;
@@ -2626,46 +2639,96 @@
         return days + " д";
       }
 
+      /* Изчислява статус-метаданни за една локация спрямо последната проверка. */
+      function _locStatusMeta(last, now) {
+        if (!last) {
+          return { state: "none", color: "#6b7280", accent: "#3a3a3a", label: "Няма данни", sub: "никога", dot: "·" };
+        }
+        const ageMs = now - last.date.getTime();
+        const ageHrs = ageMs / 3600000;
+        const wasProblem = last.status === "Проблем";
+        let s;
+        if (ageHrs < 2) s = { state: "fresh", color: "#10b981", accent: "#10b981", dot: "✓" };
+        else if (ageHrs < 4) s = { state: "warn", color: "#f59e0b", accent: "#f59e0b", dot: "◐" };
+        else s = { state: "stale", color: "#ef4444", accent: "#ef4444", dot: "⚠" };
+        s.label = "преди " + _formatAgo(ageMs);
+        s.sub = last.date.toLocaleString("bg-BG", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+        s.wasProblem = wasProblem;
+        s.ageMs = ageMs;
+        return s;
+      }
+
       function renderLastCheckedBadges() {
         const lastBy = getLastCheckedByLocation();
         const hasData = Object.keys(lastBy).length > 0;
-        const all = [
-          ...HALLS.map(loc => ({ loc, icon: "🎬" })),
-          ...BATHROOMS.map(loc => ({ loc, icon: "🚿" })),
-        ];
+        // Self-heal: if we have no data yet, kick off a fetch (once).
+        if (!hasData) ensureSheetsDataLoaded();
+
         const now = Date.now();
-        const renderOne = ({ loc, icon }) => {
-          const last = lastBy[loc];
-          if (!last) {
-            return `<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;min-width:0;">
-              <span style="font-size:16px;">${icon}</span>
-              <div style="min-width:0;flex:1;"><div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(loc)}</div><div style="font-size:11px;color:#666;">— няма данни —</div></div>
-            </div>`;
-          }
-          const ageMs = now - last.date.getTime();
-          const ageHrs = ageMs / 3600000;
-          let color, bg, border, dot;
-          if (ageHrs < 2) { color = "#10b981"; bg = "rgba(16,185,129,.08)"; border = "rgba(16,185,129,.3)"; dot = "✓"; }
-          else if (ageHrs < 4) { color = "#f59e0b"; bg = "rgba(245,158,11,.1)"; border = "rgba(245,158,11,.35)"; dot = "◐"; }
-          else { color = "#ef4444"; bg = "rgba(239,68,68,.1)"; border = "rgba(239,68,68,.35)"; dot = "⚠"; }
-          // If last status was "Проблем", show a small red corner indicator regardless of age
-          const wasProblem = last.status === "Проблем";
-          return `<div style="background:${bg};border:1px solid ${border};border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;min-width:0;position:relative;" title="${escapeHtml(loc)} — последна проверка преди ${_formatAgo(ageMs)}${wasProblem ? ' (Проблем)' : ''}">
-            <span style="font-size:16px;">${icon}</span>
-            <div style="min-width:0;flex:1;">
-              <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(loc)}</div>
-              <div style="font-size:11px;color:${color};font-weight:600;">${dot} преди ${_formatAgo(ageMs)}</div>
+        const groups = [
+          { title: "Кинозали", icon: "🎬", items: HALLS },
+          { title: "Тоалетни", icon: "🚿", items: BATHROOMS },
+        ];
+
+        // Summary counts across all locations
+        let fresh = 0, warn = 0, stale = 0, none = 0, problems = 0;
+        [...HALLS, ...BATHROOMS].forEach(loc => {
+          const m = _locStatusMeta(lastBy[loc], now);
+          if (m.state === "fresh") fresh++;
+          else if (m.state === "warn") warn++;
+          else if (m.state === "stale") stale++;
+          else none++;
+          if (m.wasProblem) problems++;
+        });
+
+        const summaryPill = (color, bg, txt) =>
+          `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:${color};background:${bg};border:1px solid ${color}40;padding:3px 9px;border-radius:999px;">${txt}</span>`;
+
+        const summary = hasData ? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          ${fresh ? summaryPill("#10b981", "rgba(16,185,129,.1)", `✓ ${fresh} скоро`) : ""}
+          ${warn ? summaryPill("#f59e0b", "rgba(245,158,11,.1)", `◐ ${warn}`) : ""}
+          ${stale ? summaryPill("#ef4444", "rgba(239,68,68,.1)", `⚠ ${stale} просрочени`) : ""}
+          ${problems ? summaryPill("#f87171", "rgba(248,113,113,.1)", `● ${problems} с проблем`) : ""}
+        </div>` : `<span style="font-size:12px;color:#888;display:inline-flex;align-items:center;gap:6px;"><span class="cg-bounce-dots sm" style="transform:scale(.7);"><span></span><span></span><span></span></span> зареждам…</span>`;
+
+        const renderCard = (loc, groupIcon) => {
+          const m = _locStatusMeta(lastBy[loc], now);
+          const isNone = m.state === "none";
+          return `<div style="position:relative;display:flex;align-items:stretch;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden;transition:background .2s;min-width:0;">
+            <div style="width:4px;flex-shrink:0;background:${m.accent};"></div>
+            <div style="padding:11px 13px;display:flex;align-items:center;gap:11px;min-width:0;flex:1;">
+              <div style="width:34px;height:34px;border-radius:9px;background:${isNone ? 'rgba(255,255,255,.04)' : m.color + '1a'};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${groupIcon}</div>
+              <div style="min-width:0;flex:1;">
+                <div style="font-size:13.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(loc)}</div>
+                <div style="font-size:11.5px;color:${m.color};font-weight:600;display:flex;align-items:center;gap:5px;margin-top:2px;">
+                  <span>${m.dot}</span><span>${m.label}</span>
+                  ${m.wasProblem ? '<span style="color:#f87171;font-size:10px;" title="Последна проверка: Проблем">● проблем</span>' : ''}
+                </div>
+              </div>
+              ${!isNone ? `<div style="font-size:10px;color:#666;text-align:right;flex-shrink:0;white-space:nowrap;">${escapeHtml(m.sub)}</div>` : ''}
             </div>
-            ${wasProblem ? '<span style="position:absolute;top:6px;right:6px;font-size:10px;color:#ef4444;" title="Последна проверка: Проблем">●</span>' : ''}
           </div>`;
         };
-        return `<div style="margin-bottom:18px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <h3 style="font-size:14px;font-weight:700;color:rgba(255,255,255,.85);margin:0;letter-spacing:.05em;">⏱ КОГА Е БИЛА ПОСЛЕДНАТА ПРОВЕРКА</h3>
-            ${hasData ? '' : '<span style="font-size:11px;color:#666;">зареждам…</span>'}
+
+        return `<div class="panel" style="margin-bottom:18px;padding:18px 20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+            <h3 style="font-size:15px;font-weight:700;color:#fff;margin:0;letter-spacing:.04em;display:flex;align-items:center;gap:8px;">
+              <span style="font-size:17px;">⏱</span> Статус на проверките
+            </h3>
+            ${summary}
           </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">
-            ${all.map(renderOne).join("")}
+          ${groups.map(g => `
+            <div style="margin-bottom:14px;">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.4);margin-bottom:8px;text-transform:uppercase;">${g.icon} ${g.title}</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px;">
+                ${g.items.map(loc => renderCard(loc, g.icon)).join("")}
+              </div>
+            </div>
+          `).join("")}
+          <div style="font-size:10.5px;color:#555;margin-top:2px;display:flex;gap:14px;flex-wrap:wrap;">
+            <span><span style="color:#10b981;">✓</span> до 2ч</span>
+            <span><span style="color:#f59e0b;">◐</span> 2–4ч</span>
+            <span><span style="color:#ef4444;">⚠</span> над 4ч</span>
           </div>
         </div>`;
       }
@@ -3038,7 +3101,7 @@
 
       async function fetchSheetsData() {
         const url = SHEETS_WEB_APP_URL + '?action=getInfo&_token=' + encodeURIComponent(SHEETS_SECRET_TOKEN) + '&_cb=' + Date.now();
-        const res = await fetch(url);
+        const res = await fetchWithTimeout(url, {}, 15000);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const json = await res.json();
         if (!json.success) throw new Error(json.error || 'Error');
@@ -3227,6 +3290,23 @@
       let _chartsLoading = false;
       let _cachedChartRows = null;
       let _chartsFetchVersion = 0;
+      let _sheetsFetchInFlight = false;
+
+      /* Self-healing зареждане на ИНФО данните — извиква се от badge-овете на
+         home когато няма кеширани данни. Прави най-много едно паралелно
+         извикване и пре-рендерира home при успех. */
+      function ensureSheetsDataLoaded() {
+        if (_cachedChartRows && _cachedChartRows.length > 0) return;
+        if (_sheetsFetchInFlight) return;
+        if (!isSheetsConfigured()) return;
+        _sheetsFetchInFlight = true;
+        fetchSheetsData().then(r => {
+          _cachedChartRows = r;
+        }).catch(() => {}).finally(() => {
+          _sheetsFetchInFlight = false;
+          if (state.screen === "home") render();
+        });
+      }
 
       async function refreshChartsData() {
         const btn = document.getElementById('charts-refresh-btn');
@@ -4050,7 +4130,7 @@
         render();
         try {
           const url = SHEETS_WEB_APP_URL + '?action=getChangingRooms&_token=' + encodeURIComponent(SHEETS_SECRET_TOKEN) + '&_cb=' + Date.now();
-          const resp = await fetch(url, { cache: "no-store" });
+          const resp = await fetchWithTimeout(url, { cache: "no-store" }, 15000);
           if (!resp.ok) throw new Error("HTTP " + resp.status);
           const json = await resp.json();
           if (!json.success) throw new Error(json.error || "Error");
