@@ -2583,6 +2583,93 @@
           </div>`;
       }
 
+      /* ── Last-checked badges ──
+         Reads the cached ИНФО rows and figures out when each location was
+         last inspected. Colour-codes: green <2h, amber 2-4h, red >4h. */
+      function _normalizeLocFromTypeField(typeStr) {
+        // ИНФО колона 3 е "Кинозала - Зала 1" или "Тоалетна - Дамска тоалетна".
+        if (!typeStr) return null;
+        const idx = typeStr.indexOf(" - ");
+        if (idx === -1) return null;
+        return typeStr.substring(idx + 3).trim();
+      }
+      function getLastCheckedByLocation() {
+        const out = {};
+        if (!_cachedChartRows || _cachedChartRows.length === 0) return out;
+        // ИНФО headers: ДАТА/ЧАС in row['ДАТА/ЧАС'] (or ДАТА И ЧАС etc.)
+        // Find the date header key dynamically — it's the second column.
+        const sample = _cachedChartRows[0];
+        const keys = Object.keys(sample);
+        const dateKey = keys.find(k => /дата|час/i.test(k)) || keys[1];
+        const typeKey = keys.find(k => /тип/i.test(k)) || keys[2];
+        const statusKey = keys.find(k => /статус/i.test(k)) || keys[4];
+        for (const row of _cachedChartRows) {
+          const loc = _normalizeLocFromTypeField(row[typeKey]);
+          if (!loc) continue;
+          const d = parseChartDate(row[dateKey]);
+          if (!d) continue;
+          const existing = out[loc];
+          if (!existing || d > existing.date) {
+            out[loc] = { date: d, status: row[statusKey] || "" };
+          }
+        }
+        return out;
+      }
+
+      function _formatAgo(ms) {
+        const mins = Math.floor(ms / 60000);
+        if (mins < 1) return "току-що";
+        if (mins < 60) return mins + " мин";
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return hrs + " ч";
+        const days = Math.floor(hrs / 24);
+        return days + " д";
+      }
+
+      function renderLastCheckedBadges() {
+        const lastBy = getLastCheckedByLocation();
+        const hasData = Object.keys(lastBy).length > 0;
+        const all = [
+          ...HALLS.map(loc => ({ loc, icon: "🎬" })),
+          ...BATHROOMS.map(loc => ({ loc, icon: "🚿" })),
+        ];
+        const now = Date.now();
+        const renderOne = ({ loc, icon }) => {
+          const last = lastBy[loc];
+          if (!last) {
+            return `<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;min-width:0;">
+              <span style="font-size:16px;">${icon}</span>
+              <div style="min-width:0;flex:1;"><div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(loc)}</div><div style="font-size:11px;color:#666;">— няма данни —</div></div>
+            </div>`;
+          }
+          const ageMs = now - last.date.getTime();
+          const ageHrs = ageMs / 3600000;
+          let color, bg, border, dot;
+          if (ageHrs < 2) { color = "#10b981"; bg = "rgba(16,185,129,.08)"; border = "rgba(16,185,129,.3)"; dot = "✓"; }
+          else if (ageHrs < 4) { color = "#f59e0b"; bg = "rgba(245,158,11,.1)"; border = "rgba(245,158,11,.35)"; dot = "◐"; }
+          else { color = "#ef4444"; bg = "rgba(239,68,68,.1)"; border = "rgba(239,68,68,.35)"; dot = "⚠"; }
+          // If last status was "Проблем", show a small red corner indicator regardless of age
+          const wasProblem = last.status === "Проблем";
+          return `<div style="background:${bg};border:1px solid ${border};border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;min-width:0;position:relative;" title="${escapeHtml(loc)} — последна проверка преди ${_formatAgo(ageMs)}${wasProblem ? ' (Проблем)' : ''}">
+            <span style="font-size:16px;">${icon}</span>
+            <div style="min-width:0;flex:1;">
+              <div style="font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(loc)}</div>
+              <div style="font-size:11px;color:${color};font-weight:600;">${dot} преди ${_formatAgo(ageMs)}</div>
+            </div>
+            ${wasProblem ? '<span style="position:absolute;top:6px;right:6px;font-size:10px;color:#ef4444;" title="Последна проверка: Проблем">●</span>' : ''}
+          </div>`;
+        };
+        return `<div style="margin-bottom:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <h3 style="font-size:14px;font-weight:700;color:rgba(255,255,255,.85);margin:0;letter-spacing:.05em;">⏱ КОГА Е БИЛА ПОСЛЕДНАТА ПРОВЕРКА</h3>
+            ${hasData ? '' : '<span style="font-size:11px;color:#666;">зареждам…</span>'}
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">
+            ${all.map(renderOne).join("")}
+          </div>
+        </div>`;
+      }
+
       /* ── Feature announcement (new phone photo upload) ── */
       const FEATURE_ANN_KEY = "cg_feature_ann_phone_upload_v1";
       function isFeatureAnnDismissed() {
@@ -2817,6 +2904,7 @@
             </div>
           </div>
 
+          ${renderLastCheckedBadges()}
           ${renderFeatureAnnouncement()}
           ${_annHtml}
 
@@ -4798,7 +4886,22 @@
             const c = document.getElementById('charts-container');
             if (c && r && r.length) buildChartsFromData(c, r);
           }
+          // Re-render home if it's currently visible so the "last checked"
+          // badges populate with real timestamps instead of "няма данни".
+          if (state.screen === "home") render();
         }).catch(() => {});
+        /* Periodic refresh of ИНФО cache while on home so the "last checked"
+           badges stay current as other inspectors submit. Every 3 minutes. */
+        setInterval(() => {
+          if (state.screen !== "home") return;
+          fetchSheetsData().then(r => {
+            _cachedChartRows = r;
+            render();
+          }).catch(() => {});
+        }, 3 * 60 * 1000);
+        /* Lighter every-minute re-render so the "преди X" ages tick over
+           without an extra Sheets request. */
+        setInterval(() => { if (state.screen === "home") render(); }, 60 * 1000);
         /* Обработи URL параметри от QR сканиране */
         const search = window.location.search || "";
         const hash = window.location.hash || "";
