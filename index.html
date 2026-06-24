@@ -872,6 +872,11 @@
       body.low-perf .item-row { transition: none; }
       body.low-perf .bar-fill { transition: none; }
       body.low-perf .progress > div { transition: none; }
+      body.low-perf .progress > div::after { animation: none; display: none; }
+      body.low-perf .item-row:hover { transform: none; box-shadow: none; }
+      body.low-perf .toast { backdrop-filter: none; }
+      body.low-perf .modal-backdrop { backdrop-filter: none; }
+      body.low-perf .card-pick:hover::after { opacity: 0; }
       body.low-perf .hero-orbit { display: none; }
       .cg-fx-switch { border-color: rgba(52,211,153,.25) !important; }
       body.low-perf .cg-fx-switch { border-color: rgba(255,255,255,.08) !important; }
@@ -1191,6 +1196,128 @@
       .day-cal-trigger:hover { background:rgba(255,255,255,.14); }
       .day-cal-trigger.has-range { border-color:rgba(200,120,24,.6); color:var(--gold); }
       .day-cal-max-note { font-size:10px; color:var(--muted); margin-top:4px; text-align:center; }
+
+      /* ════════════════════════════════════════════════════════════
+         ✨ VISUAL POLISH LAYER — добавено, без да чупи съществуващото
+         ════════════════════════════════════════════════════════════ */
+
+      /* По-чист рендеринг на текста */
+      html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+
+      /* Маркиране на текст в марковите цветове */
+      ::selection { background: rgba(200,120,24,.32); color: #fff; }
+      ::-moz-selection { background: rgba(200,120,24,.32); color: #fff; }
+
+      /* Изящни скролбари в тон с тъмната тема */
+      * { scrollbar-width: thin; scrollbar-color: rgba(200,120,24,.35) transparent; }
+      ::-webkit-scrollbar { width: 10px; height: 10px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(200,120,24,.45), rgba(200,120,24,.25));
+        border-radius: 999px; border: 2px solid transparent; background-clip: padding-box;
+      }
+      ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, rgba(235,160,48,.7), rgba(200,120,24,.45)); background-clip: padding-box; }
+
+      /* Леко "повдигане" на панелите при hover — фина дълбочина */
+      .panel { transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease; }
+
+      /* Карти за избор — по-плавно и с топъл glow */
+      .card-pick { will-change: transform; }
+      .card-pick::after {
+        content: ""; position: absolute; inset: 0; border-radius: inherit;
+        box-shadow: 0 0 0 1px rgba(200,120,24,0) inset; opacity: 0;
+        transition: opacity .3s ease; pointer-events: none;
+      }
+      .card-pick:hover::after { opacity: 1; box-shadow: 0 0 0 1px rgba(200,120,24,.35) inset, 0 0 40px rgba(200,120,24,.08) inset; }
+
+      /* Полета — по-жив hover + плавен преход */
+      .field input, .field select, .field textarea {
+        transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+      }
+      .field input:hover:not(:focus), .field select:hover:not(:focus), .field textarea:hover:not(:focus) {
+        border-color: rgba(255,255,255,.18); background: rgba(255,255,255,.015);
+      }
+      .field textarea { resize: vertical; min-height: 64px; line-height: 1.5; }
+
+      /* Pills — фин контур за повече дефиниция */
+      .pill.ok  { box-shadow: inset 0 0 0 1px rgba(45,204,112,.28); }
+      .pill.bad { box-shadow: inset 0 0 0 1px rgba(239,91,91,.28); }
+      .pill { letter-spacing: .02em; }
+
+      /* Meta-chip — лек градиент */
+      .meta-chip {
+        background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+        transition: border-color .2s ease, color .2s ease;
+      }
+      .meta-chip:hover { border-color: rgba(255,255,255,.14); }
+
+      /* Progress bar — топъл блясък + анимиран shimmer */
+      .progress { box-shadow: inset 0 1px 2px rgba(0,0,0,.3); }
+      .progress > div {
+        position: relative; overflow: hidden;
+        box-shadow: 0 0 12px rgba(200,120,24,.45);
+      }
+      .progress > div::after {
+        content: ""; position: absolute; inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent);
+        transform: translateX(-100%);
+        animation: progShimmer 2.2s ease-in-out infinite;
+      }
+      @keyframes progShimmer { 0% { transform: translateX(-100%); } 60%, 100% { transform: translateX(220%); } }
+
+      /* Toasts — стъклен ефект + икона-цвят */
+      .toast {
+        backdrop-filter: blur(12px);
+        display: flex; align-items: center; gap: 10px;
+        font-weight: 600; max-width: min(380px, calc(100vw - 40px));
+        border-radius: 14px;
+      }
+      .toast::before {
+        content: ""; width: 8px; height: 8px; border-radius: 50%;
+        flex-shrink: 0; box-shadow: 0 0 8px currentColor;
+      }
+      .toast.success { color: #d6ffe6; }
+      .toast.success::before { background: var(--green); color: var(--green); }
+      .toast.error { color: #ffe0e0; }
+      .toast.error::before { background: var(--red); color: var(--red); }
+
+      /* Модали — по-мек backdrop с blur */
+      .modal-backdrop { backdrop-filter: blur(4px); }
+
+      /* Item rows — фин ховър glow по левия акцент */
+      .item-row { transition: background .2s ease, border-color .2s ease, transform .15s ease, box-shadow .2s ease; }
+      .item-row:hover { transform: translateX(2px); box-shadow: -4px 0 16px -8px rgba(200,120,24,.3); }
+      .item-row.clean:hover { box-shadow: -4px 0 16px -8px rgba(45,204,112,.4); }
+      .item-row.dirty:hover { box-shadow: -4px 0 16px -8px rgba(239,91,91,.4); }
+
+      /* Home hero title — изящен бял→сив градиент (само на началната страница,
+         за да не засегне заглавията с емоджи на другите екрани) */
+      .hero-copy .hero-title {
+        background: linear-gradient(180deg, #ffffff, #c6d2e0);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      /* Tag pills — лек hover */
+      .tag { transition: border-color .2s ease, color .2s ease, background .2s ease; }
+      .tag:hover { border-color: rgba(200,120,24,.3); color: var(--gold-2); }
+
+      /* Datalist input — стрелка-индикатор за падащ списък */
+      input[list] { background-image:
+        linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+        linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+        background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+        background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
+        padding-right: 34px;
+      }
+
+      /* Достъпност — уважавай "по-малко движение" */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+          transition-duration: .001ms !important; scroll-behavior: auto !important;
+        }
+      }
 
     </style>
   </head>
@@ -1983,7 +2110,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.06.24-names-list";
+      const BUILD_VERSION = "v.2026.06.24-visual-polish";
 
       /* ── Allowed inspector names — fetched from /Names.md in the repo ──
          Поддръжката минава през този файл, не през кода. Празни редове и
