@@ -1983,7 +1983,43 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.06.24-status-cards";
+      const BUILD_VERSION = "v.2026.06.24-names-list";
+
+      /* ── Allowed inspector names — fetched from /Names.md in the repo ──
+         Поддръжката минава през този файл, не през кода. Празни редове и
+         коментари (#) се игнорират. Първата секция от име до празен ред в
+         края на файла се използва. */
+      let ALLOWED_NAMES = []; // populated by loadAllowedNames()
+      let _namesLoaded = false;
+
+      async function loadAllowedNames() {
+        try {
+          const res = await fetchWithTimeout("Names.md?_cb=" + Date.now(), { cache: "no-store" }, 8000);
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const text = await res.text();
+          // Take only lines under the "## Списък" section (or fallback: any
+          // line that looks like a name — Cyrillic, optional spaces).
+          let section = text;
+          const m = text.match(/##\s*Списък[\s\S]*$/i);
+          if (m) section = m[0];
+          const names = section.split(/\r?\n/)
+            .map(l => l.trim())
+            .filter(l => l && !l.startsWith("#") && /^[Ѐ-ӿ][Ѐ-ӿ\s]*$/.test(l));
+          if (names.length > 0) {
+            ALLOWED_NAMES = names;
+            _namesLoaded = true;
+            console.log("[names] loaded " + names.length + " allowed inspector names");
+            // Re-render any screen that uses the names list
+            if (state.screen === "inspection") render();
+          }
+        } catch (err) {
+          console.warn("[names] failed to load Names.md:", err.message);
+          // Без списък оставяме старото поведение (свободно поле) за да не блокираме работата
+        }
+      }
+
+      // Kick off load early so it's ready by the time inspector renders the form
+      loadAllowedNames();
       const NTFY_POLL_INTERVAL_MS = 3500;
       let _phonePollTimer = null;
       let _phonePollBusy = false;
@@ -2380,10 +2416,6 @@
 
       async function uploadAllPhotos() {
         if (!state.photoFiles || state.photoFiles.length === 0) return [];
-        if (state.notes.length < 20) {
-          alert("⚠ Коментарът трябва да съдържа поне 20 символа");
-          return [];
-        }
         const urls = [];
         for (let i = 0; i < state.photoFiles.length; i++) {
           const label = `${i + 1}/${state.photoFiles.length}`;
@@ -2406,19 +2438,12 @@
           return;
         }
 
-        // Validate photo comment if any photos (local or phone-uploaded)
-        const hasAnyPhoto = state.photoFiles.length > 0 || (state.remotePhotoUrls && state.remotePhotoUrls.length > 0);
-        if (hasAnyPhoto && state.notes.length < 20) {
-          showToast("Коментарът трябва да съдържа поне 20 символа", "error");
-          render();
-          return;
-        }
 
         const config = getConfig(state.inspectionType);
         state.showValidation = true;
         const allFilled = config.items.every((i) => isFilled(state.itemState[i.id]));
-        if (!state.inspector.trim()) { showToast("Моля въведи своето пълно име.", "error"); return; }
-        if (!/^[\u0400-\u04FF ]+$/.test(state.inspector.trim())) { showToast("Името трябва да е само на кирилица, без специални символи.", "error"); return; }
+        if (!state.inspector.trim()) { showToast("Моля въведи своето име.", "error"); render(); return; }
+        if (ALLOWED_NAMES.length && !ALLOWED_NAMES.includes(state.inspector.trim())) { showToast(`Името „${state.inspector.trim()}" не е в списъка. Избери от падащото меню.`, "error"); render(); return; }
         if (!allFilled) { showToast("Всички точки трябва да бъдат попълнени.", "error"); render(); return; }
         _submitBusy = true;
         try {
@@ -3654,7 +3679,13 @@
           <div class="panel" style="margin-bottom:16px;">
             <div class="grid cards-2">
               <div class="field"><label>Локация *${!state.currentSessionId && !isQROnlySession() ? ' <span style="color:var(--red);font-size:11px;">(няма заключване)</span>' : ""}</label><select id="location-select" ${isQROnlySession() ? "disabled" : ""}>${config.locations.map((l) => `<option value="${l}" ${l === state.location ? "selected" : ""}>${l}</option>`).join("")}</select></div>
-              <div class="field"><label>Проверяващ *</label><input id="inspector-input" value="${escapeHtml(state.inspector)}" placeholder="Пълно име…" />${state.showValidation && !state.inspector.trim() ? `<div style="color:var(--red);font-size:12px;">Задължително поле</div>` : state.showValidation && !/^[\u0400-\u04FF ]+$/.test(state.inspector.trim()) ? `<div style="color:var(--red);font-size:12px;">Само кирилица, без специални символи</div>` : ""}</div>
+              <div class="field"><label>Проверяващ *</label>
+                <input id="inspector-input" list="cg-inspector-list" value="${escapeHtml(state.inspector)}" placeholder="${ALLOWED_NAMES.length ? 'Започни да пишеш име…' : 'Зареждам списъка с имена…'}" autocomplete="off" />
+                ${ALLOWED_NAMES.length ? `<datalist id="cg-inspector-list">${ALLOWED_NAMES.map(n => `<option value="${escapeHtml(n)}"></option>`).join("")}</datalist>` : ""}
+                ${ALLOWED_NAMES.length ? `<div style="font-size:11px;color:#888;margin-top:4px;">Избери от падащия списък (${ALLOWED_NAMES.length} разрешени имена)</div>` : ""}
+                ${state.showValidation && !state.inspector.trim() ? `<div style="color:var(--red);font-size:12px;margin-top:4px;">Задължително поле</div>` :
+                  state.showValidation && ALLOWED_NAMES.length && !ALLOWED_NAMES.includes(state.inspector.trim()) ? `<div style="color:var(--red);font-size:12px;margin-top:4px;">Името „${escapeHtml(state.inspector.trim())}" не е в списъка. Избери от падащото меню.</div>` : ""}
+              </div>
             </div>
             <div class="muted" style="font-size:13px;">Дата и час: ${fmt(new Date().toISOString())}</div>
           </div>
@@ -3708,13 +3739,13 @@
 
           ${(state.photoFiles.length > 0 || (state.remotePhotoUrls && state.remotePhotoUrls.length > 0)) ? `<div class="panel" style="margin-bottom:16px;">
             <div class="field" style="margin:0;">
-              <label>Коментар към снимките *</label>
-              <textarea id="photo-comment-input" dir="ltr" rows="3" style="direction: ltr !important; unicode-bidi: plaintext !important;" placeholder="Описание на проблема и причина за снимките (минимум 20 символа)…">${escapeHtml(state.notes)}</textarea>
-              <div id="photo-comment-counter" style="font-size:12px;margin-top:6px;color:${state.notes.length < 20 ? 'var(--red)' : '#10b981'};">${state.notes.length < 20 ? `Коментарът трябва да съдържа поне 20 символа (${state.notes.length}/20)` : `✓ Коментарът е достатъчен (${state.notes.length}/20)`}</div>
+              <label>Коментар към снимките <span style="color:#888;font-weight:400;font-size:12px;">(по желание)</span></label>
+              <textarea id="photo-comment-input" dir="ltr" rows="3" style="direction: ltr !important; unicode-bidi: plaintext !important;" placeholder="Описание на проблема и причина за снимките…">${escapeHtml(state.notes)}</textarea>
+              <div id="photo-comment-counter" style="font-size:11px;margin-top:6px;color:#888;">${state.notes.length} символа</div>
             </div>
           </div>` : ""}
 
-          <button class="btn btn-gold" data-action="submit-inspection" style="width:100%;padding:16px;font-size:16px;" ${(state.photoFiles.length > 0 || (state.remotePhotoUrls && state.remotePhotoUrls.length > 0)) && state.notes.length < 20 ? "disabled" : ""}>
+          <button class="btn btn-gold" data-action="submit-inspection" style="width:100%;padding:16px;font-size:16px;">
             ${allFilled && state.inspector.trim() ? `Запази${isSheetsConfigured() ? " и изпрати" : ""}` : `Попълни всички полета (${filledCount}/${config.items.length})`}
           </button>
         </div>`;
@@ -3786,9 +3817,9 @@
 
           ${state.photoFiles.length > 0 ? `<div class="panel" style="margin-bottom:16px;">
             <div class="field" style="margin:0;">
-              <label>Коментар към снимките *</label>
-              <textarea id="photo-comment-input" dir="ltr" rows="3" style="direction: ltr !important; unicode-bidi: plaintext !important;" placeholder="Описание на проблема (минимум 20 символа)…" ${isUploading ? "disabled" : ""}>${escapeHtml(state.notes)}</textarea>
-              <div id="photo-comment-counter" style="font-size:12px;margin-top:6px;color:${state.notes.length < 20 ? 'var(--red)' : '#10b981'};">${state.notes.length < 20 ? `Коментарът трябва да съдържа поне 20 символа (${state.notes.length}/20)` : `✓ Коментарът е достатъчен (${state.notes.length}/20)`}</div>
+              <label>Коментар към снимките <span style="color:#888;font-weight:400;font-size:12px;">(по желание)</span></label>
+              <textarea id="photo-comment-input" dir="ltr" rows="3" style="direction: ltr !important; unicode-bidi: plaintext !important;" placeholder="Описание на проблема…" ${isUploading ? "disabled" : ""}>${escapeHtml(state.notes)}</textarea>
+              <div id="photo-comment-counter" style="font-size:11px;margin-top:6px;color:#888;">${state.notes.length} символа</div>
             </div>
           </div>` : ""}
 
@@ -3831,10 +3862,6 @@
         if (state.phonePhotoBusy) return;
         if (state.photoFiles.length === 0) {
           setPhonePhotoStatus("Изберете поне една снимка.", "error");
-          return;
-        }
-        if (state.notes.length < 20) {
-          setPhonePhotoStatus("Коментарът трябва да съдържа поне 20 символа.", "error");
           return;
         }
         if (!state.pcSessionId) {
@@ -4592,29 +4619,28 @@
           }
           state.location = newLoc;
         });
-        bind("inspector-input", "input", (e) => { const filtered = e.target.value.replace(/[^\u0400-\u04FF ]/g, ""); e.target.value = filtered; state.inspector = filtered; });
+        bind("inspector-input", "input", (e) => {
+          const filtered = e.target.value.replace(/[^\u0400-\u04FF ]/g, "");
+          if (e.target.value !== filtered) e.target.value = filtered;
+          state.inspector = filtered;
+        });
+        // On blur — ако стойността не съвпада точно с име от списъка,
+        // опитай case-insensitive съвпадение (за да хванем малки/големи букви).
+        bind("inspector-input", "blur", (e) => {
+          if (!ALLOWED_NAMES.length) return;
+          const v = e.target.value.trim();
+          if (!v || ALLOWED_NAMES.includes(v)) return;
+          const match = ALLOWED_NAMES.find(n => n.toLowerCase() === v.toLowerCase());
+          if (match) { e.target.value = match; state.inspector = match; }
+        });
         bind("notes-input", "input", (e) => {
           state.notes = e.target.value;
         });
         bind("photo-input", "change", (e) => { handlePhotoSelect(e); });
         bind("photo-comment-input", "input", (e) => {
           state.notes = e.target.value;
-          const len = e.target.value.length;
           const counter = document.getElementById("photo-comment-counter");
-          if (counter) {
-            if (len < 20) {
-              counter.style.color = "var(--red)";
-              counter.textContent = `Коментарът трябва да съдържа поне 20 символа (${len}/20)`;
-            } else {
-              counter.style.color = "#10b981";
-              counter.textContent = `✓ Коментарът е достатъчен (${len}/20)`;
-            }
-          }
-          const submitBtn = document.querySelector('[data-action="submit-inspection"]');
-          const hasAnyPhoto = state.photoFiles.length > 0 || (state.remotePhotoUrls && state.remotePhotoUrls.length > 0);
-          if (submitBtn && hasAnyPhoto) {
-            submitBtn.disabled = len < 20;
-          }
+          if (counter) counter.textContent = e.target.value.length + " символа";
         });
         bind("delete-pass-input", "input", (e) => { state.deletePass = e.target.value; state.deleteErr = ""; });
         bind("export-range-select", "change", (e) => { state.exportRange = e.target.value; render(); });
