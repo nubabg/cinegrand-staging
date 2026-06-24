@@ -1408,22 +1408,22 @@
 
       async function acquireLock(type, location, sessionId) {
         if (!isSheetsConfigured()) return { success: true };
-        // Single attempt with a hard 12 s client-side timeout. Apps Script's
-        // own LockService.waitLock is 10 s, so 12 s gives it room to respond.
-        // No client-side retry — retrying on "Сървърът е зает" actually made
-        // things worse because each retry waited 10 s on the same script lock.
+        // Хард timeout 25с — Apps Script POST от Bulgaria до Google може реално
+        // да отнема 5-20 секунди при cold start, redirect (302 → googleusercontent),
+        // LockService.waitLock (до 10с) и операцията. По-стегнат timeout
+        // фалшиво маркира нормални проверки като „сървърът не отговаря".
         try {
           const res = await fetchWithTimeout(SHEETS_WEB_APP_URL, {
             method: "POST",
             headers: { "Content-Type": "text/plain;charset=UTF-8" },
             body: JSON.stringify({ action: "acquireLock", type, location, sessionId, _token: SHEETS_SECRET_TOKEN }),
-          }, 12000);
+          }, 25000);
           if (!res.ok) return { success: true, offline: true };
           try { return await res.json(); }
           catch (_) { return { success: true, offline: true }; }
         } catch (err) {
           if (err && err.name === "AbortError") {
-            return { success: false, error: "Сървърът не отговаря (>12 сек). Опитайте отново след минута." };
+            return { success: false, transient: true, error: "Сървърът не отговаря (>25 сек). Apps Script може да е cold-start или с висока заетост." };
           }
           console.warn("[Lock] acquireLock failed:", err.message);
           return { success: true, offline: true };
@@ -1469,18 +1469,33 @@
         sessionStorage.removeItem(LOCK_SESSION_KEY);
       }
 
-      function showLocationLocked(location, errorMsg) {
+      function showLocationLocked(location, errorMsg, opts) {
+        const transient = !!(opts && opts.transient);
+        const type = opts && opts.type;
         const msg = errorMsg
           ? escapeHtml(errorMsg)
           : (escapeHtml(location) + " вече се проверява от друг потребител. Опитайте след ~" + LOCK_TIMEOUT_MIN + " мин.");
+        const title = transient ? "СЪРВЪРЪТ Е БАВЕН" : "ЛОКАЦИЯТА Е ЗАЕТА";
+        const icon = transient ? "⏱" : "🔒";
+        // За transient грешки (timeout) — позволи незабавен повторен опит,
+        // защото това НЕ е истинско заключване а cold-start/network latency.
+        const retryBtn = transient && type && location
+          ? `<button id="cg-lock-retry" class="btn btn-gold" style="margin-top:18px;padding:10px 28px;font-size:14px;">Опитай отново</button>
+             <button id="cg-lock-home" class="btn btn-outline" style="margin-top:8px;padding:10px 28px;font-size:14px;display:block;margin-left:auto;margin-right:auto;">Към началото</button>`
+          : `<button id="cg-lock-home" class="btn btn-outline" style="margin-top:18px;padding:10px 28px;font-size:14px;">Към началото</button>`;
         document.getElementById("app").innerHTML = `
           <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
-            <div style="text-align:center;max-width:400px;">
-              <div style="width:72px;height:72px;border-radius:50%;background:rgba(239,91,91,.15);border:1px solid rgba(239,91,91,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:32px;">🔒</div>
-              <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;">ЛОКАЦИЯТА Е ЗАЕТА</div>
+            <div style="text-align:center;max-width:440px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:rgba(239,91,91,.15);border:1px solid rgba(239,91,91,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:32px;">${icon}</div>
+              <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;">${title}</div>
               <div style="color:var(--muted);font-size:14px;line-height:1.6;">${msg}</div>
+              ${retryBtn}
             </div>
           </div>`;
+        const retryEl = document.getElementById("cg-lock-retry");
+        if (retryEl) retryEl.addEventListener("click", () => lockAndStart(type, location));
+        const homeEl = document.getElementById("cg-lock-home");
+        if (homeEl) homeEl.addEventListener("click", () => { state.screen = "home"; render(); });
       }
 
       /* ── Geolocation Access Control ── */
@@ -1931,7 +1946,7 @@
             const sessionId = generateSessionId();
             const lockResult = await acquireLock(type, locationOverride, sessionId);
             if (!lockResult.success) {
-              showLocationLocked(locationOverride, lockResult.error);
+              showLocationLocked(locationOverride, lockResult.error, { transient: !!lockResult.transient, type });
               return false;
             }
             state.currentSessionId = sessionId;
@@ -5027,7 +5042,7 @@
             const sessionId = generateSessionId();
             const lockResult = await acquireLock(type, resolvedLoc, sessionId);
             if (!lockResult.success) {
-              showLocationLocked(resolvedLoc, lockResult.error);
+              showLocationLocked(resolvedLoc, lockResult.error, { transient: !!lockResult.transient, type });
               return;
             }
             state.currentSessionId = sessionId;
@@ -5047,7 +5062,7 @@
           const sessionId = generateSessionId();
           const lockResult = await acquireLock(savedType, resolvedLoc, sessionId);
           if (!lockResult.success) {
-            showLocationLocked(resolvedLoc, lockResult.error);
+            showLocationLocked(resolvedLoc, lockResult.error, { transient: !!lockResult.transient, type: savedType });
             return;
           }
           state.currentSessionId = sessionId;
