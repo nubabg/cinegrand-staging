@@ -1319,6 +1319,41 @@
         }
       }
 
+      /* ── Мигащ alert индикатор за просрочени проверки ── */
+      .cg-overdue-alert {
+        position: absolute; top: -7px; right: -7px;
+        width: 22px; height: 22px; border-radius: 50%;
+        background: linear-gradient(135deg, #ef4444, #b91c1c);
+        color: #fff; font-weight: 900; font-size: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-family: "Oswald", sans-serif;
+        box-shadow: 0 0 0 2px var(--panel),
+                    0 4px 10px rgba(239,68,68,.5),
+                    0 0 14px rgba(239,68,68,.6);
+        animation: overduePulse 1.1s ease-in-out infinite;
+        z-index: 2; pointer-events: none;
+      }
+      .cg-overdue-alert.warn {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        box-shadow: 0 0 0 2px var(--panel),
+                    0 4px 10px rgba(245,158,11,.4),
+                    0 0 12px rgba(245,158,11,.5);
+        animation-duration: 1.6s;
+      }
+      @keyframes overduePulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50%      { transform: scale(1.18); opacity: .82; }
+      }
+      .cg-overdue-card {
+        animation: overdueCardGlow 2.2s ease-in-out infinite;
+      }
+      @keyframes overdueCardGlow {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+        50%      { box-shadow: 0 0 24px -4px rgba(239,68,68,.35); }
+      }
+      body.low-perf .cg-overdue-alert { animation: none; }
+      body.low-perf .cg-overdue-card { animation: none; }
+
     </style>
   </head>
   <body>
@@ -2110,7 +2145,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.06.24-visual-polish";
+      const BUILD_VERSION = "v.2026.06.24-overdue-alert";
 
       /* ── Allowed inspector names — fetched from /Names.md in the repo ──
          Поддръжката минава през този файл, не през кода. Празни редове и
@@ -2861,9 +2896,20 @@
         const renderCard = (loc, groupIcon) => {
           const m = _locStatusMeta(lastBy[loc], now);
           const isNone = m.state === "none";
-          return `<div style="position:relative;display:flex;align-items:stretch;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden;transition:background .2s;min-width:0;">
-            <div style="width:4px;flex-shrink:0;background:${m.accent};"></div>
-            <div style="padding:11px 13px;display:flex;align-items:center;gap:11px;min-width:0;flex:1;">
+          // „Просрочена" зала — над 4ч без проверка (или никога). Мига червен !
+          // 2-4ч → жълт ! с по-бавна пулсация (предупреждение).
+          const isOverdueRed = m.state === "stale" || isNone;
+          const isOverdueAmber = m.state === "warn";
+          const showAlert = isOverdueRed || isOverdueAmber;
+          const alertClass = isOverdueRed ? "cg-overdue-alert" : "cg-overdue-alert warn";
+          const alertTitle = isOverdueRed
+            ? (isNone ? "Никога не е проверявана — извърши проверка!" : "Просрочена проверка — над 4 часа!")
+            : "Скоро ще е просрочена — над 2 часа без проверка";
+          const cardGlow = isOverdueRed ? " cg-overdue-card" : "";
+          return `<div class="${cardGlow.trim()}" style="position:relative;display:flex;align-items:stretch;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:visible;transition:background .2s;min-width:0;">
+            ${showAlert ? `<span class="${alertClass}" title="${alertTitle}" aria-label="${alertTitle}">!</span>` : ''}
+            <div style="width:4px;flex-shrink:0;background:${m.accent};border-radius:12px 0 0 12px;"></div>
+            <div style="padding:11px 13px;display:flex;align-items:center;gap:11px;min-width:0;flex:1;overflow:hidden;border-radius:0 12px 12px 0;">
               <div style="width:34px;height:34px;border-radius:9px;background:${isNone ? 'rgba(255,255,255,.04)' : m.color + '1a'};display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${groupIcon}</div>
               <div style="min-width:0;flex:1;">
                 <div style="font-size:13.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(loc)}</div>
