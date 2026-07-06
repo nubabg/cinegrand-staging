@@ -789,13 +789,26 @@ function getLockSheet_() {
 }
 
 function cleanExpiredLocks_(sheet) {
+  // ОПТИМИЗИРАНО: вместо deleteRow() в цикъл (бавно, N операции, причинява
+  // Google timeout/грешки при натоварване) — четем всичко веднъж, филтрираме
+  // изтеклите и презаписваме листа с ЕДНА операция.
   var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return;
   var now = new Date();
-  for (var i = data.length - 1; i >= 1; i--) {
+  var header = data[0];
+  var cols = header.length;
+  var keep = [];
+  for (var i = 1; i < data.length; i++) {
     var expiresAt = new Date(data[i][4]);
-    if (now > expiresAt) {
-      sheet.deleteRow(i + 1);
-    }
+    if (!(now > expiresAt)) keep.push(data[i]); // задръж само НЕизтеклите
+  }
+  // Ако няма изтекли — не пипай листа (спестява запис)
+  if (keep.length === data.length - 1) return;
+  // Изчисти старите data редове и презапиши задържаните с една операция
+  var oldRows = data.length - 1;
+  sheet.getRange(2, 1, oldRows, cols).clearContent();
+  if (keep.length > 0) {
+    sheet.getRange(2, 1, keep.length, cols).setValues(keep);
   }
 }
 
