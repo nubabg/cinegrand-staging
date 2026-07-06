@@ -1568,12 +1568,22 @@
         }
       }
 
-      async function acquireLock(type, location, sessionId) {
-        if (!isSheetsConfigured()) return { success: true };
+      /* Събужда Apps Script backend-а с лек GET, за да не е cold при следваща
+         операция. Fire-and-forget, throttle-нато веднъж на 60 сек. */
+      let _lastWarmup = 0;
+      function warmUpBackend() {
+        if (!isSheetsConfigured()) return;
+        const now = Date.now();
+        if (now - _lastWarmup < 60000) return;
+        _lastWarmup = now;
+        const url = SHEETS_WEB_APP_URL + "?action=getInfo&_token=" + encodeURIComponent(SHEETS_SECRET_TOKEN) + "&_warm=1&_cb=" + now;
+        fetchWithTimeout(url, { cache: "no-store" }, 20000).catch(() => {});
+      }
+
+      async function _acquireLockOnce(type, location, sessionId) {
         // Хард timeout 25с — Apps Script POST от Bulgaria до Google може реално
         // да отнема 5-20 секунди при cold start, redirect (302 → googleusercontent),
-        // LockService.waitLock (до 10с) и операцията. По-стегнат timeout
-        // фалшиво маркира нормални проверки като „сървърът не отговаря".
+        // LockService.waitLock (до 10с) и операцията.
         try {
           const res = await fetchWithTimeout(SHEETS_WEB_APP_URL, {
             method: "POST",
@@ -1585,11 +1595,30 @@
           catch (_) { return { success: true, offline: true }; }
         } catch (err) {
           if (err && err.name === "AbortError") {
-            return { success: false, transient: true, error: "Сървърът не отговаря (>25 сек). Apps Script може да е cold-start или с висока заетост." };
+            return { success: false, transient: true, timedOut: true, error: "Сървърът не отговаря (>25 сек). Apps Script cold-start или висока заетост." };
           }
           console.warn("[Lock] acquireLock failed:", err.message);
           return { success: true, offline: true };
         }
+      }
+
+      async function acquireLock(type, location, sessionId) {
+        if (!isSheetsConfigured()) return { success: true };
+        let res = await _acquireLockOnce(type, location, sessionId);
+        // Автоматичен ЕДИНИЧЕН retry САМО при временна сървърна грешка на
+        // Google Apps Script (напр. „Sorry, it is not possible to…"), която
+        // НЕ е реално заключване и НЕ е timeout. Вторият опит удря вече „топъл"
+        // backend и обикновено минава — потребителят дори не вижда грешката.
+        const isServerHiccup = res && res.success === false && !res.locked && !res.timedOut;
+        if (isServerHiccup) {
+          console.warn("[Lock] transient server error, retrying once:", res.error);
+          await new Promise(r => setTimeout(r, 1500));
+          const res2 = await _acquireLockOnce(type, location, sessionId);
+          // Ако вторият опит успее или върне реално заключване — ползвай него.
+          if (res2 && (res2.success || res2.locked || res2.timedOut)) return res2;
+          return res2 || res;
+        }
+        return res;
       }
 
       async function releaseLock(sessionId) {
@@ -1631,26 +1660,48 @@
         sessionStorage.removeItem(LOCK_SESSION_KEY);
       }
 
-      function showLocationLocked(location, errorMsg, opts) {
-        const transient = !!(opts && opts.transient);
+      /* Интерпретира резултата от acquireLock:
+         - locked === true → истинско заключване от друг потребител
+         - иначе (success:false без locked) → временна сървърна грешка
+           (Google Apps Script cold-start / претоварване / infra грешка) */
+      function interpretLockResult(lockResult, location) {
+        const realLock = !!(lockResult && lockResult.locked);
+        if (realLock) {
+          return {
+            transient: false,
+            message: lockResult.error
+              ? lockResult.error
+              : (location + " вече се проверява от друг потребител. Опитайте след ~" + LOCK_TIMEOUT_MIN + " мин."),
+            detail: "",
+          };
+        }
+        // Временна грешка — покажи разбираемо съобщение, а техническата
+        // (често английска Google грешка) само като дребен детайл.
+        return {
+          transient: true,
+          message: "Сървърът е временно натоварен и не успя да отговори навреме. Това не е реално заключване — просто натисни бутона за повторен опит.",
+          detail: lockResult && lockResult.error ? String(lockResult.error) : "",
+        };
+      }
+
+      function showLocationLocked(location, lockResult, opts) {
         const type = opts && opts.type;
-        const msg = errorMsg
-          ? escapeHtml(errorMsg)
-          : (escapeHtml(location) + " вече се проверява от друг потребител. Опитайте след ~" + LOCK_TIMEOUT_MIN + " мин.");
+        const info = interpretLockResult(lockResult && typeof lockResult === "object" ? lockResult : { error: lockResult }, location);
+        const transient = info.transient;
         const title = transient ? "СЪРВЪРЪТ Е БАВЕН" : "ЛОКАЦИЯТА Е ЗАЕТА";
         const icon = transient ? "⏱" : "🔒";
-        // За transient грешки (timeout) — позволи незабавен повторен опит,
-        // защото това НЕ е истинско заключване а cold-start/network latency.
+        const ringColor = transient ? "245,158,11" : "239,91,91";
         const retryBtn = transient && type && location
-          ? `<button id="cg-lock-retry" class="btn btn-gold" style="margin-top:18px;padding:10px 28px;font-size:14px;">Опитай отново</button>
-             <button id="cg-lock-home" class="btn btn-outline" style="margin-top:8px;padding:10px 28px;font-size:14px;display:block;margin-left:auto;margin-right:auto;">Към началото</button>`
-          : `<button id="cg-lock-home" class="btn btn-outline" style="margin-top:18px;padding:10px 28px;font-size:14px;">Към началото</button>`;
+          ? `<button id="cg-lock-retry" class="btn btn-gold" style="margin-top:20px;padding:12px 32px;font-size:15px;">↻ Опитай отново</button>
+             <button id="cg-lock-home" class="btn btn-outline" style="margin-top:10px;padding:10px 28px;font-size:14px;display:block;margin-left:auto;margin-right:auto;">Към началото</button>`
+          : `<button id="cg-lock-home" class="btn btn-outline" style="margin-top:20px;padding:10px 28px;font-size:14px;">Към началото</button>`;
         document.getElementById("app").innerHTML = `
           <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
-            <div style="text-align:center;max-width:440px;">
-              <div style="width:72px;height:72px;border-radius:50%;background:rgba(239,91,91,.15);border:1px solid rgba(239,91,91,.3);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:32px;">${icon}</div>
-              <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;">${title}</div>
-              <div style="color:var(--muted);font-size:14px;line-height:1.6;">${msg}</div>
+            <div style="text-align:center;max-width:460px;">
+              <div style="width:76px;height:76px;border-radius:50%;background:rgba(${ringColor},.15);border:1px solid rgba(${ringColor},.35);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:34px;box-shadow:0 0 30px rgba(${ringColor},.2);">${icon}</div>
+              <div style="font-family:'Oswald',sans-serif;font-size:23px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;">${title}</div>
+              <div style="color:var(--muted);font-size:14px;line-height:1.65;">${escapeHtml(info.message)}</div>
+              ${info.detail ? `<div style="color:var(--muted-2);font-size:11px;line-height:1.5;margin-top:10px;opacity:.7;">Техн. детайл: ${escapeHtml(info.detail).substring(0, 160)}</div>` : ""}
               ${retryBtn}
             </div>
           </div>`;
@@ -2108,7 +2159,7 @@
             const sessionId = generateSessionId();
             const lockResult = await acquireLock(type, locationOverride, sessionId);
             if (!lockResult.success) {
-              showLocationLocked(locationOverride, lockResult.error, { transient: !!lockResult.transient, type });
+              showLocationLocked(locationOverride, lockResult, { type });
               return false;
             }
             state.currentSessionId = sessionId;
@@ -2145,7 +2196,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.06.24-overdue-alert";
+      const BUILD_VERSION = "v.2026.06.24-lock-resilience";
 
       /* ── Allowed inspector names — fetched from /Names.md in the repo ──
          Поддръжката минава през този файл, не през кода. Празни редове и
@@ -5018,6 +5069,9 @@
         if (action === "start-inspection") {
           state.screen = "select-hall";
           state.inspectionType = btn.dataset.type;
+          // Warmup — събуди Apps Script докато потребителят избира локация,
+          // за да е „топъл" при следващото заключване (по-малко cold-start).
+          warmUpBackend();
           render();
           return;
         }
@@ -5241,7 +5295,7 @@
             const sessionId = generateSessionId();
             const lockResult = await acquireLock(type, resolvedLoc, sessionId);
             if (!lockResult.success) {
-              showLocationLocked(resolvedLoc, lockResult.error, { transient: !!lockResult.transient, type });
+              showLocationLocked(resolvedLoc, lockResult, { type });
               return;
             }
             state.currentSessionId = sessionId;
@@ -5261,7 +5315,7 @@
           const sessionId = generateSessionId();
           const lockResult = await acquireLock(savedType, resolvedLoc, sessionId);
           if (!lockResult.success) {
-            showLocationLocked(resolvedLoc, lockResult.error, { transient: !!lockResult.transient, type: savedType });
+            showLocationLocked(resolvedLoc, lockResult, { type: savedType });
             return;
           }
           state.currentSessionId = sessionId;
