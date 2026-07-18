@@ -2112,29 +2112,14 @@
       }
 
       function lockAndStart(type, location) {
-        // ОПТИМИСТИЧНО заключване — отваряме формата ВЕДНАГА, без да чакаме
-        // бавния Apps Script backend. Заключването се прави тихо на заден план.
-        // Само при РЕАЛЕН конфликт (друг колега проверява същата зала) показваме
-        // предупреждение. Така сървърната бавнота повече не спира и не дразни.
-        const sessionId = generateSessionId();
-        state.currentSessionId = sessionId;
-        _lockAcquiredAt = Date.now();
-        sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
-        startInspection(type, location);
-        acquireLockInBackground(type, location, sessionId);
-      }
-
-      async function acquireLockInBackground(type, location, sessionId) {
-        if (!isSheetsConfigured()) return;
-        try {
-          const lockResult = await acquireLock(type, location, sessionId);
-          // Реален конфликт — само тогава предупреждаваме (тих toast, без да
-          // трием започнатата проверка).
-          if (lockResult && lockResult.success === false && lockResult.locked) {
-            showToast("⚠ Внимание: " + location + " вече се проверява от друг колега.", "error");
-          }
-          // Успех или сървърна грешка → нищо, продължаваме тихо.
-        } catch (_) { /* тихо — заключването е best-effort */ }
+        // Показваме кратък „Заключване…" екран, докато ПОТВЪРДИМ заключването
+        // със сървъра ПРЕДИ да отворим формата. Така, ако друг вече проверява
+        // тази зала (напр. от PC), телефонът реално се блокира и обратно.
+        state.screen = "locking";
+        state.location = location;
+        state.inspectionType = type;
+        render();
+        setTimeout(() => { startInspectionWithLock(type, location); }, 150);
       }
 
       async function acquireLockFirstFree(type, locations, sessionId) {
@@ -2181,9 +2166,8 @@
                 return false;
               }
               // Сървърна грешка / бавен backend → best-effort: продължаваме
-              // проверката без заключване, за да НЕ блокираме работата.
+              // тихо (без toast), за да НЕ блокираме работата при рядка грешка.
               console.warn("[Lock] server slow/error — proceeding без заключване:", lockResult.error);
-              showToast("Сървърът е бавен — започвам проверката без заключване.", "error");
             }
             state.currentSessionId = sessionId;
             _lockAcquiredAt = Date.now();
@@ -2219,7 +2203,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.11-optimistic-lock";
+      const BUILD_VERSION = "v.2026.07.11-lock-before-open";
 
       /* ── Allowed inspector names — fetched from /Names.md in the repo ──
          Поддръжката минава през този файл, не през кода. Празни редове и
