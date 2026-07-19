@@ -1580,75 +1580,124 @@
         fetchWithTimeout(url, { cache: "no-store" }, 20000).catch(() => {});
       }
 
-      async function _acquireLockOnce(type, location, sessionId) {
-        // Хард timeout 25с — Apps Script POST от Bulgaria до Google може реално
-        // да отнема 5-20 секунди при cold start, redirect (302 → googleusercontent),
-        // LockService.waitLock (до 10с) и операцията.
-        try {
-          const res = await fetchWithTimeout(SHEETS_WEB_APP_URL, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=UTF-8" },
-            body: JSON.stringify({ action: "acquireLock", type, location, sessionId, _token: SHEETS_SECRET_TOKEN }),
-          }, 25000);
-          if (!res.ok) return { success: true, offline: true };
-          try { return await res.json(); }
-          catch (_) { return { success: true, offline: true }; }
-        } catch (err) {
-          if (err && err.name === "AbortError") {
-            return { success: false, transient: true, timedOut: true, error: "Сървърът не отговаря (>25 сек). Apps Script cold-start или висока заетост." };
+      /* ══════════════════════════════════════════════════════════════
+         ЗАКЛЮЧВАНЕ ПРЕЗ ntfy.sh — надеждно, без Apps Script backend.
+         ntfy topic-ът служи като споделен журнал от lock/unlock събития.
+         Всяко устройство чете последните ~15 мин събития, за да определи
+         дали дадена зала е заключена от друг. Работи, защото ntfy е бърз и
+         надежден (използва се и за снимките).
+         ══════════════════════════════════════════════════════════════ */
+      const LOCK_NTFY_TOPIC = "cg-locks-cinegrand-v1";
+      const LOCK_TTL_MS = 12 * 60 * 1000;      // колко дълго важи lock без heartbeat
+      const LOCK_HEARTBEAT_MS = 4 * 60 * 1000; // презаписване докато залата е отворена
+      let _lockHeartbeatTimer = null;
+      let _heldLockKey = null;                 // "type|location" на текущо държания lock
+
+      function _lockKey(type, location) { return type + "|" + location; }
+
+      async function _fetchLockEvents() {
+        const url = NTFY_BASE + "/" + encodeURIComponent(LOCK_NTFY_TOPIC) + "/json?poll=1&since=15m";
+        const res = await fetchWithTimeout(url, { method: "GET", cache: "no-store" }, 10000);
+        if (!res.ok) throw new Error("ntfy HTTP " + res.status);
+        const text = await res.text();
+        const events = [];
+        for (const line of text.split("\n")) {
+          if (!line.trim()) continue;
+          try {
+            const d = JSON.parse(line);
+            if (!d || d.event !== "message" || !d.message) continue;
+            const ev = JSON.parse(d.message);
+            if (ev && ev.t && ev.l && ev.s && ev.a && ev.ts) events.push(ev);
+          } catch (_) {}
+        }
+        return events;
+      }
+
+      /* Определя текущия държател на lock за зала (или null).
+         При едновременно заключване печели най-малкият sessionId — детерминистично,
+         независимо от реда, така че всички устройства избират един и същ победител. */
+      function _computeLockHolder(events, type, location, nowTs) {
+        const key = _lockKey(type, location);
+        const active = new Map(); // sessionId -> ts на последния lock
+        const sorted = events.slice().sort((a, b) => a.ts - b.ts);
+        for (const ev of sorted) {
+          if (_lockKey(ev.t, ev.l) !== key) continue;
+          if (ev.a === "lock") {
+            if (nowTs - ev.ts <= LOCK_TTL_MS) active.set(ev.s, ev.ts);
+          } else if (ev.a === "unlock") {
+            active.delete(ev.s);
           }
-          console.warn("[Lock] acquireLock failed:", err.message);
+        }
+        if (active.size === 0) return null;
+        let winner = null;
+        for (const s of active.keys()) { if (winner === null || s < winner) winner = s; }
+        return { s: winner, ts: active.get(winner) };
+      }
+
+      async function _publishLockEvent(type, location, sessionId, action) {
+        const msg = JSON.stringify({ t: type, l: location, s: sessionId, a: action, ts: Date.now() });
+        try {
+          await fetchWithTimeout(NTFY_BASE + "/" + encodeURIComponent(LOCK_NTFY_TOPIC), { method: "POST", body: msg }, 8000);
+          return true;
+        } catch (_) { return false; }
+      }
+
+      function _startLockHeartbeat(type, location, sessionId) {
+        _stopLockHeartbeat();
+        _lockHeartbeatTimer = setInterval(() => { _publishLockEvent(type, location, sessionId, "lock"); }, LOCK_HEARTBEAT_MS);
+      }
+      function _stopLockHeartbeat() {
+        if (_lockHeartbeatTimer) { clearInterval(_lockHeartbeatTimer); _lockHeartbeatTimer = null; }
+      }
+
+      async function acquireLock(type, location, sessionId) {
+        try {
+          const now = Date.now();
+          const events = await _fetchLockEvents();
+          const holder = _computeLockHolder(events, type, location, now);
+          if (holder && holder.s !== sessionId) {
+            const minsLeft = Math.max(1, Math.ceil((LOCK_TTL_MS - (now - holder.ts)) / 60000));
+            return { success: false, locked: true, minutesLeft: minsLeft, error: location + " вече се проверява. Опитайте след ~" + minsLeft + " мин." };
+          }
+          // Свободна — заяви lock
+          await _publishLockEvent(type, location, sessionId, "lock");
+          // Кратка проверка за едновременно заключване (race)
+          await new Promise(r => setTimeout(r, 1300));
+          const holder2 = _computeLockHolder(await _fetchLockEvents(), type, location, Date.now());
+          if (holder2 && holder2.s !== sessionId) {
+            return { success: false, locked: true, error: location + " беше заета от друг колега." };
+          }
+          // Държим lock-а — стартирай heartbeat докато залата е отворена
+          _heldLockKey = _lockKey(type, location);
+          _startLockHeartbeat(type, location, sessionId);
+          return { success: true };
+        } catch (err) {
+          // ntfy недостъпен — best-effort (не блокирай работата)
+          console.warn("[ntfyLock] acquire failed:", err.message);
           return { success: true, offline: true };
         }
       }
 
-      async function acquireLock(type, location, sessionId) {
-        if (!isSheetsConfigured()) return { success: true };
-        let res = await _acquireLockOnce(type, location, sessionId);
-        // Автоматичен ЕДИНИЧЕН retry САМО при временна сървърна грешка на
-        // Google Apps Script (напр. „Sorry, it is not possible to…"), която
-        // НЕ е реално заключване и НЕ е timeout. Вторият опит удря вече „топъл"
-        // backend и обикновено минава — потребителят дори не вижда грешката.
-        const isServerHiccup = res && res.success === false && !res.locked && !res.timedOut;
-        if (isServerHiccup) {
-          console.warn("[Lock] transient server error, retrying once:", res.error);
-          await new Promise(r => setTimeout(r, 1500));
-          const res2 = await _acquireLockOnce(type, location, sessionId);
-          // Ако вторият опит успее или върне реално заключване — ползвай него.
-          if (res2 && (res2.success || res2.locked || res2.timedOut)) return res2;
-          return res2 || res;
-        }
-        return res;
-      }
-
       async function releaseLock(sessionId) {
-        if (!sessionId || !isSheetsConfigured()) return;
-        try {
-          await fetch(SHEETS_WEB_APP_URL, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=UTF-8" },
-            body: JSON.stringify({ action: "releaseLock", sessionId, _token: SHEETS_SECRET_TOKEN }),
-          });
-        } catch (err) {
-          console.warn("[Lock] releaseLock failed:", err.message);
-        }
+        _stopLockHeartbeat();
+        if (!sessionId || !_heldLockKey) { _heldLockKey = null; return; }
+        const parts = _heldLockKey.split("|");
+        _heldLockKey = null;
+        await _publishLockEvent(parts[0], parts[1], sessionId, "unlock");
       }
 
       function releaseLockBeacon(sessionId) {
-        if (!sessionId || !isSheetsConfigured()) return;
-        const payload = JSON.stringify({ action: "releaseLock", sessionId, _token: SHEETS_SECRET_TOKEN });
+        _stopLockHeartbeat();
+        if (!sessionId || !_heldLockKey) { _heldLockKey = null; return; }
+        const parts = _heldLockKey.split("|");
+        const msg = JSON.stringify({ t: parts[0], l: parts[1], s: sessionId, a: "unlock", ts: Date.now() });
+        _heldLockKey = null;
         try {
-          fetch(SHEETS_WEB_APP_URL, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain;charset=UTF-8" },
-            body: payload,
-            keepalive: true,
-          }).catch(() => {});
-        } catch (_) {}
-        try {
-          const blob = new Blob([payload], { type: "text/plain;charset=UTF-8" });
-          navigator.sendBeacon(SHEETS_WEB_APP_URL, blob);
-        } catch (_) {}
+          const blob = new Blob([msg], { type: "text/plain;charset=UTF-8" });
+          navigator.sendBeacon(NTFY_BASE + "/" + encodeURIComponent(LOCK_NTFY_TOPIC), blob);
+        } catch (_) {
+          try { fetch(NTFY_BASE + "/" + encodeURIComponent(LOCK_NTFY_TOPIC), { method: "POST", body: msg, keepalive: true }).catch(() => {}); } catch (_2) {}
+        }
       }
 
       function cleanupSessionLock() {
@@ -2170,7 +2219,7 @@
               // тихо, за да НЕ блокираме работата при рядка грешка.
               console.warn("[Lock] server slow/error — proceeding без заключване:", lockResult.error);
             }
-            state.lockConfirmed = (lockResult.success === true);
+            state.lockConfirmed = (lockResult.success === true && !lockResult.offline);
             state.currentSessionId = sessionId;
             _lockAcquiredAt = Date.now();
             sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
@@ -2207,7 +2256,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.18-lock-indicator";
+      const BUILD_VERSION = "v.2026.07.18-ntfy-lock";
 
       /* ── Allowed inspector names — fetched from /Names.md in the repo ──
          Поддръжката минава през този файл, не през кода. Празни редове и
@@ -5319,7 +5368,7 @@
             if (!lockResult.success) {
               console.warn("[Lock] QR: server slow — proceeding без заключване:", lockResult.error);
             }
-            state.lockConfirmed = (lockResult.success === true);
+            state.lockConfirmed = (lockResult.success === true && !lockResult.offline);
             state.currentSessionId = sessionId;
             _lockAcquiredAt = Date.now();
             sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
@@ -5343,7 +5392,7 @@
           if (!lockResult.success) {
             console.warn("[Lock] QR reload: server slow — proceeding без заключване:", lockResult.error);
           }
-          state.lockConfirmed = (lockResult.success === true);
+          state.lockConfirmed = (lockResult.success === true && !lockResult.offline);
           state.currentSessionId = sessionId;
           _lockAcquiredAt = Date.now();
           sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
