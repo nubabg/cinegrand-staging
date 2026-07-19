@@ -1915,6 +1915,7 @@
         toast: null,
         openedFromQR: false,
         currentSessionId: null,
+        lockConfirmed: true,   /* true = сървърът потвърди заключването; false = best-effort без заключване */
         /* Changing room module */
         crType: null,        /* "male" | "female" */
         crData: null,        /* { dateStr, rowIndex, maleEntry, femaleEntry } */
@@ -2166,9 +2167,10 @@
                 return false;
               }
               // Сървърна грешка / бавен backend → best-effort: продължаваме
-              // тихо (без toast), за да НЕ блокираме работата при рядка грешка.
+              // тихо, за да НЕ блокираме работата при рядка грешка.
               console.warn("[Lock] server slow/error — proceeding без заключване:", lockResult.error);
             }
+            state.lockConfirmed = (lockResult.success === true);
             state.currentSessionId = sessionId;
             _lockAcquiredAt = Date.now();
             sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
@@ -2185,9 +2187,11 @@
             }
             /* Сървърна грешка — пропусни lock, отвори формата */
             console.warn("[Lock] acquireLockFirstFree error:", result.error);
+            state.lockConfirmed = false;
             startInspection(type);
             return true;
           }
+          state.lockConfirmed = (result.success === true && !result.offline);
           state.currentSessionId = sessionId;
           _lockAcquiredAt = Date.now();
           sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
@@ -2203,7 +2207,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.11-lock-before-open";
+      const BUILD_VERSION = "v.2026.07.18-lock-indicator";
 
       /* ── Allowed inspector names — fetched from /Names.md in the repo ──
          Поддръжката минава през този файл, не през кода. Празни редове и
@@ -3900,6 +3904,9 @@
                 ${config.title}
               </h1>
               <div class="muted">${isSheetsConfigured() ? "Данните ще се изпратят автоматично към Google Sheets след запис." : "Локален запис в браузъра."}</div>
+              ${isSheetsConfigured() ? (state.lockConfirmed
+                ? `<div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--green);background:rgba(45,204,112,.1);border:1px solid rgba(45,204,112,.28);padding:4px 10px;border-radius:999px;">🔒 Залата е заключена за теб</div>`
+                : `<div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:#f59e0b;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);padding:4px 10px;border-radius:999px;">🔓 Без заключване (сървърна грешка) — друг може да отвори същата зала</div>`) : ""}
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
               <span class="muted"><strong style="color:var(--green);">${filledCount}</strong>/${config.items.length} попълнени</span>
@@ -5312,6 +5319,7 @@
             if (!lockResult.success) {
               console.warn("[Lock] QR: server slow — proceeding без заключване:", lockResult.error);
             }
+            state.lockConfirmed = (lockResult.success === true);
             state.currentSessionId = sessionId;
             _lockAcquiredAt = Date.now();
             sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
@@ -5335,6 +5343,7 @@
           if (!lockResult.success) {
             console.warn("[Lock] QR reload: server slow — proceeding без заключване:", lockResult.error);
           }
+          state.lockConfirmed = (lockResult.success === true);
           state.currentSessionId = sessionId;
           _lockAcquiredAt = Date.now();
           sessionStorage.setItem(LOCK_SESSION_KEY, sessionId);
