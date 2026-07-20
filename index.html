@@ -2256,7 +2256,100 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.18-ntfy-lock";
+      const BUILD_VERSION = "v.2026.07.20-nextclean";
+
+      /* ── Cine Grand прожекции (Arena „next-clean" табло) ──
+         URL на Cloudflare Worker прокси (за да заобиколим CORS). Празно = функцията
+         е изключена. След deploy на Worker-а сложи неговия URL тук. */
+      const NEXTCLEAN_PROXY_URL = "";  // напр. "https://cinegrand-nextclean.<акаунт>.workers.dev"
+      let _nextCleanShows = [];        // [{hall, hallNum, movie, start, end, endsInMin, status}]
+      let _nextCleanFetchedAt = 0;
+      let _nextCleanBusy = false;
+
+      /* Парсва HTML-а на next-clean таблото → списък прожекции. */
+      function parseNextCleanHtml(html) {
+        const out = [];
+        try {
+          const doc = new DOMParser().parseFromString(html, "text/html");
+          doc.querySelectorAll("tr.show").forEach((tr) => {
+            const hallText = (tr.querySelector("td.hall")?.textContent || "").replace(/\s+/g, " ").trim(); // "Hall 3"
+            const hallNumM = hallText.match(/(\d+)/);
+            const hallNum = hallNumM ? parseInt(hallNumM[1], 10) : null;
+            const h1s = tr.querySelectorAll("td.align-middle h1");
+            const movie = (h1s[0]?.textContent || "").replace(/\s+/g, " ").trim();
+            const timeRange = (h1s[1]?.textContent || "").replace(/\s+/g, " ").trim(); // "13:15 - 15:30"
+            const parts = timeRange.split("-").map((s) => s.trim());
+            const start = parts[0] || "";
+            const end = parts[1] || "";
+            let endsInMin = null;
+            const seats = tr.querySelector("span.seats");
+            if (seats) { const m = seats.textContent.match(/(\d+)\s*minute/); if (m) endsInMin = parseInt(m[1], 10); }
+            let status = "gray";
+            const circle = tr.querySelector('[class*="circle-red"],[class*="circle-green"],[class*="circle-yellow"],[class*="circle-gray"]');
+            if (circle) {
+              if (circle.className.indexOf("circle-red") !== -1) status = "red";
+              else if (circle.className.indexOf("circle-green") !== -1) status = "green";
+              else if (circle.className.indexOf("circle-yellow") !== -1) status = "yellow";
+            }
+            if (hallNum) out.push({ hall: "Зала " + hallNum, hallNum, movie, start, end, endsInMin, status });
+          });
+        } catch (err) { console.warn("[nextclean] parse error:", err); }
+        return out;
+      }
+
+      async function fetchNextClean() {
+        if (!NEXTCLEAN_PROXY_URL) return;
+        if (_nextCleanBusy) return;
+        _nextCleanBusy = true;
+        try {
+          const res = await fetchWithTimeout(NEXTCLEAN_PROXY_URL + (NEXTCLEAN_PROXY_URL.indexOf("?") === -1 ? "?" : "&") + "_cb=" + Date.now(), { cache: "no-store" }, 12000);
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const html = await res.text();
+          _nextCleanShows = parseNextCleanHtml(html);
+          _nextCleanFetchedAt = Date.now();
+          if (state.screen === "home") render();
+        } catch (err) {
+          console.warn("[nextclean] fetch error:", err.message);
+        } finally {
+          _nextCleanBusy = false;
+        }
+      }
+
+      /* Връща текущо течащата прожекция за дадена зала (или null). */
+      function _currentShowForHall(hallNum) {
+        const running = _nextCleanShows.filter((s) => s.hallNum === hallNum && s.status === "red");
+        if (running.length === 0) return null;
+        // най-скоро свършващата
+        running.sort((a, b) => (a.endsInMin == null ? 9999 : a.endsInMin) - (b.endsInMin == null ? 9999 : b.endsInMin));
+        return running[0];
+      }
+
+      function renderNextCleanSection() {
+        if (!NEXTCLEAN_PROXY_URL) return "";
+        const running = _nextCleanShows.filter((s) => s.status === "red")
+          .sort((a, b) => (a.endsInMin == null ? 9999 : a.endsInMin) - (b.endsInMin == null ? 9999 : b.endsInMin));
+        const hasData = _nextCleanShows.length > 0;
+        const rowsHtml = running.map((s) => {
+          const soon = s.endsInMin != null && s.endsInMin <= 15;
+          const color = soon ? "#ef4444" : "#f59e0b";
+          return `<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-left:4px solid ${color};border-radius:10px;">
+            <div style="font-size:15px;font-weight:700;color:#fff;min-width:70px;">🎬 ${escapeHtml(s.hall)}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</div>
+              <div style="font-size:11px;color:${color};font-weight:600;">Свършва ${escapeHtml(s.end)}${s.endsInMin != null ? ` · след ${s.endsInMin} мин` : ""}${soon ? " — скоро за почистване!" : ""}</div>
+            </div>
+          </div>`;
+        }).join("");
+        return `<div class="panel" style="margin-bottom:18px;padding:18px 20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+            <h3 style="font-size:15px;font-weight:700;color:#fff;margin:0;letter-spacing:.04em;display:flex;align-items:center;gap:8px;"><span style="font-size:17px;">🎬</span> Кога се освобождават залите</h3>
+            <span style="font-size:11px;color:#888;">${hasData ? "на живо от киното" : "зареждам…"}</span>
+          </div>
+          ${running.length > 0 ? `<div style="display:grid;gap:8px;">${rowsHtml}</div>`
+            : `<div style="font-size:13px;color:#888;padding:6px 2px;">В момента няма текущи прожекции.</div>`}
+          <div style="font-size:10.5px;color:#555;margin-top:10px;">Прожекция свършва → залата се освобождава → нужна е проверка/почистване.</div>
+        </div>`;
+      }
 
       /* ── Allowed inspector names — fetched from /Names.md in the repo ──
          Поддръжката минава през този файл, не през кода. Празни редове и
@@ -3028,6 +3121,14 @@
                   <span>${m.dot}</span><span>${m.label}</span>
                   ${m.wasProblem ? '<span style="color:#f87171;font-size:10px;" title="Последна проверка: Проблем">● проблем</span>' : ''}
                 </div>
+                ${(() => {
+                  const hn = (loc.match(/(\d+)/) || [])[1];
+                  if (!hn || !NEXTCLEAN_PROXY_URL) return "";
+                  const show = _currentShowForHall(parseInt(hn, 10));
+                  if (!show) return "";
+                  const soon = show.endsInMin != null && show.endsInMin <= 15;
+                  return `<div style="font-size:10.5px;color:${soon ? '#ef4444' : '#8aa0b8'};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎬 свършва ${escapeHtml(show.end)}${show.endsInMin != null ? ` (${show.endsInMin} мин)` : ""}</div>`;
+                })()}
               </div>
               ${!isNone ? `<div style="font-size:10px;color:#666;text-align:right;flex-shrink:0;white-space:nowrap;">${escapeHtml(m.sub)}</div>` : ''}
             </div>
@@ -3291,6 +3392,7 @@
             </div>
           </div>
 
+          ${renderNextCleanSection()}
           ${renderLastCheckedBadges()}
           ${renderFeatureAnnouncement()}
           ${_annHtml}
@@ -5317,6 +5419,11 @@
         /* Lighter every-minute re-render so the "преди X" ages tick over
            without an extra Sheets request. */
         setInterval(() => { if (state.screen === "home") render(); }, 60 * 1000);
+        /* Cine Grand прожекции (next-clean табло) — първоначално + на всеки 60с */
+        if (NEXTCLEAN_PROXY_URL) {
+          fetchNextClean();
+          setInterval(() => { if (state.screen === "home") fetchNextClean(); }, 60 * 1000);
+        }
         /* Обработи URL параметри от QR сканиране */
         const search = window.location.search || "";
         const hash = window.location.hash || "";
