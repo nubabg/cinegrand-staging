@@ -2270,7 +2270,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.23-ended-sticky";
+      const BUILD_VERSION = "v.2026.07.23-halls-tab";
 
       /* ── Cine Grand прожекции (Arena „next-clean" табло) ──
          URL на Cloudflare Worker прокси (за да заобиколим CORS). Празно = функцията
@@ -2357,7 +2357,7 @@
           });
           // Изчисти изтеклите (>5 мин)
           Object.keys(_endedHallsSeen).forEach((k) => { if (now - _endedHallsSeen[k].ts > ENDED_STICKY_MS) delete _endedHallsSeen[k]; });
-          if (state.screen === "home") render();
+          if (state.screen === "home" || state.screen === "halls") render();
         } catch (err) {
           console.warn("[nextclean] fetch error:", err.message);
         } finally {
@@ -2397,7 +2397,7 @@
               <div style="font-size:14.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(e.movie)}</div>
               <div style="font-size:12px;color:#fff;opacity:.9;margin-top:3px;">🎬 Свърши в <b>${escapeHtml(e.end)}</b>${e.agoMin > 0 ? ` · преди ${e.agoMin} мин` : " · току-що"}</div>
             </div>
-            <div class="cg-clean-badge" style="flex-shrink:0;font-size:12.5px;font-weight:800;color:#04160e;background:linear-gradient(135deg,#34d399,#10b981);padding:9px 15px;border-radius:999px;letter-spacing:.04em;box-shadow:0 0 18px rgba(16,185,129,.55);white-space:nowrap;">✅ ПОЧИСТИ</div>
+            <div class="cg-clean-badge" style="flex-shrink:0;font-size:11.5px;font-weight:800;color:#04160e;background:linear-gradient(135deg,#34d399,#10b981);padding:9px 15px;border-radius:999px;letter-spacing:.03em;box-shadow:0 0 18px rgba(16,185,129,.55);white-space:nowrap;">✅ ПРОВЕРИ ЗАЛАТА</div>
           </div>`;
         }).join("");
 
@@ -2422,7 +2422,21 @@
           </div>
           ${anyRows ? `<div style="display:grid;gap:10px;">${endedRows}${runningRows}</div>`
             : `<div style="font-size:13px;color:#888;padding:6px 2px;">В момента няма текущи прожекции.</div>`}
-          <div style="font-size:10.5px;color:#556;margin-top:12px;">✅ свършила = почисти сега (задържа се 5 мин) · 🎬 тече = скоро се освобождава</div>
+          <div style="font-size:10.5px;color:#556;margin-top:12px;">✅ свършила = провери залата дали е почистена (задържа се 5 мин) · 🎬 тече = скоро се освобождава</div>
+        </div>`;
+      }
+
+      /* Отделен екран „Зали" — статус на прожекциите + кога се освобождават. */
+      function renderHallsScreen() {
+        return `<div class="page">
+          <div class="toolbar">
+            <div>
+              <h1 class="hero-title" style="display:flex;align-items:center;gap:12px;"><span style="font-size:32px;">🎬</span> Статус на залите</h1>
+              <div class="muted">Прожекции на живо от киното — кога всяка зала се освобождава за проверка.</div>
+            </div>
+            <button class="btn btn-outline" data-action="go-home">← Начало</button>
+          </div>
+          ${renderNextCleanSection()}
         </div>`;
       }
 
@@ -3038,6 +3052,7 @@
           state.screen !== "home" ? `<button class="nav-btn" data-action="go-home" aria-label="Начална страница">Начало</button>` : "",
           `<button class="nav-btn" data-action="open-qr" aria-label="QR кодове за печат">QR кодове</button>`,
           `<a class="nav-btn${isSheetsConfigured() ? ' state' : ''}" href="${SHEETS_SPREADSHEET_URL}" target="_blank" rel="noopener" aria-label="Отвори Sheets таблица">${isSheetsConfigured() ? "Sheets ✓" : "Sheets ✗"}</a>`,
+          NEXTCLEAN_PROXY_URL ? `<button class="nav-btn ${state.screen === 'halls' ? 'state' : ''}" data-action="go-halls" aria-label="Статус на залите">&#127916; Зали</button>` : "",
           `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''} ${chartsCooldownUntil > Date.now() ? 'cooldown' : ''}" data-action="go-charts" aria-label="Данни от Sheets" ${chartsCooldownUntil > Date.now() ? 'disabled' : ''}>&#128202; ${chartsCooldownUntil > Date.now() ? "Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : "Данни"}</button>`,
         ].filter(Boolean).join("");
 
@@ -3209,7 +3224,7 @@
                   // Свършила прожекция (задържана поне 5 мин) → почисти сега
                   const endedShow = _endedHallsSeen[num] && (Date.now() - _endedHallsSeen[num].ts <= ENDED_STICKY_MS);
                   if (endedShow) {
-                    return `<div style="font-size:10.5px;color:#10b981;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">✅ свърши — почисти сега</div>`;
+                    return `<div style="font-size:10.5px;color:#10b981;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">✅ свърши — провери залата</div>`;
                   }
                   const show = _currentShowForHall(num);
                   if (!show) return "";
@@ -3479,7 +3494,6 @@
             </div>
           </div>
 
-          ${renderNextCleanSection()}
           ${renderLastCheckedBadges()}
           ${renderFeatureAnnouncement()}
           ${_annHtml}
@@ -4926,6 +4940,7 @@
           state.screen === "inspection" ? renderInspection() :
           state.screen === "history" ? renderHistory() :
           state.screen === "charts" ? renderCharts() :
+          state.screen === "halls" ? renderHallsScreen() :
           state.screen === "select-cr" ? renderChangingRoomSelect() :
           state.screen === "cr-detail" ? renderChangingRoomDetail() :
           state.screen === "phone-photo-upload" ? renderPhonePhotoUpload() :
@@ -5274,6 +5289,7 @@
 
         if (action === "go-home") { cleanupSessionLock(); stopPhonePhotoPolling(); state.pcSessionId = null; state.remotePhotoUrls = []; state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
+        if (action === "go-halls") { state.screen = "halls"; fetchNextClean(); render(); return; }
         if (action === "go-charts") {
           if (Date.now() < chartsCooldownUntil) {
             showToast("Моля да не спамиш. След няколко секунди опитай пак.", "error");
@@ -5506,10 +5522,13 @@
         /* Lighter every-minute re-render so the "преди X" ages tick over
            without an extra Sheets request. */
         setInterval(() => { if (state.screen === "home") render(); }, 60 * 1000);
-        /* Cine Grand прожекции (next-clean табло) — първоначално + на всеки 60с */
+        /* Cine Grand прожекции (next-clean табло) — първоначално + на всеки 60с.
+           Обновява се във фонов режим (нужно за sticky „свърши" таймера) и
+           пре-рендерира на всеки 30с докато сме на екрана „Зали". */
         if (NEXTCLEAN_PROXY_URL) {
           fetchNextClean();
-          setInterval(() => { if (state.screen === "home") fetchNextClean(); }, 60 * 1000);
+          setInterval(fetchNextClean, 60 * 1000);
+          setInterval(() => { if (state.screen === "halls") render(); }, 30 * 1000);
         }
         /* Обработи URL параметри от QR сканиране */
         const search = window.location.search || "";
