@@ -2256,12 +2256,12 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.20-nextclean";
+      const BUILD_VERSION = "v.2026.07.23-nextclean-live";
 
       /* ── Cine Grand прожекции (Arena „next-clean" табло) ──
          URL на Cloudflare Worker прокси (за да заобиколим CORS). Празно = функцията
          е изключена. След deploy на Worker-а сложи неговия URL тук. */
-      const NEXTCLEAN_PROXY_URL = "";  // напр. "https://cinegrand-nextclean.<акаунт>.workers.dev"
+      const NEXTCLEAN_PROXY_URL = "https://cinegrand-nextclean.denis123291104.workers.dev";  // Cloudflare Worker прокси
       let _nextCleanShows = [];        // [{hall, hallNum, movie, start, end, endsInMin, status}]
       let _nextCleanFetchedAt = 0;
       let _nextCleanBusy = false;
@@ -2326,10 +2326,23 @@
 
       function renderNextCleanSection() {
         if (!NEXTCLEAN_PROXY_URL) return "";
+        const hasData = _nextCleanShows.length > 0;
+        // „Свърши" (зелено) = току-що свободна, почисти СЕГА (най-висок приоритет).
+        const ended = _nextCleanShows.filter((s) => s.status === "green");
+        // „Тече" (червено) = ще свърши скоро, подредени по оставащо време.
         const running = _nextCleanShows.filter((s) => s.status === "red")
           .sort((a, b) => (a.endsInMin == null ? 9999 : a.endsInMin) - (b.endsInMin == null ? 9999 : b.endsInMin));
-        const hasData = _nextCleanShows.length > 0;
-        const rowsHtml = running.map((s) => {
+
+        const endedRows = ended.map((s) => `
+          <div style="display:flex;align-items:center;gap:12px;padding:11px 12px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-left:4px solid #10b981;border-radius:10px;">
+            <div style="font-size:15px;font-weight:700;color:#fff;min-width:70px;">✅ ${escapeHtml(s.hall)}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</div>
+              <div style="font-size:11.5px;color:#10b981;font-weight:700;">Прожекцията свърши (${escapeHtml(s.end)}) — почисти сега!</div>
+            </div>
+          </div>`).join("");
+
+        const runningRows = running.map((s) => {
           const soon = s.endsInMin != null && s.endsInMin <= 15;
           const color = soon ? "#ef4444" : "#f59e0b";
           return `<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-left:4px solid ${color};border-radius:10px;">
@@ -2340,14 +2353,16 @@
             </div>
           </div>`;
         }).join("");
+
+        const anyRows = ended.length > 0 || running.length > 0;
         return `<div class="panel" style="margin-bottom:18px;padding:18px 20px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
             <h3 style="font-size:15px;font-weight:700;color:#fff;margin:0;letter-spacing:.04em;display:flex;align-items:center;gap:8px;"><span style="font-size:17px;">🎬</span> Кога се освобождават залите</h3>
             <span style="font-size:11px;color:#888;">${hasData ? "на живо от киното" : "зареждам…"}</span>
           </div>
-          ${running.length > 0 ? `<div style="display:grid;gap:8px;">${rowsHtml}</div>`
+          ${anyRows ? `<div style="display:grid;gap:8px;">${endedRows}${runningRows}</div>`
             : `<div style="font-size:13px;color:#888;padding:6px 2px;">В момента няма текущи прожекции.</div>`}
-          <div style="font-size:10.5px;color:#555;margin-top:10px;">Прожекция свършва → залата се освобождава → нужна е проверка/почистване.</div>
+          <div style="font-size:10.5px;color:#555;margin-top:10px;">✅ свършила = почисти сега · 🎬 тече = скоро се освобождава</div>
         </div>`;
       }
 
@@ -3124,7 +3139,13 @@
                 ${(() => {
                   const hn = (loc.match(/(\d+)/) || [])[1];
                   if (!hn || !NEXTCLEAN_PROXY_URL) return "";
-                  const show = _currentShowForHall(parseInt(hn, 10));
+                  const num = parseInt(hn, 10);
+                  // Свършила прожекция (зелено) → почисти сега
+                  const endedShow = _nextCleanShows.find((s) => s.hallNum === num && s.status === "green");
+                  if (endedShow) {
+                    return `<div style="font-size:10.5px;color:#10b981;font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">✅ прожекцията свърши — почисти</div>`;
+                  }
+                  const show = _currentShowForHall(num);
                   if (!show) return "";
                   const soon = show.endsInMin != null && show.endsInMin <= 15;
                   return `<div style="font-size:10.5px;color:${soon ? '#ef4444' : '#8aa0b8'};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎬 свършва ${escapeHtml(show.end)}${show.endsInMin != null ? ` (${show.endsInMin} мин)` : ""}</div>`;
