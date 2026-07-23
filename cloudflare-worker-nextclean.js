@@ -1,29 +1,32 @@
 /**
- * Cloudflare Worker — прокси за Arena "next-clean" таблото.
+ * Cloudflare Worker v2 — прокси за публичните Arena табла на Cine Grand.
  *
- * ЗАЩО: браузърът на cginspection.org НЕ може да чете директно от
- * arenacrp.com (различен домейн — CORS). Този Worker чете публичното табло
- * СЪРВЪР-СТРАНА и го връща с CORS хедъри, за да може приложението да го ползва.
+ * Поддържа ДВА борда (и само тях — не е отворено прокси, без пароли/ключове):
+ *   (по подразбиране)  next-clean  → кога свършва всяка прожекция
+ *   ?board=next        next        → следващи прожекции: формат 2D/3D,
+ *                                    свободни места, продължителност
  *
- * СИГУРНОСТ: Worker-ът е ЗАКЛЮЧЕН само за конкретния публичен next-clean URL —
- * НЕ е отворено прокси и НЕ съдържа никакви пароли/ключове. Ползва само
- * публична страница.
+ * ── ОБНОВЯВАНЕ НА ВЕЧЕ СЪЗДАДЕН WORKER ──
+ * 1. dash.cloudflare.com → Workers & Pages → cinegrand-nextclean
+ * 2. Edit code → изтрий стария код → постави ЦЕЛИЯ този файл → Deploy
+ * Готово — URL-ът остава същият.
  *
- * ── DEPLOY (еднократно, ~10 мин, безплатно) ──
- * 1. Отиди на https://dash.cloudflare.com  →  регистрирай се / влез
- * 2. Ляво меню: Workers & Pages  →  Create  →  Create Worker
- * 3. Дай име (напр. cinegrand-nextclean)  →  Deploy
- * 4. Натисни "Edit code"  →  изтрий примерния код  →  постави ТОЗИ файл  →  Deploy
- * 5. Копирай URL-а на Worker-а (напр. https://cinegrand-nextclean.<акаунт>.workers.dev)
- * 6. Сложи го в index.html като стойност на NEXTCLEAN_PROXY_URL
- *
- * По желание: за друго кино смени CINEMA_CODE по-долу.
+ * ── ПЪРВОНАЧАЛЕН DEPLOY ──
+ * Workers & Pages → Create → Create Worker → име: cinegrand-nextclean →
+ * Deploy → Edit code → постави този файл → Deploy → копирай URL-а в
+ * index.html (NEXTCLEAN_PROXY_URL).
  */
 
 const CINEMA_CODE = "BGSOFCG1"; // Park Center Sofia
-const TARGET_URL =
-  "https://cinegrand.arenacrp.com/front/default/next-clean?cinemaCode=" +
-  CINEMA_CODE + "&language=en-US";
+
+const BOARDS = {
+  clean:
+    "https://cinegrand.arenacrp.com/front/default/next-clean?cinemaCode=" +
+    CINEMA_CODE + "&language=en-US",
+  next:
+    "https://cinegrand.arenacrp.com/front/default/next?cinemaCode=" +
+    CINEMA_CODE + "&language=en-US&limit=10",
+};
 
 export default {
   async fetch(request) {
@@ -31,10 +34,11 @@ export default {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
       "Access-Control-Allow-Headers": "*",
+      "Access-Control-Expose-Headers": "X-CG-Worker, X-CG-Board",
       "Cache-Control": "no-store",
+      "X-CG-Worker": "v2",
     };
 
-    // Preflight
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: cors });
     }
@@ -42,8 +46,13 @@ export default {
       return new Response("Method not allowed", { status: 405, headers: cors });
     }
 
+    // Избор на борд — САМО от белия списък
+    const reqUrl = new URL(request.url);
+    const board = reqUrl.searchParams.get("board") === "next" ? "next" : "clean";
+    const target = BOARDS[board];
+
     try {
-      const upstream = await fetch(TARGET_URL, {
+      const upstream = await fetch(target, {
         method: "GET",
         headers: {
           "User-Agent":
@@ -53,7 +62,7 @@ export default {
           "Accept-Language": "en-US,en;q=0.9",
           "Referer": "https://cinegrand.arenacrp.com/",
         },
-        // Кеширане от страна на Cloudflare за 20 сек, за да не удряме често киното
+        // Кеширане от страна на Cloudflare за 20 сек — да не удряме често киното
         cf: { cacheTtl: 20, cacheEverything: true },
       });
 
@@ -62,6 +71,7 @@ export default {
         status: upstream.status,
         headers: {
           ...cors,
+          "X-CG-Board": board,
           "Content-Type": "text/html; charset=utf-8",
         },
       });
