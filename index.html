@@ -2270,7 +2270,157 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.24-next-board";
+      const BUILD_VERSION = "v.2026.07.24-lang-en";
+
+      /* ══════════════════════════════════════════════════════════════
+         ЕЗИК (БГ / EN) — превод чрез речник, прилаган след всеки render.
+         Данните (Sheets, имена, локации) остават на български — превежда
+         се само видимият текст. Нови преводи се добавят в EN_EXACT /
+         EN_PATTERNS. Непреведени низове просто остават на български.
+         ══════════════════════════════════════════════════════════════ */
+      const LANG_KEY = "cg_lang";
+      let currentLang = (function(){ try { return localStorage.getItem(LANG_KEY) || "bg"; } catch(_) { return "bg"; } })();
+
+      const EN_EXACT = {
+        /* Topbar / nav */
+        "Начало": "Home", "QR кодове": "QR Codes", "🎬 Зали": "🎬 Halls", "📊 Данни": "📊 Data",
+        "Контрол на хигиена": "Hygiene Control", "Парк Център София": "Park Center Sofia",
+        /* Home */
+        "Контрол на Хигиената": "Hygiene Control",
+        "Чистата среда не е детайл, а стандарт. Постоянният контрол на хигиената гарантира качествена услуга и уважение към всеки клиент.":
+          "A clean environment is not a detail — it's a standard. Constant hygiene control guarantees quality service and respect for every customer.",
+        "Нова Проверка": "New Inspection",
+        "Избери типа на проверката и започни въвеждането.": "Choose the inspection type and start.",
+        "Кинозала": "Cinema Hall", "Тоалетни": "Restrooms", "Тоалетна": "Restroom",
+        "Зали 1–6": "Halls 1–6", "Започни проверка": "Start Inspection",
+        "Почистване на съблекалня": "Changing Room Cleaning", "Мъжка / Женска": "Male / Female",
+        "Отчети почистване": "Cleaning Reports",
+        "График": "Schedule", "Отчет": "Report", "Почистване": "Cleaning",
+        "＋ Добави важно съобщение": "＋ Add important announcement",
+        /* Статус на проверките */
+        "Статус на проверките": "Inspection Status",
+        "🎬 Кинозали": "🎬 Cinema Halls", "🚿 Тоалетни": "🚿 Restrooms",
+        "Няма данни": "No data", "— няма данни —": "— no data —", "никога": "never", "току-що": "just now",
+        "до 2ч": "under 2h", "2–4ч": "2–4h", "над 4ч": "over 4h",
+        "✅ свърши — провери залата": "✅ show ended — check the hall",
+        "● проблем": "● issue", "зареждам…": "loading…",
+        /* Зали таб */
+        "Статус на залите": "Hall Status",
+        "Прожекции на живо от киното — кога всяка зала се освобождава за проверка.":
+          "Live screenings from the cinema — when each hall becomes free for inspection.",
+        "← Начало": "← Home",
+        "Кога се освобождават залите": "When halls become free",
+        "на живо от киното": "live from the cinema",
+        "В момента няма текущи прожекции.": "No screenings are running right now.",
+        "🔜 Следващи прожекции": "🔜 Upcoming screenings",
+        "✅ ПРОВЕРИ ЗАЛАТА": "✅ CHECK THE HALL", "ЗАЛА": "HALL",
+        "🎬 Свърши в": "🎬 Ended at", "Свършва": "Ends", "Започва": "Starts", "· току-що": "· just now",
+        "✅ свършила = провери залата дали е почистена (задържа се 5 мин) · 🎬 тече = скоро се освобождава · 🔜 предстои":
+          "✅ ended = check whether the hall is cleaned (kept 5 min) · 🎬 running = frees up soon · 🔜 upcoming",
+        /* Inspection screen */
+        "Проверка на кинозала": "Cinema Hall Inspection", "Проверка на тоалетна": "Restroom Inspection",
+        "Данните ще се изпратят автоматично към Google Sheets след запис.": "Data is sent to Google Sheets automatically after saving.",
+        "Локален запис в браузъра.": "Saved locally in the browser.",
+        "🔒 Залата е заключена за теб": "🔒 Hall is locked for you",
+        "🔓 Без заключване (сървърна грешка) — друг може да отвори същата зала": "🔓 No lock (server error) — someone else may open this hall",
+        "Локация": "Location", "(няма заключване)": "(no lock)", "Проверяващ": "Inspector",
+        "Започни да пишеш име…": "Start typing a name…", "Зареждам списъка с имена…": "Loading the names list…",
+        "Задължително поле": "Required field",
+        "Елементи на кинозалата": "Cinema hall items", "Елементи на тоалетната": "Restroom items",
+        "Всичко чисто": "All clean", "Всичко нечисто": "All dirty",
+        "✓ Чисто": "✓ Clean", "✗ Нечисто": "✗ Dirty",
+        "Маркирай всяка точка като Чисто или Нечисто преди да запишеш.": "Mark every item as Clean or Dirty before saving.",
+        "Седалки": "Seats", "Тапицерия и механизъм": "Upholstery & mechanism",
+        "Мокет": "Carpet", "Под и пътеки": "Floor & aisles",
+        "Подлакътници": "Armrests", "Повърхности": "Surfaces",
+        "Под (без мокет)": "Floor (no carpet)", "Твърди настилки": "Hard flooring",
+        "Зона до екрана": "Screen area", "Предна зона": "Front zone",
+        "Поставки за чаши": "Cup holders",
+        "Кошчета": "Bins", "Изпразване и дезинфекция": "Emptying & disinfection",
+        "Общо почистване": "General cleaning", "Всички повърхности": "All surfaces",
+        "Тоалетна хартия": "Toilet paper", "Зареждане": "Restocking",
+        "Сапун": "Soap", "Дозатори": "Dispensers", "Огледала": "Mirrors", "Без петна": "No stains",
+        "Под": "Floor", "Мокро почистване": "Wet cleaning", "Мивки": "Sinks", "Кран и мивка": "Tap & sink",
+        "Бележки": "Notes", "Допълнителни коментари…": "Additional comments…",
+        "Снимки при проблем (опционално, до 5)": "Photos on issue (optional, up to 5)",
+        "Може да изберете от 1 до 5 снимки наведнъж (Ctrl/Cmd + клик за избор на повече).": "You can select 1 to 5 photos at once (Ctrl/Cmd + click for more).",
+        "📱 Качи снимки от телефон (QR код)": "📱 Upload photos from phone (QR code)",
+        "Коментар към снимките": "Photo comment", "(по желание)": "(optional)",
+        "Описание на проблема и причина за снимките…": "Describe the issue and reason for the photos…",
+        "Запази и изпрати": "Save & send", "Запази": "Save",
+        /* Lock screens */
+        "ЛОКАЦИЯТА Е ЗАЕТА": "LOCATION IS BUSY", "СЪРВЪРЪТ Е БАВЕН": "SERVER IS SLOW",
+        "↻ Опитай отново": "↻ Try again", "Към началото": "Back to home",
+        "Сървърът е временно натоварен и не успя да отговори навреме. Това не е реално заключване — просто натисни бутона за повторен опит.":
+          "The server is temporarily busy and didn't respond in time. This is not a real lock — just press the retry button.",
+        /* Phone upload screen */
+        "Качване на снимки": "Upload photos",
+        "Изберете до 5 снимки от галерията": "Select up to 5 photos from the gallery",
+        "JPEG / PNG / WebP, максимум 10MB на файл.": "JPEG / PNG / WebP, max 10MB per file.",
+        "Описание на проблема…": "Describe the issue…",
+        "Изберете снимки": "Select photos", "Качване…": "Uploading…",
+        "🧪 Тест: изпрати сигнал към PC": "🧪 Test: send signal to PC",
+        "Снимките са качени успешно!": "Photos uploaded successfully!",
+        "✅ Готово (затвори страницата)": "✅ Done (close this page)",
+        "Качи още снимки": "Upload more photos",
+        /* Toasts / misc */
+        "✓ Синхронизирано с Google Sheets.": "✓ Synced with Google Sheets.",
+        "Виж история": "View history", "Последни проверки": "Recent inspections", "История на проверки": "Inspection history",
+      };
+
+      const EN_PATTERNS = [
+        [/^Зала (\d+)$/, "Hall $1"],
+        [/^✓ (\d+) скоро$/, "✓ $1 recent"], [/^◐ (\d+)$/, "◐ $1"],
+        [/^⚠ (\d+) просрочени$/, "⚠ $1 overdue"], [/^● (\d+) с проблем$/, "● $1 with issues"],
+        [/^(✓|◐|⚠) преди (\d+) (мин|ч|д)$/, (m, d, n, u) => `${d} ${n}${u === "мин" ? " min" : u === "ч" ? "h" : "d"} ago`],
+        [/преди (\d+) (мин|ч|д)/, (m, n, u) => `${n}${u === "мин" ? " min" : u === "ч" ? "h" : "d"} ago`],
+        [/^· след (\d+) мин( — скоро!)?$/, (m, n, s) => `· in ${n} min${s ? " — soon!" : ""}`],
+        [/^\((\d+) мин\)$/, "($1 min)"], [/^· (\d+) мин ·$/, "· $1 min ·"], [/^· (\d+) мин$/, "· $1 min"],
+        [/^(\d+) свободни места$/, "$1 seats available"],
+        [/^Не се препоръчва за лица под (\d+)-годишна възраст$/, "Not recommended for persons under $1"],
+        [/^\/(\d+) попълнени$/, "/$1 filled"], [/^⚠ (\d+) проблема$/, "⚠ $1 issues"],
+        [/^Попълни всички полета \((\d+)\/(\d+)\)$/, "Fill in all fields ($1/$2)"],
+        [/^Избери от падащия списък \((\d+) разрешени имена\)$/, "Choose from the dropdown ($1 allowed names)"],
+        [/^Избери от падащия списък \((\d+) имена\)$/, "Choose from the dropdown ($1 names)"],
+        [/^Дата и час: (.+)$/, "Date & time: $1"],
+        [/^(\d+) символа$/, "$1 characters"],
+        [/^Качи (\d+) снимки$/, "Upload $1 photos"],
+        [/^Качване на снимка (\d+\/\d+)\.\.\.$/, "Uploading photo $1..."],
+        [/^Преглед на снимки от PC \((\d+)\):$/, "PC photo preview ($1):"],
+        [/^📱 Снимки получени от телефон \((\d+)\):$/, "📱 Photos received from phone ($1):"],
+        [/^(.+) вече се проверява\. Опитайте след ~(\d+) мин\.$/, "$1 is already being inspected. Try again in ~$2 min."],
+        [/^(.+) вече се проверява от друг потребител\. Опитайте след ~(\d+) мин\.$/, "$1 is already being inspected by another user. Try again in ~$2 min."],
+        [/^🎬 свършва (\d{1,2}:\d{2})/, "🎬 ends $1"],
+        [/^📊 Данни \((\d+)\)$/, "📊 Data ($1)"],
+        [/^Проверяващ \*$/, "Inspector *"], [/^Локация \*$/, "Location *"],
+      ];
+
+      function cgTranslateText(s) {
+        const t = s.trim();
+        if (!t) return null;
+        if (EN_EXACT[t] !== undefined) return s.replace(t, EN_EXACT[t]);
+        let out = s, hit = false;
+        for (const [re, rep] of EN_PATTERNS) {
+          if (re.test(out.trim())) { out = out.replace(re, rep); hit = true; }
+        }
+        return hit ? out : null;
+      }
+
+      function applyTranslation(root) {
+        if (currentLang !== "en" || !root) return;
+        try {
+          const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+          const nodes = [];
+          while (walker.nextNode()) nodes.push(walker.currentNode);
+          nodes.forEach((n) => { const r = cgTranslateText(n.nodeValue); if (r !== null) n.nodeValue = r; });
+          root.querySelectorAll("[placeholder],[title],[aria-label]").forEach((el) => {
+            ["placeholder", "title", "aria-label"].forEach((a) => {
+              const v = el.getAttribute(a); if (!v) return;
+              const r = cgTranslateText(v); if (r !== null) el.setAttribute(a, r);
+            });
+          });
+        } catch (err) { console.warn("[lang] translate error:", err); }
+      }
 
       /* ── Cine Grand прожекции (Arena „next-clean" табло) ──
          URL на Cloudflare Worker прокси (за да заобиколим CORS). Празно = функцията
@@ -3141,6 +3291,7 @@
           `<a class="nav-btn${isSheetsConfigured() ? ' state' : ''}" href="${SHEETS_SPREADSHEET_URL}" target="_blank" rel="noopener" aria-label="Отвори Sheets таблица">${isSheetsConfigured() ? "Sheets ✓" : "Sheets ✗"}</a>`,
           NEXTCLEAN_PROXY_URL ? `<button class="nav-btn ${state.screen === 'halls' ? 'state' : ''}" data-action="go-halls" aria-label="Статус на залите">&#127916; Зали</button>` : "",
           `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''} ${chartsCooldownUntil > Date.now() ? 'cooldown' : ''}" data-action="go-charts" aria-label="Данни от Sheets" ${chartsCooldownUntil > Date.now() ? 'disabled' : ''}>&#128202; ${chartsCooldownUntil > Date.now() ? "Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : "Данни"}</button>`,
+          `<button class="nav-btn ${currentLang === 'en' ? 'state' : ''}" data-action="toggle-lang" aria-label="Language / Език">${currentLang === "en" ? "🌐 БГ" : "🌐 EN"}</button>`,
         ].filter(Boolean).join("");
 
         return `
@@ -4513,6 +4664,7 @@
         const row = document.querySelector(`.item-row[data-item-id="${itemId}"]`);
         if (!row) return;
         row.outerHTML = renderItemRow(item);
+        applyTranslation(document.querySelector(`.item-row[data-item-id="${itemId}"]`));
 
         /* Update progress bar & counters */
         const filledCount = config.items.filter((i) => isFilled(state.itemState[i.id])).length;
@@ -4709,6 +4861,7 @@
         const el = document.getElementById('modals');
         if (el) el.innerHTML = renderModals();
         if (state.showDeleteModal) setupModalFocusTrap();
+        applyTranslation(el);
       }
 
       /* ════════════════════════════════════════════════════════
@@ -5044,6 +5197,7 @@
         applyPerfMode();
         if (state.screen === "home" && typeof cgUpdateReviews === 'function') cgUpdateReviews();
         initSearchBar();
+        applyTranslation(app);
       }
 
       /* ── Search Bar ── */
@@ -5377,6 +5531,13 @@
         if (action === "go-home") { cleanupSessionLock(); stopPhonePhotoPolling(); state.pcSessionId = null; state.remotePhotoUrls = []; state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
         if (action === "go-halls") { state.screen = "halls"; fetchNextClean(); fetchNextBoard(); render(); return; }
+        if (action === "toggle-lang") {
+          currentLang = currentLang === "bg" ? "en" : "bg";
+          try { localStorage.setItem(LANG_KEY, currentLang); } catch (_) {}
+          document.documentElement.lang = currentLang === "en" ? "en" : "bg";
+          render();
+          return;
+        }
         if (action === "go-charts") {
           if (Date.now() < chartsCooldownUntil) {
             showToast("Моля да не спамиш. След няколко секунди опитай пак.", "error");
