@@ -2270,7 +2270,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.23-halls-tab";
+      const BUILD_VERSION = "v.2026.07.24-next-board";
 
       /* ── Cine Grand прожекции (Arena „next-clean" табло) ──
          URL на Cloudflare Worker прокси (за да заобиколим CORS). Празно = функцията
@@ -2300,6 +2300,68 @@
           .filter((e) => now - e.ts <= ENDED_STICKY_MS)
           .map((e) => Object.assign({}, e, { agoMin: Math.floor((now - e.ts) / 60000) }))
           .sort((a, b) => a.ts - b.ts);
+      }
+
+      /* ── Втори борд: „next" — следващи прожекции с формат/места/време ──
+         Изисква Worker v2 (?board=next). Ако Worker-ът е стар (v1), функцията
+         тихо се изключва (проверка по X-CG-Worker хедъра). */
+      let _nextBoardShows = [];   // [{hallNum, hall, movie, format, seats, start, runtimeMin, warning}]
+      let _nextBoardSupported = null; // null=неизвестно, false=Worker v1 (без поддръжка)
+      let _nextBoardBusy = false;
+
+      function parseNextBoardHtml(html) {
+        const out = [];
+        try {
+          const doc = new DOMParser().parseFromString(html, "text/html");
+          doc.querySelectorAll("tr.show, .show").forEach((tr) => {
+            const text = (tr.textContent || "").replace(/\s+/g, " ");
+            const h1 = tr.querySelector("h1");
+            let movie = (h1 ? h1.textContent : "").replace(/\s+/g, " ").trim();
+            // Формат: .format елемент или "- 2D" в заглавието
+            const fmtEl = tr.querySelector(".format");
+            let format = fmtEl ? fmtEl.textContent.replace(/[^0-9A-Za-z]/g, "").toUpperCase() : "";
+            if (!format) { const fm = movie.match(/-\s*(2D|3D|4DX|IMAX)\b/i); if (fm) format = fm[1].toUpperCase(); }
+            movie = movie.replace(/\s*-\s*(2D|3D|4DX|IMAX)\s*$/i, "").trim();
+            const hallM = text.match(/Hall\s*(\d+)/i);
+            const hallNum = hallM ? parseInt(hallM[1], 10) : null;
+            let seats = null;
+            const seatM = text.match(/(\d+)\s*available seats?/i);
+            if (seatM) seats = parseInt(seatM[1], 10);
+            let runtimeMin = null;
+            const rtM = text.match(/(\d+)\s*min\b/i);
+            if (rtM) runtimeMin = parseInt(rtM[1], 10);
+            let start = "";
+            const tM = text.match(/\b(\d{1,2}:\d{2})\b/);
+            if (tM) start = tM[1];
+            let warning = "";
+            const wEl = tr.querySelector(".warning");
+            if (wEl) warning = wEl.textContent.replace(/\s+/g, " ").trim();
+            if (hallNum && movie) out.push({ hallNum, hall: "Зала " + hallNum, movie, format, seats, start, runtimeMin, warning });
+          });
+        } catch (err) { console.warn("[nextboard] parse error:", err); }
+        return out;
+      }
+
+      async function fetchNextBoard() {
+        if (!NEXTCLEAN_PROXY_URL || _nextBoardSupported === false || _nextBoardBusy) return;
+        _nextBoardBusy = true;
+        try {
+          const res = await fetchWithTimeout(NEXTCLEAN_PROXY_URL + "?board=next&_cb=" + Date.now(), { cache: "no-store" }, 12000);
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          if (!res.headers.get("X-CG-Worker")) {
+            // Worker v1 — връща next-clean независимо от параметъра. Изключи тихо.
+            _nextBoardSupported = false;
+            console.warn("[nextboard] Worker v1 — постави новия код от cloudflare-worker-nextclean.js за 'Следващи прожекции'.");
+            return;
+          }
+          _nextBoardSupported = true;
+          _nextBoardShows = parseNextBoardHtml(await res.text());
+          if (state.screen === "halls") render();
+        } catch (err) {
+          console.warn("[nextboard] fetch error:", err.message);
+        } finally {
+          _nextBoardBusy = false;
+        }
       }
 
       /* Парсва HTML-а на next-clean таблото → списък прожекции. */
@@ -2414,6 +2476,27 @@
           </div>`;
         }).join("");
 
+        /* Следващи прожекции (втори борд) — формат, свободни места, начало */
+        const upcoming = _nextBoardShows.slice(0, 8);
+        const upcomingRows = upcoming.map((s) => {
+          const hc = hallColor(s.hallNum);
+          const bits = [];
+          if (s.start) bits.push(`Започва <b>${escapeHtml(s.start)}</b>`);
+          if (s.runtimeMin != null) bits.push(`${s.runtimeMin} мин`);
+          if (s.seats != null) bits.push(`<span style="color:#fbbf24;font-weight:700;">${s.seats} свободни места</span>`);
+          return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.02);border:1px dashed rgba(${hc.g},.35);">
+            ${hallBadge(hc, s.hallNum, false)}
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                <span style="font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</span>
+                ${s.format ? `<span style="flex-shrink:0;font-size:10px;font-weight:800;color:#0a0a0a;background:linear-gradient(135deg,#fde68a,#fbbf24);padding:2px 8px;border-radius:999px;letter-spacing:.06em;">${escapeHtml(s.format)}</span>` : ""}
+              </div>
+              <div style="font-size:11.5px;color:#9fb2c8;font-weight:600;margin-top:3px;">${bits.join(" · ")}</div>
+              ${s.warning ? `<div style="font-size:10px;color:#78716c;font-style:italic;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.warning)}</div>` : ""}
+            </div>
+          </div>`;
+        }).join("");
+
         const anyRows = ended.length > 0 || running.length > 0;
         return `<div class="panel" style="margin-bottom:18px;padding:18px 20px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
@@ -2422,7 +2505,11 @@
           </div>
           ${anyRows ? `<div style="display:grid;gap:10px;">${endedRows}${runningRows}</div>`
             : `<div style="font-size:13px;color:#888;padding:6px 2px;">В момента няма текущи прожекции.</div>`}
-          <div style="font-size:10.5px;color:#556;margin-top:12px;">✅ свършила = провери залата дали е почистена (задържа се 5 мин) · 🎬 тече = скоро се освобождава</div>
+          ${upcoming.length > 0 ? `
+            <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.4);margin:16px 0 8px;text-transform:uppercase;">🔜 Следващи прожекции</div>
+            <div style="display:grid;gap:8px;">${upcomingRows}</div>` : ""}
+          ${_nextBoardSupported === false ? `<div style="font-size:10.5px;color:#f59e0b;margin-top:10px;">ℹ️ За секция „Следващи прожекции" (места, 2D/3D) обнови Cloudflare Worker-а с новия код от cloudflare-worker-nextclean.js в repo-то.</div>` : ""}
+          <div style="font-size:10.5px;color:#556;margin-top:12px;">✅ свършила = провери залата дали е почистена (задържа се 5 мин) · 🎬 тече = скоро се освобождава · 🔜 предстои</div>
         </div>`;
       }
 
@@ -5289,7 +5376,7 @@
 
         if (action === "go-home") { cleanupSessionLock(); stopPhonePhotoPolling(); state.pcSessionId = null; state.remotePhotoUrls = []; state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
-        if (action === "go-halls") { state.screen = "halls"; fetchNextClean(); render(); return; }
+        if (action === "go-halls") { state.screen = "halls"; fetchNextClean(); fetchNextBoard(); render(); return; }
         if (action === "go-charts") {
           if (Date.now() < chartsCooldownUntil) {
             showToast("Моля да не спамиш. След няколко секунди опитай пак.", "error");
@@ -5527,7 +5614,9 @@
            пре-рендерира на всеки 30с докато сме на екрана „Зали". */
         if (NEXTCLEAN_PROXY_URL) {
           fetchNextClean();
+          fetchNextBoard();
           setInterval(fetchNextClean, 60 * 1000);
+          setInterval(() => { if (state.screen === "halls") fetchNextBoard(); }, 60 * 1000);
           setInterval(() => { if (state.screen === "halls") render(); }, 30 * 1000);
         }
         /* Обработи URL параметри от QR сканиране */
