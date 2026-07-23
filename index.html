@@ -2270,7 +2270,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.24-lang-en";
+      const BUILD_VERSION = "v.2026.07.24-board-mirror";
 
       /* ══════════════════════════════════════════════════════════════
          ЕЗИК (БГ / EN) — превод чрез речник, прилаган след всеки render.
@@ -2312,11 +2312,12 @@
         "Кога се освобождават залите": "When halls become free",
         "на живо от киното": "live from the cinema",
         "В момента няма текущи прожекции.": "No screenings are running right now.",
+        "В момента няма прожекции на таблото.": "No screenings on the board right now.",
         "🔜 Следващи прожекции": "🔜 Upcoming screenings",
         "✅ ПРОВЕРИ ЗАЛАТА": "✅ CHECK THE HALL", "ЗАЛА": "HALL",
         "🎬 Свърши в": "🎬 Ended at", "Свършва": "Ends", "Започва": "Starts", "· току-що": "· just now",
-        "✅ свършила = провери залата дали е почистена (задържа се 5 мин) · 🎬 тече = скоро се освобождава · 🔜 предстои":
-          "✅ ended = check whether the hall is cleaned (kept 5 min) · 🎬 running = frees up soon · 🔜 upcoming",
+        "✅ свършила = провери залата дали е почистена (стои 5 мин) · 🎬 тече = скоро се освобождава · 🔜 предстои":
+          "✅ ended = check whether the hall is cleaned (stays 5 min) · 🎬 running = frees up soon · 🔜 upcoming",
         /* Inspection screen */
         "Проверка на кинозала": "Cinema Hall Inspection", "Проверка на тоалетна": "Restroom Inspection",
         "Данните ще се изпратят автоматично към Google Sheets след запис.": "Data is sent to Google Sheets automatically after saving.",
@@ -2589,77 +2590,81 @@
       function renderNextCleanSection() {
         if (!NEXTCLEAN_PROXY_URL) return "";
         const hasData = _nextCleanShows.length > 0;
-        // Свършили зали (задържани поне 5 мин) — най-висок приоритет за почистване.
-        const ended = _recentlyEndedHalls();
-        const endedNums = {}; ended.forEach((e) => { endedNums[e.hallNum] = true; });
-        // Течащи прожекции (червено), без вече свършилите.
-        const running = _nextCleanShows.filter((s) => s.status === "red" && !endedNums[s.hallNum])
-          .sort((a, b) => (a.endsInMin == null ? 9999 : a.endsInMin) - (b.endsInMin == null ? 9999 : b.endsInMin));
 
         const hallBadge = (hc, num, forDark) => `<div style="width:54px;height:54px;border-radius:15px;background:${forDark ? `linear-gradient(135deg,${hc.c},rgba(${hc.g},.55))` : `rgba(${hc.g},.16)`};border:1px solid rgba(${hc.g},.45);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;${forDark ? `box-shadow:0 4px 16px rgba(${hc.g},.45);` : ""}">
             <span style="font-size:8.5px;font-weight:800;letter-spacing:.1em;color:${forDark ? 'rgba(0,0,0,.6)' : `rgba(${hc.g},.9)`};font-family:'Oswald',sans-serif;line-height:1;">ЗАЛА</span>
             <span style="font-size:22px;font-weight:800;color:${forDark ? '#0a0a0a' : hc.c};font-family:'Oswald',sans-serif;line-height:1;margin-top:1px;">${num}</span>
           </div>`;
 
-        const endedRows = ended.map((e) => {
-          const hc = hallColor(e.hallNum);
+        const endedCard = (hallNum, movie, end, agoMin) => {
+          const hc = hallColor(hallNum);
           return `<div class="cg-ended-card" style="--hall-glow:rgba(${hc.g},.5);display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:16px;background:linear-gradient(135deg,rgba(${hc.g},.2),rgba(255,255,255,.02));border:1px solid rgba(${hc.g},.45);">
-            ${hallBadge(hc, e.hallNum, true)}
+            ${hallBadge(hc, hallNum, true)}
             <div style="flex:1;min-width:0;">
-              <div style="font-size:14.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(e.movie)}</div>
-              <div style="font-size:12px;color:#fff;opacity:.9;margin-top:3px;">🎬 Свърши в <b>${escapeHtml(e.end)}</b>${e.agoMin > 0 ? ` · преди ${e.agoMin} мин` : " · току-що"}</div>
+              <div style="font-size:14.5px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(movie)}</div>
+              <div style="font-size:12px;color:#fff;opacity:.9;margin-top:3px;">🎬 Свърши в <b>${escapeHtml(end)}</b>${agoMin > 0 ? ` · преди ${agoMin} мин` : " · току-що"}</div>
             </div>
             <div class="cg-clean-badge" style="flex-shrink:0;font-size:11.5px;font-weight:800;color:#04160e;background:linear-gradient(135deg,#34d399,#10b981);padding:9px 15px;border-radius:999px;letter-spacing:.03em;box-shadow:0 0 18px rgba(16,185,129,.55);white-space:nowrap;">✅ ПРОВЕРИ ЗАЛАТА</div>
           </div>`;
-        }).join("");
+        };
 
-        const runningRows = running.map((s) => {
+        /* 1:1 огледало на таблото — всеки ред от HTML-а, в същия ред. */
+        const now = Date.now();
+        const boardGreens = {};
+        const boardRows = _nextCleanShows.map((s) => {
           const hc = hallColor(s.hallNum);
-          const soon = s.endsInMin != null && s.endsInMin <= 15;
-          const subColor = soon ? "#f59e0b" : "#9fb2c8";
-          return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:linear-gradient(135deg,rgba(${hc.g},.09),rgba(255,255,255,.015));border:1px solid rgba(${hc.g},.28);border-left:4px solid ${hc.c};">
-            ${hallBadge(hc, s.hallNum, false)}
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</div>
-              <div style="font-size:11.5px;color:${subColor};font-weight:600;margin-top:3px;">Свършва <b>${escapeHtml(s.end)}</b>${s.endsInMin != null ? ` · след ${s.endsInMin} мин` : ""}${soon ? " — скоро!" : ""}</div>
-            </div>
-          </div>`;
-        }).join("");
-
-        /* Следващи прожекции (втори борд) — формат, свободни места, начало */
-        const upcoming = _nextBoardShows.slice(0, 8);
-        const upcomingRows = upcoming.map((s) => {
-          const hc = hallColor(s.hallNum);
+          if (s.status === "green") {
+            boardGreens[s.hallNum] = true;
+            const seen = _endedHallsSeen[s.hallNum];
+            const agoMin = seen ? Math.floor((now - seen.ts) / 60000) : 0;
+            return endedCard(s.hallNum, s.movie, s.end, agoMin);
+          }
+          if (s.status === "red") {
+            const soon = s.endsInMin != null && s.endsInMin <= 15;
+            const subColor = soon ? "#f59e0b" : "#9fb2c8";
+            return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:linear-gradient(135deg,rgba(${hc.g},.09),rgba(255,255,255,.015));border:1px solid rgba(${hc.g},.28);border-left:4px solid ${hc.c};">
+              ${hallBadge(hc, s.hallNum, false)}
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</div>
+                <div style="font-size:11.5px;color:${subColor};font-weight:600;margin-top:3px;">Свършва <b>${escapeHtml(s.end)}</b>${s.endsInMin != null ? ` · след ${s.endsInMin} мин` : ""}${soon ? " — скоро!" : ""}</div>
+              </div>
+            </div>`;
+          }
+          /* gray = предстояща — обогатена с формат/места от втория борд */
+          const extra = _nextBoardShows.find((n) => n.hallNum === s.hallNum && (n.start === s.start || n.movie === s.movie)) || null;
           const bits = [];
           if (s.start) bits.push(`Започва <b>${escapeHtml(s.start)}</b>`);
-          if (s.runtimeMin != null) bits.push(`${s.runtimeMin} мин`);
-          if (s.seats != null) bits.push(`<span style="color:#fbbf24;font-weight:700;">${s.seats} свободни места</span>`);
-          return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.02);border:1px dashed rgba(${hc.g},.35);">
+          if (extra && extra.runtimeMin != null) bits.push(`${extra.runtimeMin} мин`);
+          if (extra && extra.seats != null) bits.push(`<span style="color:#fbbf24;font-weight:700;">${extra.seats} свободни места</span>`);
+          return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.02);border:1px dashed rgba(${hc.g},.35);opacity:.9;">
             ${hallBadge(hc, s.hallNum, false)}
             <div style="flex:1;min-width:0;">
               <div style="display:flex;align-items:center;gap:8px;min-width:0;">
                 <span style="font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</span>
-                ${s.format ? `<span style="flex-shrink:0;font-size:10px;font-weight:800;color:#0a0a0a;background:linear-gradient(135deg,#fde68a,#fbbf24);padding:2px 8px;border-radius:999px;letter-spacing:.06em;">${escapeHtml(s.format)}</span>` : ""}
+                ${extra && extra.format ? `<span style="flex-shrink:0;font-size:10px;font-weight:800;color:#0a0a0a;background:linear-gradient(135deg,#fde68a,#fbbf24);padding:2px 8px;border-radius:999px;letter-spacing:.06em;">${escapeHtml(extra.format)}</span>` : ""}
+                <span style="flex-shrink:0;font-size:10px;color:#8a97a8;">🔜</span>
               </div>
               <div style="font-size:11.5px;color:#9fb2c8;font-weight:600;margin-top:3px;">${bits.join(" · ")}</div>
-              ${s.warning ? `<div style="font-size:10px;color:#78716c;font-style:italic;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.warning)}</div>` : ""}
             </div>
           </div>`;
         }).join("");
 
-        const anyRows = ended.length > 0 || running.length > 0;
+        /* Свършили зали, паднали от таблото, но още в 5-мин прозореца —
+           добавят се в края, за да не изчезне сигналът „провери залата". */
+        const stickyRows = _recentlyEndedHalls()
+          .filter((e) => !boardGreens[e.hallNum])
+          .map((e) => endedCard(e.hallNum, e.movie, e.end, e.agoMin))
+          .join("");
+
         return `<div class="panel" style="margin-bottom:18px;padding:18px 20px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
             <h3 style="font-size:15px;font-weight:700;color:#fff;margin:0;letter-spacing:.04em;display:flex;align-items:center;gap:8px;"><span style="font-size:17px;">🎬</span> Кога се освобождават залите</h3>
             <span style="font-size:11px;color:#10b981;display:inline-flex;align-items:center;gap:5px;">${hasData ? '<span class="live-dot"></span> на живо от киното' : "зареждам…"}</span>
           </div>
-          ${anyRows ? `<div style="display:grid;gap:10px;">${endedRows}${runningRows}</div>`
-            : `<div style="font-size:13px;color:#888;padding:6px 2px;">В момента няма текущи прожекции.</div>`}
-          ${upcoming.length > 0 ? `
-            <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:rgba(255,255,255,.4);margin:16px 0 8px;text-transform:uppercase;">🔜 Следващи прожекции</div>
-            <div style="display:grid;gap:8px;">${upcomingRows}</div>` : ""}
-          ${_nextBoardSupported === false ? `<div style="font-size:10.5px;color:#f59e0b;margin-top:10px;">ℹ️ За секция „Следващи прожекции" (места, 2D/3D) обнови Cloudflare Worker-а с новия код от cloudflare-worker-nextclean.js в repo-то.</div>` : ""}
-          <div style="font-size:10.5px;color:#556;margin-top:12px;">✅ свършила = провери залата дали е почистена (задържа се 5 мин) · 🎬 тече = скоро се освобождава · 🔜 предстои</div>
+          ${(boardRows || stickyRows) ? `<div style="display:grid;gap:10px;">${boardRows}${stickyRows}</div>`
+            : `<div style="font-size:13px;color:#888;padding:6px 2px;">В момента няма прожекции на таблото.</div>`}
+          ${_nextBoardSupported === false ? `<div style="font-size:10.5px;color:#f59e0b;margin-top:10px;">ℹ️ За места и 2D/3D формат обнови Cloudflare Worker-а с новия код от cloudflare-worker-nextclean.js в repo-то.</div>` : ""}
+          <div style="font-size:10.5px;color:#556;margin-top:12px;">✅ свършила = провери залата дали е почистена (стои 5 мин) · 🎬 тече = скоро се освобождава · 🔜 предстои</div>
         </div>`;
       }
 
