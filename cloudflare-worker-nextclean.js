@@ -1,5 +1,5 @@
 /**
- * Cloudflare Worker v2 — прокси за публичните Arena табла на Cine Grand.
+ * Cloudflare Worker v3 — прокси за публичните Arena табла на Cine Grand.
  *
  * Поддържа ДВА борда (и само тях — не е отворено прокси, без пароли/ключове):
  *   (по подразбиране)  next-clean  → кога свършва всяка прожекция
@@ -19,13 +19,18 @@
 
 const CINEMA_CODE = "BGSOFCG1"; // Park Center Sofia
 
+/* Колко прожекции да върне бордът „next".
+   Беше 10 — твърде малко: по-късните прожекции оставаха без данни за
+   свободни места. 60 покрива целия ден. */
+const NEXT_LIMIT = 60;
+
 const BOARDS = {
   clean:
     "https://cinegrand.arenacrp.com/front/default/next-clean?cinemaCode=" +
     CINEMA_CODE + "&language=en-US",
   next:
     "https://cinegrand.arenacrp.com/front/default/next?cinemaCode=" +
-    CINEMA_CODE + "&language=en-US&limit=10",
+    CINEMA_CODE + "&language=en-US&limit=" + NEXT_LIMIT,
 };
 
 export default {
@@ -36,7 +41,7 @@ export default {
       "Access-Control-Allow-Headers": "*",
       "Access-Control-Expose-Headers": "X-CG-Worker, X-CG-Board",
       "Cache-Control": "no-store",
-      "X-CG-Worker": "v2",
+      "X-CG-Worker": "v3",
     };
 
     if (request.method === "OPTIONS") {

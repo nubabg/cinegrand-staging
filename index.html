@@ -2310,7 +2310,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.25-occ-strict";
+      const BUILD_VERSION = "v.2026.07.25-occ-coverage";
 
       /* ══════════════════════════════════════════════════════════════
          ЕЗИК (БГ / EN) — превод чрез речник, прилаган след всеки render.
@@ -2353,6 +2353,7 @@
         "на живо от киното": "live from the cinema",
         "начало": "just started", "в ход": "in progress", "втора половина": "second half", "към края": "near the end",
         "пълна": "full", "почти пълна": "filling up", "средно": "moderate", "празна": "empty",
+        "няма данни": "no data",
         "В момента няма текущи прожекции.": "No screenings are running right now.",
         "В момента няма прожекции на таблото.": "No screenings on the board right now.",
         "🔜 Следващи прожекции": "🔜 Upcoming screenings",
@@ -2532,6 +2533,7 @@
          тихо се изключва (проверка по X-CG-Worker хедъра). */
       let _nextBoardShows = [];   // [{hallNum, hall, movie, format, seats, start, runtimeMin, warning}]
       let _nextBoardSupported = null; // null=неизвестно, false=Worker v1 (без поддръжка)
+      let _nextBoardVersion = "";     // "v2" / "v3" — за подсказка при стар Worker
       let _nextBoardBusy = false;
 
       function parseNextBoardHtml(html) {
@@ -2590,12 +2592,14 @@
         try {
           const res = await fetchWithTimeout(NEXTCLEAN_PROXY_URL + "?board=next&_cb=" + Date.now(), { cache: "no-store" }, 12000);
           if (!res.ok) throw new Error("HTTP " + res.status);
-          if (!res.headers.get("X-CG-Worker")) {
+          const wv = res.headers.get("X-CG-Worker");
+          if (!wv) {
             // Worker v1 — връща next-clean независимо от параметъра. Изключи тихо.
             _nextBoardSupported = false;
             console.warn("[nextboard] Worker v1 — постави новия код от cloudflare-worker-nextclean.js за 'Следващи прожекции'.");
             return;
           }
+          _nextBoardVersion = wv;
           _nextBoardSupported = true;
           _nextBoardShows = parseNextBoardHtml(await res.text());
           if (state.screen === "halls") render();
@@ -2687,6 +2691,29 @@
             <span style="font-size:22px;font-weight:800;color:${forDark ? '#0a0a0a' : hc.c};font-family:'Oswald',sans-serif;line-height:1;margin-top:1px;">${num}</span>
           </div>`;
 
+        /* Блок със зрителите. При липсващи данни показва „—", за да е ясно, че
+           няма информация, вместо блокът да изчезне и редът да изглежда различно. */
+        const occBlockFor = (o) => {
+          if (!o) {
+            return `<div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:96px;padding:9px 12px;border-radius:14px;background:rgba(255,255,255,.03);border:1.5px dashed rgba(255,255,255,.14);" title="Няма данни за свободните места на тази прожекция">
+                <div style="display:flex;align-items:baseline;gap:3px;line-height:1;">
+                  <span style="font-size:13px;margin-right:2px;opacity:.5;">👥</span>
+                  <span style="font-size:26px;font-weight:800;color:#5b6878;font-family:'Oswald',sans-serif;">—</span>
+                </div>
+                <div style="font-size:9.5px;font-weight:800;color:#5b6878;letter-spacing:.09em;text-transform:uppercase;margin-top:4px;white-space:nowrap;">няма данни</div>
+              </div>`;
+          }
+          return `<div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:96px;padding:9px 12px;border-radius:14px;background:linear-gradient(135deg,${o.color}2e,${o.color}12);border:1.5px solid ${o.color}77;box-shadow:0 0 16px ${o.color}33;" title="${o.taken} заети от ${o.cap} места · ${o.free} свободни">
+              <div style="display:flex;align-items:baseline;gap:3px;line-height:1;">
+                <span style="font-size:13px;margin-right:2px;">👥</span>
+                <span style="font-size:26px;font-weight:800;color:${o.color};font-family:'Oswald',sans-serif;">${o.taken}</span>
+                <span style="font-size:14px;font-weight:700;color:#8a97a8;font-family:'Oswald',sans-serif;">/${o.cap}</span>
+              </div>
+              <div style="font-size:9.5px;font-weight:800;color:${o.color};letter-spacing:.09em;text-transform:uppercase;margin-top:4px;white-space:nowrap;">${o.label}</div>
+              <div style="font-size:9px;color:#7c8ba0;margin-top:2px;white-space:nowrap;">${o.free} свободни</div>
+            </div>`;
+        };
+
         const endedCard = (hallNum, movie, end, agoMin) => {
           const hc = hallColor(hallNum);
           return `<div class="cg-ended-card" style="--hall-glow:rgba(${hc.g},.5);display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:16px;background:linear-gradient(135deg,rgba(${hc.g},.2),rgba(255,255,255,.02));border:1px solid rgba(${hc.g},.45);">
@@ -2737,15 +2764,7 @@
                   </div>
                 </div>` : ""}
               </div>
-              ${rOcc ? `<div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:96px;padding:9px 12px;border-radius:14px;background:linear-gradient(135deg,${rOcc.color}2e,${rOcc.color}12);border:1.5px solid ${rOcc.color}77;box-shadow:0 0 16px ${rOcc.color}33;" title="${rOcc.taken} заети от ${rOcc.cap} места · ${rOcc.free} свободни">
-                <div style="display:flex;align-items:baseline;gap:3px;line-height:1;">
-                  <span style="font-size:13px;margin-right:2px;">👥</span>
-                  <span style="font-size:26px;font-weight:800;color:${rOcc.color};font-family:'Oswald',sans-serif;">${rOcc.taken}</span>
-                  <span style="font-size:14px;font-weight:700;color:#8a97a8;font-family:'Oswald',sans-serif;">/${rOcc.cap}</span>
-                </div>
-                <div style="font-size:9.5px;font-weight:800;color:${rOcc.color};letter-spacing:.09em;text-transform:uppercase;margin-top:4px;white-space:nowrap;">${rOcc.label}</div>
-                <div style="font-size:9px;color:#7c8ba0;margin-top:2px;white-space:nowrap;">${rOcc.free} свободни</div>
-              </div>` : ""}
+              ${occBlockFor(rOcc)}
             </div>`;
           }
           /* gray = предстояща — обогатена с формат/места от втория борд */
@@ -2759,15 +2778,7 @@
           }
           /* Заетост — ЕДЪР блок вдясно (без лента, за да не се бърка с
              прогрес бара на течащите прожекции). */
-          const occBlock = occ ? `<div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:96px;padding:9px 12px;border-radius:14px;background:linear-gradient(135deg,${occ.color}2e,${occ.color}12);border:1.5px solid ${occ.color}77;box-shadow:0 0 16px ${occ.color}33;" title="${occ.taken} заети от ${occ.cap} места · ${occ.free} свободни">
-                <div style="display:flex;align-items:baseline;gap:3px;line-height:1;">
-                  <span style="font-size:13px;margin-right:2px;">👥</span>
-                  <span style="font-size:26px;font-weight:800;color:${occ.color};font-family:'Oswald',sans-serif;">${occ.taken}</span>
-                  <span style="font-size:14px;font-weight:700;color:#8a97a8;font-family:'Oswald',sans-serif;">/${occ.cap}</span>
-                </div>
-                <div style="font-size:9.5px;font-weight:800;color:${occ.color};letter-spacing:.09em;text-transform:uppercase;margin-top:4px;white-space:nowrap;">${occ.label}</div>
-                <div style="font-size:9px;color:#7c8ba0;margin-top:2px;white-space:nowrap;">${occ.free} свободни</div>
-              </div>` : "";
+          const occBlock = occBlockFor(occ);
           return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.02);border:1px dashed rgba(${hc.g},.35);opacity:.9;">
             ${hallBadge(hc, s.hallNum, false)}
             <div style="flex:1;min-width:0;">
@@ -2797,6 +2808,7 @@
           ${(boardRows || stickyRows) ? `<div style="display:grid;gap:10px;">${boardRows}${stickyRows}</div>`
             : `<div style="font-size:13px;color:#888;padding:6px 2px;">В момента няма прожекции на таблото.</div>`}
           ${_nextBoardSupported === false ? `<div style="font-size:10.5px;color:#f59e0b;margin-top:10px;">ℹ️ За места и 2D/3D формат обнови Cloudflare Worker-а с новия код от cloudflare-worker-nextclean.js в repo-то.</div>` : ""}
+          ${(_nextBoardSupported === true && _nextBoardVersion && _nextBoardVersion !== "v3") ? `<div style="font-size:10.5px;color:#f59e0b;margin-top:10px;">ℹ️ Част от прожекциите са без брой зрители, защото Worker-ът (${escapeHtml(_nextBoardVersion)}) чете само първите 10. Обнови го с новия код (v3) от cloudflare-worker-nextclean.js.</div>` : ""}
           <div style="font-size:10.5px;color:#556;margin-top:12px;">✅ свършила = провери залата дали е почистена (стои 5 мин) · 🎬 тече = скоро се освобождава · 🔜 предстои</div>
         </div>`;
       }
