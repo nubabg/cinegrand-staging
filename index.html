@@ -2310,7 +2310,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.24-progress-bar";
+      const BUILD_VERSION = "v.2026.07.25-occupancy";
 
       /* ══════════════════════════════════════════════════════════════
          ЕЗИК (БГ / EN) — превод чрез речник, прилаган след всеки render.
@@ -2352,6 +2352,7 @@
         "Кога се освобождават залите": "When halls become free",
         "на живо от киното": "live from the cinema",
         "начало": "just started", "в ход": "in progress", "втора половина": "second half", "към края": "near the end",
+        "пълна": "full", "почти пълна": "filling up", "средно": "moderate", "празна": "empty",
         "В момента няма текущи прожекции.": "No screenings are running right now.",
         "В момента няма прожекции на таблото.": "No screenings on the board right now.",
         "🔜 Следващи прожекции": "🔜 Upcoming screenings",
@@ -2419,6 +2420,8 @@
         [/^· след (\d+) мин( — скоро!)?$/, (m, n, s) => `· in ${n} min${s ? " — soon!" : ""}`],
         [/^\((\d+) мин\)$/, "($1 min)"], [/^· (\d+) мин ·$/, "· $1 min ·"], [/^· (\d+) мин$/, "· $1 min"],
         [/^(\d+) свободни места$/, "$1 seats available"],
+        [/^(\d+)\/(\d+) заети$/, "$1/$2 taken"],
+        [/^(\d+) свободни$/, "$1 free"],
         [/^Не се препоръчва за лица под (\d+)-годишна възраст$/, "Not recommended for persons under $1"],
         [/^\/(\d+) попълнени$/, "/$1 filled"], [/^⚠ (\d+) проблема$/, "⚠ $1 issues"],
         [/^Попълни всички полета \((\d+)\/(\d+)\)$/, "Fill in all fields ($1/$2)"],
@@ -2722,7 +2725,12 @@
           const bits = [];
           if (s.start) bits.push(`Започва <b>${escapeHtml(s.start)}</b>`);
           if (extra && extra.runtimeMin != null) bits.push(`${extra.runtimeMin} мин`);
-          if (extra && extra.seats != null) bits.push(`<span style="color:#fbbf24;font-weight:700;">${extra.seats} свободни места</span>`);
+          const occ = extra ? _occupancy(s.hallNum, extra.seats) : null;
+          if (occ) {
+            bits.push(`<span style="color:${occ.color};font-weight:700;">${occ.taken}/${occ.cap} заети</span>`);
+          } else if (extra && extra.seats != null) {
+            bits.push(`<span style="color:#fbbf24;font-weight:700;">${extra.seats} свободни места</span>`);
+          }
           return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.02);border:1px dashed rgba(${hc.g},.35);opacity:.9;">
             ${hallBadge(hc, s.hallNum, false)}
             <div style="flex:1;min-width:0;">
@@ -2732,6 +2740,14 @@
                 <span style="flex-shrink:0;font-size:10px;color:#8a97a8;">🔜</span>
               </div>
               <div style="font-size:11.5px;color:#9fb2c8;font-weight:600;margin-top:3px;">${bits.join(" · ")}</div>
+              ${occ ? `
+              <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+                <div style="flex:1;height:5px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.4);">
+                  <div style="height:100%;width:${occ.pct}%;border-radius:999px;background:linear-gradient(90deg,${occ.color}99,${occ.color});box-shadow:0 0 8px ${occ.color}66;transition:width .6s ease;"></div>
+                </div>
+                <span style="flex-shrink:0;font-size:10px;font-weight:800;color:${occ.color};font-family:'Oswald',sans-serif;letter-spacing:.04em;">${occ.pct}% · ${occ.label}</span>
+                <span style="flex-shrink:0;font-size:9.5px;color:#7c8ba0;">${occ.free} свободни</span>
+              </div>` : ""}
             </div>
           </div>`;
         }).join("");
@@ -2804,6 +2820,55 @@
 
       // Kick off load early so it's ready by the time inspector renders the form
       loadAllowedNames();
+
+      /* ── Капацитет на залите — от /Halls.md в repo-то ──
+         Позволява да смятаме заетите места: заети = капацитет − свободни.
+         Поддръжката минава през файла, не през кода. Липсваща зала → показваме
+         само свободните места (без изчисления). */
+      let HALL_CAPACITY = {};   // hallNum -> брой места
+
+      async function loadHallCapacities() {
+        try {
+          const res = await fetchWithTimeout("Halls.md?_cb=" + Date.now(), { cache: "no-store" }, 8000);
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          const text = await res.text();
+          let section = text;
+          const m = text.match(/##\s*Капацитет\s*$[\s\S]*/im);
+          if (m) section = m[0];
+          const caps = {};
+          section.split(/\r?\n/).forEach((line) => {
+            const t = line.trim();
+            if (!t || t.startsWith("#") || t.startsWith(">")) return;
+            const mm = /^(?:Зала\s*)?(\d+)\s*[=:]\s*(\d+)\s*$/i.exec(t);
+            if (mm) {
+              const n = parseInt(mm[1], 10), c = parseInt(mm[2], 10);
+              if (n > 0 && c > 0) caps[n] = c;
+            }
+          });
+          if (Object.keys(caps).length > 0) {
+            HALL_CAPACITY = caps;
+            console.log("[halls] loaded capacities for " + Object.keys(caps).length + " halls");
+            if (state.screen === "halls") render();
+          }
+        } catch (err) {
+          console.warn("[halls] failed to load Halls.md:", err.message);
+        }
+      }
+      loadHallCapacities();
+
+      /* Заетост на прожекция от свободните места + капацитета на залата. */
+      function _occupancy(hallNum, freeSeats) {
+        const cap = HALL_CAPACITY[hallNum];
+        if (!cap || freeSeats == null || freeSeats < 0 || freeSeats > cap) return null;
+        const taken = cap - freeSeats;
+        const pct = Math.round((taken / cap) * 100);
+        let color, label;
+        if (pct >= 80)      { color = "#ef4444"; label = "пълна"; }
+        else if (pct >= 50) { color = "#f59e0b"; label = "почти пълна"; }
+        else if (pct >= 20) { color = "#60a5fa"; label = "средно"; }
+        else                { color = "#94a3b8"; label = "празна"; }
+        return { cap, taken, free: freeSeats, pct, color, label };
+      }
       const NTFY_POLL_INTERVAL_MS = 3500;
       let _phonePollTimer = null;
       let _phonePollBusy = false;
