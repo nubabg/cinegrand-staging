@@ -2310,7 +2310,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.25-occ-chip";
+      const BUILD_VERSION = "v.2026.07.25-occ-block";
 
       /* ══════════════════════════════════════════════════════════════
          ЕЗИК (БГ / EN) — превод чрез речник, прилаган след всеки render.
@@ -2697,6 +2697,8 @@
             const soon = s.endsInMin != null && s.endsInMin <= 15;
             const subColor = soon ? "#f59e0b" : "#9fb2c8";
             const p = _showProgress(s);
+            const rExtra = _nextBoardShows.find((n) => n.hallNum === s.hallNum && (n.start === s.start || n.movie === s.movie)) || null;
+            const rOcc = rExtra ? _occupancy(s.hallNum, rExtra.seats) : null;
             return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:linear-gradient(135deg,rgba(${hc.g},.09),rgba(255,255,255,.015));border:1px solid rgba(${hc.g},.28);border-left:4px solid ${hc.c};">
               ${hallBadge(hc, s.hallNum, false)}
               <div style="flex:1;min-width:0;">
@@ -2718,6 +2720,15 @@
                   </div>
                 </div>` : ""}
               </div>
+              ${rOcc ? `<div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:96px;padding:9px 12px;border-radius:14px;background:linear-gradient(135deg,${rOcc.color}2e,${rOcc.color}12);border:1.5px solid ${rOcc.color}77;box-shadow:0 0 16px ${rOcc.color}33;" title="${rOcc.taken} заети от ${rOcc.cap} места · ${rOcc.free} свободни">
+                <div style="display:flex;align-items:baseline;gap:3px;line-height:1;">
+                  <span style="font-size:13px;margin-right:2px;">👥</span>
+                  <span style="font-size:26px;font-weight:800;color:${rOcc.color};font-family:'Oswald',sans-serif;">${rOcc.taken}</span>
+                  <span style="font-size:14px;font-weight:700;color:#8a97a8;font-family:'Oswald',sans-serif;">/${rOcc.cap}</span>
+                </div>
+                <div style="font-size:9.5px;font-weight:800;color:${rOcc.color};letter-spacing:.09em;text-transform:uppercase;margin-top:4px;white-space:nowrap;">${rOcc.label}</div>
+                <div style="font-size:9px;color:#7c8ba0;margin-top:2px;white-space:nowrap;">${rOcc.free} свободни</div>
+              </div>` : ""}
             </div>`;
           }
           /* gray = предстояща — обогатена с формат/места от втория борд */
@@ -2729,12 +2740,17 @@
           if (!occ && extra && extra.seats != null) {
             bits.push(`<span style="color:#fbbf24;font-weight:700;">${extra.seats} свободни места</span>`);
           }
-          /* Заетост — ЧИП с брой хора (без лента, за да не се бърка с
+          /* Заетост — ЕДЪР блок вдясно (без лента, за да не се бърка с
              прогрес бара на течащите прожекции). */
-          const occChip = occ ? `<span style="flex-shrink:0;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:${occ.color};background:${occ.color}1f;border:1px solid ${occ.color}55;padding:3px 10px;border-radius:999px;white-space:nowrap;" title="${occ.taken} заети от ${occ.cap} места · ${occ.free} свободни">
-                <span style="font-size:11px;">👥</span>${occ.taken}/${occ.cap}
-                <span style="opacity:.85;font-weight:700;">· ${occ.label}</span>
-              </span>` : "";
+          const occBlock = occ ? `<div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:96px;padding:9px 12px;border-radius:14px;background:linear-gradient(135deg,${occ.color}2e,${occ.color}12);border:1.5px solid ${occ.color}77;box-shadow:0 0 16px ${occ.color}33;" title="${occ.taken} заети от ${occ.cap} места · ${occ.free} свободни">
+                <div style="display:flex;align-items:baseline;gap:3px;line-height:1;">
+                  <span style="font-size:13px;margin-right:2px;">👥</span>
+                  <span style="font-size:26px;font-weight:800;color:${occ.color};font-family:'Oswald',sans-serif;">${occ.taken}</span>
+                  <span style="font-size:14px;font-weight:700;color:#8a97a8;font-family:'Oswald',sans-serif;">/${occ.cap}</span>
+                </div>
+                <div style="font-size:9.5px;font-weight:800;color:${occ.color};letter-spacing:.09em;text-transform:uppercase;margin-top:4px;white-space:nowrap;">${occ.label}</div>
+                <div style="font-size:9px;color:#7c8ba0;margin-top:2px;white-space:nowrap;">${occ.free} свободни</div>
+              </div>` : "";
           return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.02);border:1px dashed rgba(${hc.g},.35);opacity:.9;">
             ${hallBadge(hc, s.hallNum, false)}
             <div style="flex:1;min-width:0;">
@@ -2742,10 +2758,10 @@
                 <span style="font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</span>
                 ${extra && extra.format ? `<span style="flex-shrink:0;font-size:10px;font-weight:800;color:#0a0a0a;background:linear-gradient(135deg,#fde68a,#fbbf24);padding:2px 8px;border-radius:999px;letter-spacing:.06em;">${escapeHtml(extra.format)}</span>` : ""}
                 <span style="flex-shrink:0;font-size:10px;color:#8a97a8;">🔜</span>
-                ${occChip}
               </div>
-              <div style="font-size:11.5px;color:#9fb2c8;font-weight:600;margin-top:3px;">${bits.join(" · ")}${occ ? ` · <span style="color:#7c8ba0;">${occ.free} свободни</span>` : ""}</div>
+              <div style="font-size:11.5px;color:#9fb2c8;font-weight:600;margin-top:3px;">${bits.join(" · ")}</div>
             </div>
+            ${occBlock}
           </div>`;
         }).join("");
 
