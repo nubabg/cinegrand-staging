@@ -2310,7 +2310,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.25-occupancy";
+      const BUILD_VERSION = "v.2026.07.25-occ-chip";
 
       /* ══════════════════════════════════════════════════════════════
          ЕЗИК (БГ / EN) — превод чрез речник, прилаган след всеки render.
@@ -2726,28 +2726,25 @@
           if (s.start) bits.push(`Започва <b>${escapeHtml(s.start)}</b>`);
           if (extra && extra.runtimeMin != null) bits.push(`${extra.runtimeMin} мин`);
           const occ = extra ? _occupancy(s.hallNum, extra.seats) : null;
-          if (occ) {
-            bits.push(`<span style="color:${occ.color};font-weight:700;">${occ.taken}/${occ.cap} заети</span>`);
-          } else if (extra && extra.seats != null) {
+          if (!occ && extra && extra.seats != null) {
             bits.push(`<span style="color:#fbbf24;font-weight:700;">${extra.seats} свободни места</span>`);
           }
+          /* Заетост — ЧИП с брой хора (без лента, за да не се бърка с
+             прогрес бара на течащите прожекции). */
+          const occChip = occ ? `<span style="flex-shrink:0;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;color:${occ.color};background:${occ.color}1f;border:1px solid ${occ.color}55;padding:3px 10px;border-radius:999px;white-space:nowrap;" title="${occ.taken} заети от ${occ.cap} места · ${occ.free} свободни">
+                <span style="font-size:11px;">👥</span>${occ.taken}/${occ.cap}
+                <span style="opacity:.85;font-weight:700;">· ${occ.label}</span>
+              </span>` : "";
           return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.02);border:1px dashed rgba(${hc.g},.35);opacity:.9;">
             ${hallBadge(hc, s.hallNum, false)}
             <div style="flex:1;min-width:0;">
-              <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+              <div style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;">
                 <span style="font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</span>
                 ${extra && extra.format ? `<span style="flex-shrink:0;font-size:10px;font-weight:800;color:#0a0a0a;background:linear-gradient(135deg,#fde68a,#fbbf24);padding:2px 8px;border-radius:999px;letter-spacing:.06em;">${escapeHtml(extra.format)}</span>` : ""}
                 <span style="flex-shrink:0;font-size:10px;color:#8a97a8;">🔜</span>
+                ${occChip}
               </div>
-              <div style="font-size:11.5px;color:#9fb2c8;font-weight:600;margin-top:3px;">${bits.join(" · ")}</div>
-              ${occ ? `
-              <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
-                <div style="flex:1;height:5px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.4);">
-                  <div style="height:100%;width:${occ.pct}%;border-radius:999px;background:linear-gradient(90deg,${occ.color}99,${occ.color});box-shadow:0 0 8px ${occ.color}66;transition:width .6s ease;"></div>
-                </div>
-                <span style="flex-shrink:0;font-size:10px;font-weight:800;color:${occ.color};font-family:'Oswald',sans-serif;letter-spacing:.04em;">${occ.pct}% · ${occ.label}</span>
-                <span style="flex-shrink:0;font-size:9.5px;color:#7c8ba0;">${occ.free} свободни</span>
-              </div>` : ""}
+              <div style="font-size:11.5px;color:#9fb2c8;font-weight:600;margin-top:3px;">${bits.join(" · ")}${occ ? ` · <span style="color:#7c8ba0;">${occ.free} свободни</span>` : ""}</div>
             </div>
           </div>`;
         }).join("");
