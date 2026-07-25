@@ -1368,6 +1368,46 @@
       body.low-perf .cg-ended-card { animation: none; }
       body.low-perf .cg-clean-badge { animation: none; }
 
+      /* ── Прогрес бар на течаща прожекция ── */
+      .cg-prog-track {
+        position: relative; height: 7px; border-radius: 999px; overflow: hidden;
+        background: rgba(255,255,255,.07);
+        box-shadow: inset 0 1px 2px rgba(0,0,0,.45);
+      }
+      .cg-prog-fill {
+        position: absolute; inset: 0 auto 0 0; border-radius: 999px;
+        background: linear-gradient(90deg, var(--p-from), var(--p-to));
+        box-shadow: 0 0 12px var(--p-glow);
+        transition: width .9s cubic-bezier(.4,0,.2,1);
+      }
+      /* Движещ се блясък — показва, че прожекцията тече в момента */
+      .cg-prog-fill::after {
+        content: ""; position: absolute; inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+        transform: translateX(-100%);
+        animation: cgProgShimmer 2.4s ease-in-out infinite;
+      }
+      @keyframes cgProgShimmer {
+        0% { transform: translateX(-100%); }
+        65%, 100% { transform: translateX(260%); }
+      }
+      /* Пулсиращо връхче в края на прогреса */
+      .cg-prog-head {
+        position: absolute; top: 50%; width: 9px; height: 9px; border-radius: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--p-to);
+        box-shadow: 0 0 0 2px rgba(0,0,0,.35), 0 0 12px 2px var(--p-glow);
+        transition: left .9s cubic-bezier(.4,0,.2,1);
+        animation: cgProgHead 1.6s ease-in-out infinite;
+      }
+      @keyframes cgProgHead {
+        0%, 100% { box-shadow: 0 0 0 2px rgba(0,0,0,.35), 0 0 10px 1px var(--p-glow); }
+        50%      { box-shadow: 0 0 0 2px rgba(0,0,0,.35), 0 0 18px 5px var(--p-glow); }
+      }
+      body.low-perf .cg-prog-fill::after { animation: none; display: none; }
+      body.low-perf .cg-prog-head { animation: none; }
+      body.low-perf .cg-prog-fill, body.low-perf .cg-prog-head { transition: none; }
+
     </style>
   </head>
   <body>
@@ -2270,7 +2310,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.24-board-mirror";
+      const BUILD_VERSION = "v.2026.07.24-progress-bar";
 
       /* ══════════════════════════════════════════════════════════════
          ЕЗИК (БГ / EN) — превод чрез речник, прилаган след всеки render.
@@ -2311,6 +2351,7 @@
         "← Начало": "← Home",
         "Кога се освобождават залите": "When halls become free",
         "на живо от киното": "live from the cinema",
+        "начало": "just started", "в ход": "in progress", "втора половина": "second half", "към края": "near the end",
         "В момента няма текущи прожекции.": "No screenings are running right now.",
         "В момента няма прожекции на таблото.": "No screenings on the board right now.",
         "🔜 Следващи прожекции": "🔜 Upcoming screenings",
@@ -2445,6 +2486,36 @@
       function hallColor(n) { return HALL_COLORS[n] || { c: "#94a3b8", g: "148,163,184" }; }
 
       /* Връща залите, свършили в последните 5 мин (задържани дори таблото да ги е сменило). */
+      /* Прогрес на течаща прожекция: докъде е стигнала (0–100%).
+         Основава се на „остават N мин" от таблото (най-точното) + общата
+         дължина, изчислена от началния и крайния час (с пренос през полунощ).
+         Връща null, ако няма достатъчно данни. */
+      function _showProgress(s) {
+        const toMin = (t) => { const m = /^(\d{1,2}):(\d{2})$/.exec((t || "").trim()); return m ? (+m[1]) * 60 + (+m[2]) : null; };
+        const a = toMin(s.start), b = toMin(s.end);
+        if (a == null || b == null) return null;
+        let total = b - a;
+        if (total <= 0) total += 24 * 60;          // прожекция през полунощ
+        if (total <= 0 || total > 8 * 60) return null;
+        let elapsed;
+        if (s.endsInMin != null) {
+          elapsed = total - s.endsInMin;           // от таблото — най-точно
+        } else {
+          const d = new Date();
+          let cur = d.getHours() * 60 + d.getMinutes() - a;
+          if (cur < 0) cur += 24 * 60;
+          elapsed = cur;
+        }
+        const pct = Math.max(0, Math.min(100, Math.round((elapsed / total) * 100)));
+        // Фаза + цвят: начало (спокойно) → среда → финал (подготви се за проверка)
+        let phase, color, from, glow;
+        if (pct < 15)      { phase = "начало";        color = "#22d3ee"; from = "#0ea5b7"; glow = "rgba(34,211,238,.55)"; }
+        else if (pct < 55) { phase = "в ход";         color = "#60a5fa"; from = "#22d3ee"; glow = "rgba(96,165,250,.55)"; }
+        else if (pct < 85) { phase = "втора половина"; color = "#a78bfa"; from = "#60a5fa"; glow = "rgba(167,139,250,.55)"; }
+        else               { phase = "към края";      color = "#f59e0b"; from = "#a78bfa"; glow = "rgba(245,158,11,.6)";  }
+        return { pct, phase, color, from, glow };
+      }
+
       function _recentlyEndedHalls() {
         const now = Date.now();
         return Object.keys(_endedHallsSeen).map((k) => _endedHallsSeen[k])
@@ -2622,11 +2693,27 @@
           if (s.status === "red") {
             const soon = s.endsInMin != null && s.endsInMin <= 15;
             const subColor = soon ? "#f59e0b" : "#9fb2c8";
+            const p = _showProgress(s);
             return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:linear-gradient(135deg,rgba(${hc.g},.09),rgba(255,255,255,.015));border:1px solid rgba(${hc.g},.28);border-left:4px solid ${hc.c};">
               ${hallBadge(hc, s.hallNum, false)}
               <div style="flex:1;min-width:0;">
-                <div style="font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</div>
+                <div style="display:flex;align-items:baseline;gap:8px;min-width:0;">
+                  <span style="font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</span>
+                  ${p ? `<span style="flex-shrink:0;font-size:10.5px;font-weight:800;color:${p.color};font-family:'Oswald',sans-serif;letter-spacing:.04em;">${p.pct}%</span>` : ""}
+                </div>
                 <div style="font-size:11.5px;color:${subColor};font-weight:600;margin-top:3px;">Свършва <b>${escapeHtml(s.end)}</b>${s.endsInMin != null ? ` · след ${s.endsInMin} мин` : ""}${soon ? " — скоро!" : ""}</div>
+                ${p ? `
+                <div style="margin-top:7px;">
+                  <div class="cg-prog-track" style="--p-from:${p.from};--p-to:${p.color};--p-glow:${p.glow};">
+                    <div class="cg-prog-fill" style="width:${p.pct}%;"></div>
+                    <div class="cg-prog-head" style="left:${p.pct}%;"></div>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:9.5px;color:#7c8ba0;letter-spacing:.03em;">
+                    <span>${escapeHtml(s.start || "")}</span>
+                    <span style="color:${p.color};font-weight:700;">${escapeHtml(p.phase)}</span>
+                    <span>${escapeHtml(s.end || "")}</span>
+                  </div>
+                </div>` : ""}
               </div>
             </div>`;
           }
