@@ -2310,7 +2310,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.25-occ-coverage";
+      const BUILD_VERSION = "v.2026.07.25-seats-memory";
 
       /* ══════════════════════════════════════════════════════════════
          ЕЗИК (БГ / EN) — превод чрез речник, прилаган след всеки render.
@@ -2577,13 +2577,51 @@
         return out;
       }
 
+      /* Памет за местата: бордът „next" изброява само ПРЕДСТОЯЩИ прожекции.
+         Щом филмът тръгне, той изпада оттам и течащите редове биха останали
+         без брой зрители. Затова запомняме данните, докато прожекцията още е
+         предстояща, и ги ползваме след старта ѝ. */
+      const SEATS_MEMORY_KEY = "cg_seats_memory";
+      const SEATS_MEMORY_TTL_MS = 6 * 60 * 60 * 1000; // 6 часа
+      let _seatsMemory = (function () {
+        try { return JSON.parse(localStorage.getItem(SEATS_MEMORY_KEY) || "{}"); }
+        catch (_) { return {}; }
+      })();
+
+      function _seatsKey(hallNum, start) { return hallNum + "|" + start; }
+
+      function _rememberSeats(rows) {
+        const now = Date.now();
+        let changed = false;
+        (rows || []).forEach((n) => {
+          if (!n.hallNum || !n.start || n.seats == null) return;
+          _seatsMemory[_seatsKey(n.hallNum, n.start)] = {
+            seats: n.seats, movie: n.movie, format: n.format, runtimeMin: n.runtimeMin, ts: now,
+          };
+          changed = true;
+        });
+        // Изчистване на стари записи
+        Object.keys(_seatsMemory).forEach((k) => {
+          if (!_seatsMemory[k] || now - (_seatsMemory[k].ts || 0) > SEATS_MEMORY_TTL_MS) { delete _seatsMemory[k]; changed = true; }
+        });
+        if (changed) { try { localStorage.setItem(SEATS_MEMORY_KEY, JSON.stringify(_seatsMemory)); } catch (_) {} }
+      }
+
       /* СТРОГО съпоставяне на прожекция от таблото с реда от втория борд:
          еднаква зала И еднакъв начален час. Без съпоставяне по име на филм —
-         иначе повторна прожекция на същия филм в същата зала връща чужди данни. */
+         иначе повторна прожекция на същия филм в същата зала връща чужди данни.
+         Ако прожекцията вече не е в борда (защото е тръгнала) — ползваме паметта. */
       function _matchBoardShow(s) {
         if (!s || !s.start) return null;
         const hits = _nextBoardShows.filter((n) => n.hallNum === s.hallNum && n.start && n.start === s.start);
-        return hits.length === 1 ? hits[0] : null;   // при нееднозначност → нищо
+        if (hits.length === 1) return hits[0];
+        if (hits.length === 0) {
+          const mem = _seatsMemory[_seatsKey(s.hallNum, s.start)];
+          if (mem && mem.seats != null) {
+            return { hallNum: s.hallNum, start: s.start, movie: mem.movie, format: mem.format, seats: mem.seats, runtimeMin: mem.runtimeMin, fromMemory: true };
+          }
+        }
+        return null;   // при нееднозначност → нищо
       }
 
       async function fetchNextBoard() {
@@ -2602,6 +2640,7 @@
           _nextBoardVersion = wv;
           _nextBoardSupported = true;
           _nextBoardShows = parseNextBoardHtml(await res.text());
+          _rememberSeats(_nextBoardShows);
           if (state.screen === "halls") render();
         } catch (err) {
           console.warn("[nextboard] fetch error:", err.message);
