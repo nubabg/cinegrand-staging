@@ -2310,7 +2310,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.25-occ-block";
+      const BUILD_VERSION = "v.2026.07.25-occ-strict";
 
       /* ══════════════════════════════════════════════════════════════
          ЕЗИК (БГ / EN) — превод чрез речник, прилаган след всеки render.
@@ -2540,6 +2540,13 @@
           const doc = new DOMParser().parseFromString(html, "text/html");
           doc.querySelectorAll("tr.show, .show").forEach((tr) => {
             const text = (tr.textContent || "").replace(/\s+/g, " ");
+            /* ЗАЩИТА: приемаме само елемент, който описва ЕДНА прожекция.
+               Ако хванем контейнер с няколко прожекции, regex-ите биха върнали
+               данните на първата за всички — по-добре да пропуснем реда. */
+            const hallHits = text.match(/Hall\s*\d+/gi) || [];
+            const seatHits = text.match(/\d+\s*available seats?/gi) || [];
+            if (hallHits.length !== 1 || seatHits.length > 1) return;
+
             const h1 = tr.querySelector("h1");
             let movie = (h1 ? h1.textContent : "").replace(/\s+/g, " ").trim();
             // Формат: .format елемент или "- 2D" в заглавието
@@ -2547,24 +2554,34 @@
             let format = fmtEl ? fmtEl.textContent.replace(/[^0-9A-Za-z]/g, "").toUpperCase() : "";
             if (!format) { const fm = movie.match(/-\s*(2D|3D|4DX|IMAX)\b/i); if (fm) format = fm[1].toUpperCase(); }
             movie = movie.replace(/\s*-\s*(2D|3D|4DX|IMAX)\s*$/i, "").trim();
-            const hallM = text.match(/Hall\s*(\d+)/i);
-            const hallNum = hallM ? parseInt(hallM[1], 10) : null;
+            const hallNum = parseInt(hallHits[0].replace(/\D/g, ""), 10);
             let seats = null;
-            const seatM = text.match(/(\d+)\s*available seats?/i);
-            if (seatM) seats = parseInt(seatM[1], 10);
+            if (seatHits.length === 1) seats = parseInt(seatHits[0].replace(/\D/g, ""), 10);
             let runtimeMin = null;
             const rtM = text.match(/(\d+)\s*min\b/i);
             if (rtM) runtimeMin = parseInt(rtM[1], 10);
+            /* Начален час — само ако в реда има ТОЧНО един час; иначе не можем
+               да сме сигурни кой е началният и оставяме празно (без съпоставяне). */
             let start = "";
-            const tM = text.match(/\b(\d{1,2}:\d{2})\b/);
-            if (tM) start = tM[1];
+            const timeHits = text.match(/\b\d{1,2}:\d{2}\b/g) || [];
+            if (timeHits.length === 1) start = timeHits[0];
             let warning = "";
             const wEl = tr.querySelector(".warning");
             if (wEl) warning = wEl.textContent.replace(/\s+/g, " ").trim();
             if (hallNum && movie) out.push({ hallNum, hall: "Зала " + hallNum, movie, format, seats, start, runtimeMin, warning });
           });
         } catch (err) { console.warn("[nextboard] parse error:", err); }
+        if (out.length) console.log("[nextboard] parsed:", out.map((o) => `Зала ${o.hallNum} ${o.start} ${o.movie} → ${o.seats} свободни`).join(" | "));
         return out;
+      }
+
+      /* СТРОГО съпоставяне на прожекция от таблото с реда от втория борд:
+         еднаква зала И еднакъв начален час. Без съпоставяне по име на филм —
+         иначе повторна прожекция на същия филм в същата зала връща чужди данни. */
+      function _matchBoardShow(s) {
+        if (!s || !s.start) return null;
+        const hits = _nextBoardShows.filter((n) => n.hallNum === s.hallNum && n.start && n.start === s.start);
+        return hits.length === 1 ? hits[0] : null;   // при нееднозначност → нищо
       }
 
       async function fetchNextBoard() {
@@ -2697,7 +2714,7 @@
             const soon = s.endsInMin != null && s.endsInMin <= 15;
             const subColor = soon ? "#f59e0b" : "#9fb2c8";
             const p = _showProgress(s);
-            const rExtra = _nextBoardShows.find((n) => n.hallNum === s.hallNum && (n.start === s.start || n.movie === s.movie)) || null;
+            const rExtra = _matchBoardShow(s);
             const rOcc = rExtra ? _occupancy(s.hallNum, rExtra.seats) : null;
             return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:linear-gradient(135deg,rgba(${hc.g},.09),rgba(255,255,255,.015));border:1px solid rgba(${hc.g},.28);border-left:4px solid ${hc.c};">
               ${hallBadge(hc, s.hallNum, false)}
@@ -2732,7 +2749,7 @@
             </div>`;
           }
           /* gray = предстояща — обогатена с формат/места от втория борд */
-          const extra = _nextBoardShows.find((n) => n.hallNum === s.hallNum && (n.start === s.start || n.movie === s.movie)) || null;
+          const extra = _matchBoardShow(s);
           const bits = [];
           if (s.start) bits.push(`Започва <b>${escapeHtml(s.start)}</b>`);
           if (extra && extra.runtimeMin != null) bits.push(`${extra.runtimeMin} мин`);
