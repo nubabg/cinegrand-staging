@@ -1406,6 +1406,20 @@
       }
       body.low-perf .cg-prog-fill::after { animation: none; display: none; }
       body.low-perf .cg-prog-head { animation: none; }
+
+      /* ── СЛЕДВАЩА прожекция — открояване на реда ── */
+      @keyframes cgNextGlow {
+        0%, 100% { box-shadow: 0 0 0 0 var(--n-glow), 0 8px 24px rgba(0,0,0,.4); }
+        50%      { box-shadow: 0 0 30px 4px var(--n-glow), 0 8px 24px rgba(0,0,0,.4); }
+      }
+      .cg-next-card { animation: cgNextGlow 2.6s ease-in-out infinite; }
+      @keyframes cgNextPill {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50%      { transform: scale(1.05); opacity: .92; }
+      }
+      .cg-next-pill { animation: cgNextPill 1.8s ease-in-out infinite; }
+      body.low-perf .cg-next-card { animation: none; }
+      body.low-perf .cg-next-pill { animation: none; }
       body.low-perf .cg-prog-fill, body.low-perf .cg-prog-head { transition: none; }
 
     </style>
@@ -2310,7 +2324,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.25-seats-memory";
+      const BUILD_VERSION = "v.2026.07.26-next-highlight";
 
       /* ══════════════════════════════════════════════════════════════
          ЕЗИК (БГ / EN) — превод чрез речник, прилаган след всеки render.
@@ -2353,6 +2367,7 @@
         "на живо от киното": "live from the cinema",
         "начало": "just started", "в ход": "in progress", "втора половина": "second half", "към края": "near the end",
         "пълна": "full", "почти пълна": "filling up", "средно": "moderate", "празна": "empty",
+        "▶ СЛЕДВАЩА": "▶ UP NEXT", "всеки момент": "any moment now",
         "няма данни": "no data",
         "В момента няма текущи прожекции.": "No screenings are running right now.",
         "В момента няма прожекции на таблото.": "No screenings on the board right now.",
@@ -2423,6 +2438,7 @@
         [/^(\d+) свободни места$/, "$1 seats available"],
         [/^(\d+)\/(\d+) заети$/, "$1/$2 taken"],
         [/^(\d+) свободни$/, "$1 free"],
+        [/^след (\d+) мин$/, "in $1 min"],
         [/^Не се препоръчва за лица под (\d+)-годишна възраст$/, "Not recommended for persons under $1"],
         [/^\/(\d+) попълнени$/, "/$1 filled"], [/^⚠ (\d+) проблема$/, "⚠ $1 issues"],
         [/^Попълни всички полета \((\d+)\/(\d+)\)$/, "Fill in all fields ($1/$2)"],
@@ -2768,6 +2784,23 @@
         /* 1:1 огледало на таблото — всеки ред от HTML-а, в същия ред. */
         const now = Date.now();
         const boardGreens = {};
+
+        /* Кои предстоящи прожекции тръгват най-скоро — за да ги откроим.
+           Минути до старта (с пренос през полунощ). */
+        const _minsUntil = (hhmm) => {
+          const m = /^(\d{1,2}):(\d{2})$/.exec((hhmm || "").trim());
+          if (!m) return null;
+          const d = new Date();
+          let diff = ((+m[1]) * 60 + (+m[2])) - (d.getHours() * 60 + d.getMinutes());
+          if (diff < -720) diff += 24 * 60;   // след полунощ
+          return diff;
+        };
+        const upcomingMins = _nextCleanShows
+          .filter((x) => x.status === "gray")
+          .map((x) => _minsUntil(x.start))
+          .filter((v) => v != null && v >= 0)
+          .sort((a, b) => a - b);
+        const nextMin = upcomingMins.length ? upcomingMins[0] : null;   // най-скорошният старт
         const boardRows = _nextCleanShows.map((s) => {
           const hc = hallColor(s.hallNum);
           if (s.status === "green") {
@@ -2818,15 +2851,20 @@
           /* Заетост — ЕДЪР блок вдясно (без лента, за да не се бърка с
              прогрес бара на течащите прожекции). */
           const occBlock = occBlockFor(occ);
-          return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.02);border:1px dashed rgba(${hc.g},.35);opacity:.9;">
-            ${hallBadge(hc, s.hallNum, false)}
+          /* Тази ли тръгва следваща? (може да са няколко в един и същ час) */
+          const mins = _minsUntil(s.start);
+          const isNext = nextMin != null && mins != null && mins === nextMin;
+          const cntTxt = mins == null ? "" : (mins <= 0 ? "всеки момент" : "след " + mins + " мин");
+          return `<div class="${isNext ? "cg-next-card" : ""}" style="${isNext ? `--n-glow:rgba(${hc.g},.5);` : ""}position:relative;display:flex;align-items:center;gap:14px;padding:${isNext ? "15px 16px" : "12px 14px"};border-radius:16px;background:${isNext ? `linear-gradient(135deg,rgba(${hc.g},.16),rgba(255,255,255,.02))` : "rgba(255,255,255,.02)"};border:${isNext ? `2px solid ${hc.c}` : `1px dashed rgba(${hc.g},.35)`};${isNext ? "" : "opacity:.72;"}">
+            ${isNext ? `<span class="cg-next-pill" style="position:absolute;top:-9px;left:14px;font-size:9.5px;font-weight:800;letter-spacing:.1em;color:#0a0a0a;background:linear-gradient(135deg,${hc.c},rgba(${hc.g},.75));padding:3px 10px;border-radius:999px;box-shadow:0 2px 10px rgba(${hc.g},.6);white-space:nowrap;">▶ СЛЕДВАЩА</span>` : ""}
+            ${hallBadge(hc, s.hallNum, isNext)}
             <div style="flex:1;min-width:0;">
               <div style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;">
-                <span style="font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</span>
+                <span style="font-size:${isNext ? "16px" : "14px"};font-weight:${isNext ? "800" : "600"};color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</span>
                 ${extra && extra.format ? `<span style="flex-shrink:0;font-size:10px;font-weight:800;color:#0a0a0a;background:linear-gradient(135deg,#fde68a,#fbbf24);padding:2px 8px;border-radius:999px;letter-spacing:.06em;">${escapeHtml(extra.format)}</span>` : ""}
-                <span style="flex-shrink:0;font-size:10px;color:#8a97a8;">🔜</span>
+                ${isNext ? "" : `<span style="flex-shrink:0;font-size:10px;color:#8a97a8;">🔜</span>`}
               </div>
-              <div style="font-size:11.5px;color:#9fb2c8;font-weight:600;margin-top:3px;">${bits.join(" · ")}</div>
+              <div style="font-size:${isNext ? "12.5px" : "11.5px"};color:${isNext ? hc.c : "#9fb2c8"};font-weight:${isNext ? "700" : "600"};margin-top:3px;">${bits.join(" · ")}${cntTxt ? ` · <b>${cntTxt}</b>` : ""}</div>
             </div>
             ${occBlock}
           </div>`;
