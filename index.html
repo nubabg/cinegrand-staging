@@ -1420,6 +1420,22 @@
       .cg-next-pill { animation: cgNextPill 1.8s ease-in-out infinite; }
       body.low-perf .cg-next-card { animation: none; }
       body.low-perf .cg-next-pill { animation: none; }
+
+      /* ── Странични банери (PC) — 280×800, файлове в /banners/ ── */
+      .cg-side-banner {
+        display: none;
+        position: fixed; top: 50%; transform: translateY(-50%);
+        width: 280px; height: 800px; z-index: 4;
+        border-radius: 18px; overflow: hidden;
+        box-shadow: 0 18px 50px rgba(0,0,0,.45);
+      }
+      .cg-side-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .cg-side-banner.left  { left: 20px; }
+      .cg-side-banner.right { right: 20px; }
+      /* Показват се само когато встрани от работната зона (1280px) има място */
+      @media (min-width: 1880px) {
+        .cg-side-banner.has-image { display: block; }
+      }
       body.low-perf .cg-prog-fill, body.low-perf .cg-prog-head { transition: none; }
 
     </style>
@@ -1432,6 +1448,9 @@
       <span class="bloom-orb bloom-orb--gold2"></span>
       <span class="bloom-orb bloom-orb--purple"></span>
     </div>
+    <!-- Странични банери: смени файловете в /banners/ (виж banners/README.md) -->
+    <div class="cg-side-banner left" aria-hidden="true"><img data-src="banners/banner-left.png" alt="" /></div>
+    <div class="cg-side-banner right" aria-hidden="true"><img data-src="banners/banner-right.png" alt="" /></div>
     <div id="app"></div>
     <div id="modals"></div>
     <div class="broom-fun" aria-hidden="true">
@@ -2324,7 +2343,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.07.26-next-highlight";
+      const BUILD_VERSION = "v.2026.08.03-side-banners";
 
       /* ══════════════════════════════════════════════════════════════
          ЕЗИК (БГ / EN) — превод чрез речник, прилаган след всеки render.
@@ -2974,6 +2993,30 @@
         }
       }
       loadHallCapacities();
+
+      /* ── Странични банери ──
+         Слотът се показва САМО ако файлът в /banners/ е реална снимка.
+         Празният/placeholder файлът (1×1px) и липсващ файл се пропускат, за
+         да не стои празна рамка на екрана. Смяната е само качване на файл в
+         GitHub — виж banners/README.md. */
+      function initSideBanners() {
+        document.querySelectorAll(".cg-side-banner").forEach((slot) => {
+          const img = slot.querySelector("img");
+          if (!img) return;
+          const src = img.getAttribute("data-src");
+          if (!src) return;
+          const probe = new Image();
+          probe.onload = () => {
+            // 1×1 placeholder → третираме като „няма банер"
+            if (probe.naturalWidth <= 2 || probe.naturalHeight <= 2) return;
+            img.src = src + "?v=" + Date.now();
+            slot.classList.add("has-image");
+          };
+          probe.onerror = () => { /* липсва файл → слотът остава скрит */ };
+          probe.src = src + "?v=" + Date.now();
+        });
+      }
+      initSideBanners();
 
       /* Заетост на прожекция от свободните места + капацитета на залата. */
       function _occupancy(hallNum, freeSeats) {
