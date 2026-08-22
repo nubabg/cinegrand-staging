@@ -2352,7 +2352,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.08.22-hall-detail";
+      const BUILD_VERSION = "v.2026.08.22-rules";
 
       /* ══════════════════════════════════════════════════════════════
          ЕЗИК (БГ / EN) — превод чрез речник, прилаган след всеки render.
@@ -2387,6 +2387,10 @@
         "✅ свърши — провери залата": "✅ show ended — check the hall",
         "● проблем": "● issue", "зареждам…": "loading…",
         /* Зали таб */
+        "📋 Правила": "📋 Rules", "Правила за работа": "Work Rules",
+        "Актуалните правила за проверките. Редактират се във файла Rules.md в GitHub.":
+          "Current inspection rules. Edited in the Rules.md file on GitHub.",
+        "Зареждам правилата…": "Loading rules…",
         "Статус на залите": "Hall Status",
         "Прожекции на живо от киното — кога всяка зала се освобождава за проверка.":
           "Live screenings from the cinema — when each hall becomes free for inspection.",
@@ -3002,6 +3006,99 @@
         }
       }
       loadHallCapacities();
+
+      /* ── Правила — съдържанието идва от /Rules.md в repo-то ──
+         Редактира се през GitHub, без промяна по кода. */
+      let RULES_MD = null;        // null = още не е зареден, "" = грешка
+      let _rulesBusy = false;
+
+      async function loadRules() {
+        if (_rulesBusy) return;
+        _rulesBusy = true;
+        try {
+          const res = await fetchWithTimeout("Rules.md?_cb=" + Date.now(), { cache: "no-store" }, 8000);
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          RULES_MD = await res.text();
+        } catch (err) {
+          console.warn("[rules] failed to load Rules.md:", err.message);
+          RULES_MD = "";
+        } finally {
+          _rulesBusy = false;
+          if (state.screen === "rules") render();
+        }
+      }
+
+      /* Минимален Markdown → HTML. Целият текст минава през escapeHtml
+         ПРЕДИ форматирането, така че съдържанието на файла не може да
+         вкара HTML в страницата. */
+      function renderMarkdown(md) {
+        const esc = escapeHtml(md || "");
+        const lines = esc.split(/\r?\n/);
+        const out = [];
+        let list = null;   // "ul" | "ol" | null
+
+        const inline = (t) => t
+          .replace(/\*\*([^*]+)\*\*/g, '<strong style="color:#fff;">$1</strong>')
+          .replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,.07);padding:1px 6px;border-radius:5px;font-size:.92em;">$1</code>');
+
+        const closeList = () => { if (list) { out.push(`</${list}>`); list = null; } };
+        const openList = (t) => {
+          if (list === t) return;
+          closeList();
+          list = t;
+          out.push(`<${t} style="margin:8px 0 14px;padding-left:22px;display:grid;gap:6px;color:var(--muted);font-size:14.5px;line-height:1.6;">`);
+        };
+
+        for (const raw of lines) {
+          const l = raw.trim();
+          if (!l) { closeList(); continue; }
+
+          let m;
+          if ((m = /^---+$/.exec(l))) {
+            closeList();
+            out.push('<hr style="border:0;border-top:1px solid rgba(255,255,255,.09);margin:20px 0;">');
+          } else if ((m = /^(#{1,4})\s+(.*)$/.exec(l))) {
+            closeList();
+            const lvl = m[1].length;
+            const size = [26, 19, 15.5, 14][lvl - 1];
+            const mt = lvl === 1 ? 0 : 22;
+            out.push(`<div style="font-family:'Oswald',sans-serif;font-size:${size}px;font-weight:${lvl <= 2 ? 700 : 600};color:${lvl === 1 ? "#fff" : "var(--gold-2)"};letter-spacing:.03em;margin:${mt}px 0 10px;${lvl === 1 ? "text-transform:uppercase;" : ""}">${inline(m[2])}</div>`);
+          } else if ((m = /^&gt;\s?(.*)$/.exec(l))) {
+            closeList();
+            out.push(`<div style="border-left:3px solid var(--gold);background:rgba(200,120,24,.09);padding:11px 14px;border-radius:0 10px 10px 0;margin:12px 0;color:#f0d9a8;font-size:14px;line-height:1.6;">${inline(m[1])}</div>`);
+          } else if ((m = /^[-*]\s+(.*)$/.exec(l))) {
+            openList("ul");
+            out.push(`<li>${inline(m[1])}</li>`);
+          } else if ((m = /^(\d+)\.\s+(.*)$/.exec(l))) {
+            openList("ol");
+            out.push(`<li>${inline(m[2])}</li>`);
+          } else {
+            closeList();
+            out.push(`<p style="margin:0 0 12px;color:var(--muted);font-size:14.5px;line-height:1.65;">${inline(l)}</p>`);
+          }
+        }
+        closeList();
+        return out.join("");
+      }
+
+      function renderRulesScreen() {
+        const loading = RULES_MD === null;
+        const failed = RULES_MD === "";
+        return `<div class="page">
+          <div class="toolbar">
+            <div>
+              <h1 class="hero-title" style="display:flex;align-items:center;gap:12px;"><span style="font-size:30px;">📋</span> Правила за работа</h1>
+              <div class="muted">Актуалните правила за проверките. Редактират се във файла Rules.md в GitHub.</div>
+            </div>
+            <button class="btn btn-outline" data-action="go-home">← Начало</button>
+          </div>
+          <div class="panel" style="padding:26px 30px;">
+            ${loading ? `<div style="display:flex;align-items:center;gap:12px;color:var(--muted);padding:18px 0;"><span class="cg-bounce-dots sm"><span></span><span></span><span></span></span> Зареждам правилата…</div>`
+              : failed ? `<div style="color:#f59e0b;font-size:14px;">Правилата не можаха да бъдат заредени. Провери дали файлът <b>Rules.md</b> съществува в repo-то.</div>`
+              : renderMarkdown(RULES_MD)}
+          </div>
+        </div>`;
+      }
 
       /* ── Странични банери ──
          Слотът се показва САМО ако файлът в /banners/ е реална снимка.
@@ -3619,6 +3716,7 @@
           `<a class="nav-btn${isSheetsConfigured() ? ' state' : ''}" href="${SHEETS_SPREADSHEET_URL}" target="_blank" rel="noopener" aria-label="Отвори Sheets таблица">${isSheetsConfigured() ? "Sheets ✓" : "Sheets ✗"}</a>`,
           NEXTCLEAN_PROXY_URL ? `<button class="nav-btn ${state.screen === 'halls' ? 'state' : ''}" data-action="go-halls" aria-label="Статус на залите">&#127916; Зали</button>` : "",
           `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''} ${chartsCooldownUntil > Date.now() ? 'cooldown' : ''}" data-action="go-charts" aria-label="Данни от Sheets" ${chartsCooldownUntil > Date.now() ? 'disabled' : ''}>&#128202; ${chartsCooldownUntil > Date.now() ? "Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : "Данни"}</button>`,
+          `<button class="nav-btn ${state.screen === 'rules' ? 'state' : ''}" data-action="go-rules" aria-label="Правила за работа">&#128203; Правила</button>`,
           `<button class="nav-btn ${currentLang === 'en' ? 'state' : ''}" data-action="toggle-lang" aria-label="Language / Език">${currentLang === "en" ? "🌐 БГ" : "🌐 EN"}</button>`,
         ].filter(Boolean).join("");
 
@@ -5629,6 +5727,7 @@
           state.screen === "history" ? renderHistory() :
           state.screen === "charts" ? renderCharts() :
           state.screen === "halls" ? renderHallsScreen() :
+          state.screen === "rules" ? renderRulesScreen() :
           state.screen === "select-cr" ? renderChangingRoomSelect() :
           state.screen === "cr-detail" ? renderChangingRoomDetail() :
           state.screen === "phone-photo-upload" ? renderPhonePhotoUpload() :
@@ -5979,6 +6078,7 @@
         if (action === "go-home") { cleanupSessionLock(); stopPhonePhotoPolling(); state.pcSessionId = null; state.remotePhotoUrls = []; state.screen = "home"; render(); return; }
         if (action === "go-history") { state.screen = "history"; render(); return; }
         if (action === "go-halls") { state.screen = "halls"; fetchNextClean(); fetchNextBoard(); render(); return; }
+        if (action === "go-rules") { state.screen = "rules"; if (RULES_MD === null) loadRules(); render(); return; }
         if (action === "toggle-lang") {
           currentLang = currentLang === "bg" ? "en" : "bg";
           try { localStorage.setItem(LANG_KEY, currentLang); } catch (_) {}
