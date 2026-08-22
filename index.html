@@ -1421,6 +1421,14 @@
       body.low-perf .cg-next-card { animation: none; }
       body.low-perf .cg-next-pill { animation: none; }
 
+      /* Кликаема карта за зала — подсказва, че има детайли */
+      [data-action="open-hall-detail"]:hover {
+        background: rgba(255,255,255,.05) !important;
+        border-color: rgba(255,255,255,.18) !important;
+        transform: translateY(-2px);
+      }
+      [data-action="open-hall-detail"]:active { transform: scale(.99); }
+
       /* ── Странични банери (PC) — 280×800, файлове в /banners/ ── */
       .cg-side-banner {
         display: none;
@@ -2034,6 +2042,7 @@
         showDeleteModal: false,
         showQRModal: false,
         showPhonePhotoQRModal: false,
+        hallDetail: null,          /* име на локация → отворен детайлен изглед */
         phonePhotoLoc: "",
         phonePhotoType: "",
         phonePhotoInspector: "",
@@ -2343,7 +2352,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.08.03-side-banners";
+      const BUILD_VERSION = "v.2026.08.22-hall-detail";
 
       /* ══════════════════════════════════════════════════════════════
          ЕЗИК (БГ / EN) — превод чрез речник, прилаган след всеки render.
@@ -3682,6 +3691,59 @@
         return out;
       }
 
+      /* Пълна история на една локация от ИНФО — за детайлния изглед.
+         Връща подредени записи (най-новите отгоре) + обобщена статистика. */
+      function getHallHistory(loc) {
+        const empty = { rows: [], today: 0, week: 0, total: 0, problems: 0, avgGapMin: null, inspectors: [] };
+        if (!_cachedChartRows || _cachedChartRows.length === 0) return empty;
+        const keys = Object.keys(_cachedChartRows[0]);
+        const dateKey = keys.find(k => /дата|час/i.test(k)) || keys[1];
+        const typeKey = keys.find(k => /тип/i.test(k)) || keys[2];
+        const whoKey = keys.find(k => /проверяващ/i.test(k)) || keys[3];
+        const statusKey = keys.find(k => /статус/i.test(k)) || keys[4];
+        const issuesKey = keys.find(k => /проблем/i.test(k)) || keys[5];
+        const notesKey = keys.find(k => /бележк/i.test(k)) || keys[6];
+        const photoKey = keys.find(k => /снимк/i.test(k)) || keys[7];
+
+        const rows = [];
+        for (const r of _cachedChartRows) {
+          if (_normalizeLocFromTypeField(r[typeKey]) !== loc) continue;
+          const d = parseChartDate(r[dateKey]);
+          if (!d) continue;
+          rows.push({
+            date: d,
+            who: (r[whoKey] || "").trim(),
+            status: (r[statusKey] || "").trim(),
+            issues: (r[issuesKey] || "").trim(),
+            notes: (r[notesKey] || "").trim(),
+            photo: (r[photoKey] || "").trim(),
+          });
+        }
+        rows.sort((a, b) => b.date - a.date);
+
+        const now = new Date();
+        const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const weekAgo = now.getTime() - 7 * 24 * 3600 * 1000;
+        const today = rows.filter(r => r.date.getTime() >= startToday).length;
+        const week = rows.filter(r => r.date.getTime() >= weekAgo).length;
+        const problems = rows.filter(r => /проблем/i.test(r.status)).length;
+
+        // Средно време между проверките (по днешните, ако са поне 2)
+        let avgGapMin = null;
+        const todayRows = rows.filter(r => r.date.getTime() >= startToday);
+        if (todayRows.length >= 2) {
+          let sum = 0;
+          for (let i = 0; i < todayRows.length - 1; i++) sum += todayRows[i].date - todayRows[i + 1].date;
+          avgGapMin = Math.round(sum / (todayRows.length - 1) / 60000);
+        }
+        // Кой е проверявал (последните 7 дни, по честота)
+        const cnt = {};
+        rows.filter(r => r.date.getTime() >= weekAgo && r.who).forEach(r => { cnt[r.who] = (cnt[r.who] || 0) + 1; });
+        const inspectors = Object.keys(cnt).map(n => ({ name: n, n: cnt[n] })).sort((a, b) => b.n - a.n);
+
+        return { rows, today, week, total: rows.length, problems, avgGapMin, inspectors };
+      }
+
       function _formatAgo(ms) {
         const mins = Math.floor(ms / 60000);
         if (mins < 1) return "току-що";
@@ -3757,7 +3819,7 @@
             ? (isNone ? "Никога не е проверявана — извърши проверка!" : "Просрочена проверка — над 4 часа!")
             : "Скоро ще е просрочена — над 2 часа без проверка";
           const cardGlow = isOverdueRed ? " cg-overdue-card" : "";
-          return `<div class="${cardGlow.trim()}" style="position:relative;display:flex;align-items:stretch;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:visible;transition:background .2s;min-width:0;">
+          return `<div class="${cardGlow.trim()}" data-action="open-hall-detail" data-loc="${escapeHtml(loc)}" title="Виж подробна история за ${escapeHtml(loc)}" style="position:relative;display:flex;align-items:stretch;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:visible;transition:background .2s,transform .15s,border-color .2s;min-width:0;cursor:pointer;">
             ${showAlert ? `<span class="${alertClass}" title="${alertTitle}" aria-label="${alertTitle}">!</span>` : ''}
             <div style="width:4px;flex-shrink:0;background:${m.accent};border-radius:12px 0 0 12px;"></div>
             <div style="padding:11px 13px;display:flex;align-items:center;gap:11px;min-width:0;flex:1;overflow:hidden;border-radius:0 12px 12px 0;">
@@ -5008,8 +5070,75 @@
         }
         if (state.showQRModal) html += renderQRModal();
         if (state.showPhonePhotoQRModal) html += renderPhonePhotoQRModal();
+        if (state.hallDetail) html += renderHallDetailModal();
         if (state.toast) html += `<div class="toast ${escapeHtml(state.toast.type)}" role="status" aria-live="polite">${escapeHtml(state.toast.msg)}</div>`;
         return html;
+      }
+
+      /* Детайлен изглед на зала — история, статистика, проблеми. */
+      function renderHallDetailModal() {
+        const loc = state.hallDetail;
+        if (!loc) return "";
+        const h = getHallHistory(loc);
+        const now = Date.now();
+        const isHall = /Зала/i.test(loc);
+        const hn = (loc.match(/(\d+)/) || [])[1];
+        const hc = (isHall && hn) ? hallColor(parseInt(hn, 10)) : { c: "#60a5fa", g: "96,165,250" };
+        const last = h.rows[0] || null;
+        const m = _locStatusMeta(last ? { date: last.date, status: last.status } : null, now);
+
+        const stat = (val, label, color) => `<div style="flex:1;min-width:80px;text-align:center;padding:10px 8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;">
+            <div style="font-size:23px;font-weight:800;color:${color};font-family:'Oswald',sans-serif;line-height:1;">${val}</div>
+            <div style="font-size:9.5px;color:#8a97a8;letter-spacing:.08em;text-transform:uppercase;margin-top:4px;">${label}</div>
+          </div>`;
+
+        const rowsHtml = h.rows.slice(0, 25).map((r) => {
+          const bad = /проблем/i.test(r.status);
+          const when = r.date.toLocaleString("bg-BG", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+          const photoUrl = (r.photo.match(/https?:\/\/\S+/) || [])[0] || "";
+          return `<div style="display:flex;gap:10px;padding:9px 11px;border-radius:10px;background:rgba(255,255,255,.02);border-left:3px solid ${bad ? "var(--red)" : "var(--green)"};">
+            <div style="flex-shrink:0;width:88px;font-size:11px;color:#9fb2c8;font-weight:600;">${escapeHtml(when)}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+                <span style="font-size:12px;font-weight:700;color:#fff;">${escapeHtml(r.who || "—")}</span>
+                <span class="pill ${bad ? "bad" : "ok"}" style="font-size:10px;padding:2px 8px;">${bad ? "Проблем" : "Чисто"}</span>
+                ${photoUrl ? `<a href="${photoUrl}" target="_blank" rel="noopener" style="font-size:10px;color:#60a5fa;text-decoration:none;">📷 снимка</a>` : ""}
+              </div>
+              ${bad && r.issues && r.issues !== "—" ? `<div style="font-size:11px;color:#fca5a5;margin-top:3px;">${escapeHtml(r.issues)}</div>` : ""}
+              ${r.notes && r.notes !== "—" ? `<div style="font-size:10.5px;color:#7c8ba0;margin-top:2px;font-style:italic;">${escapeHtml(r.notes)}</div>` : ""}
+            </div>
+          </div>`;
+        }).join("");
+
+        return `<div class="modal-backdrop" data-action="close-hall-detail" role="presentation">
+          <div class="modal" role="dialog" aria-modal="true" onclick="if(!event.target.closest('[data-action]'))event.stopPropagation()" style="max-width:680px;">
+            <div style="display:flex;align-items:center;gap:13px;margin-bottom:16px;">
+              <div style="width:52px;height:52px;border-radius:14px;background:rgba(${hc.g},.18);border:1px solid rgba(${hc.g},.45);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">${isHall ? "🎬" : "🚿"}</div>
+              <div style="flex:1;min-width:0;">
+                <h2 class="section-title" style="margin:0;font-size:21px;">${escapeHtml(loc)}</h2>
+                <div style="font-size:12px;color:${m.color};font-weight:600;margin-top:2px;">${m.dot} ${escapeHtml(m.label)}${last ? " · " + escapeHtml(last.who || "") : ""}</div>
+              </div>
+              <button type="button" class="btn btn-outline" data-action="close-hall-detail" style="padding:7px 14px;font-size:13px;flex-shrink:0;">✕</button>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+              ${stat(h.today, "днес", "#10b981")}
+              ${stat(h.week, "7 дни", "#60a5fa")}
+              ${stat(h.total, "общо", "#a78bfa")}
+              ${stat(h.problems, "проблема", h.problems ? "#ef4444" : "#8a97a8")}
+              ${h.avgGapMin != null ? stat(_formatAgo(h.avgGapMin * 60000), "средно", "#fbbf24") : ""}
+            </div>
+
+            ${h.inspectors.length ? `<div style="margin-bottom:14px;">
+              <div style="font-size:10.5px;font-weight:700;letter-spacing:.09em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:7px;">Проверявали (7 дни)</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">${h.inspectors.map(i => `<span class="tag">${escapeHtml(i.name)} · ${i.n}</span>`).join("")}</div>
+            </div>` : ""}
+
+            <div style="font-size:10.5px;font-weight:700;letter-spacing:.09em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:8px;">История${h.rows.length > 25 ? " (последни 25)" : ""}</div>
+            ${h.rows.length ? `<div style="display:grid;gap:6px;max-height:44vh;overflow-y:auto;">${rowsHtml}</div>`
+              : `<div style="font-size:13px;color:#888;padding:14px 2px;">Няма записани проверки за тази локация.</div>`}
+          </div>
+        </div>`;
       }
 
       function renderPhonePhotoQRModal() {
@@ -5939,6 +6068,16 @@
         /* QR modal — само updateModals(), не презареждаме съдържанието, данните остават */
         if (action === "open-qr") { state.showQRModal = true; updateModals(); return; }
         if (action === "close-qr") { state.showQRModal = false; updateModals(); return; }
+        if (action === "open-hall-detail") {
+          state.hallDetail = btn.dataset.loc || null;
+          updateModals();
+          // Ако данните още не са заредени — дръпни ги и опресни
+          if (!_cachedChartRows || !_cachedChartRows.length) {
+            fetchSheetsData().then(r => { _cachedChartRows = r; if (state.hallDetail) updateModals(); }).catch(() => {});
+          }
+          return;
+        }
+        if (action === "close-hall-detail") { state.hallDetail = null; updateModals(); return; }
         if (action === "dismiss-feature-ann") {
           try { localStorage.setItem(FEATURE_ANN_KEY, "1"); } catch (_) {}
           render();
@@ -6023,6 +6162,9 @@
           updateModals();
         } else if (state.showPhonePhotoQRModal) {
           state.showPhonePhotoQRModal = false;
+          updateModals();
+        } else if (state.hallDetail) {
+          state.hallDetail = null;
           updateModals();
         }
       });
