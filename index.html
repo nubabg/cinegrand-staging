@@ -2352,7 +2352,7 @@
          browsers/networks); phone POSTs each uploaded photo URL to the same
          topic. Topic = "cg-photos-{pcSessionId}". */
       const NTFY_BASE = "https://ntfy.sh";
-      const BUILD_VERSION = "v.2026.08.22-rules";
+      const BUILD_VERSION = "v.2026.08.22-rules-clean";
 
       /* ══════════════════════════════════════════════════════════════
          ЕЗИК (БГ / EN) — превод чрез речник, прилаган след всеки render.
@@ -2388,8 +2388,8 @@
         "● проблем": "● issue", "зареждам…": "loading…",
         /* Зали таб */
         "📋 Правила": "📋 Rules", "Правила за работа": "Work Rules",
-        "Актуалните правила за проверките. Редактират се във файла Rules.md в GitHub.":
-          "Current inspection rules. Edited in the Rules.md file on GitHub.",
+        "Файлът Rules.md е празен. Отвори го в GitHub и напиши правилата.":
+          "Rules.md is empty. Open it on GitHub and write the rules.",
         "Зареждам правилата…": "Loading rules…",
         "Статус на залите": "Hall Status",
         "Прожекции на живо от киното — кога всяка зала се освобождава за проверка.":
@@ -3084,18 +3084,20 @@
       function renderRulesScreen() {
         const loading = RULES_MD === null;
         const failed = RULES_MD === "";
+        const body = (!loading && !failed) ? renderMarkdown(RULES_MD) : "";
+        const emptyDoc = !loading && !failed && !body.trim();
         return `<div class="page">
           <div class="toolbar">
             <div>
               <h1 class="hero-title" style="display:flex;align-items:center;gap:12px;"><span style="font-size:30px;">📋</span> Правила за работа</h1>
-              <div class="muted">Актуалните правила за проверките. Редактират се във файла Rules.md в GitHub.</div>
             </div>
             <button class="btn btn-outline" data-action="go-home">← Начало</button>
           </div>
           <div class="panel" style="padding:26px 30px;">
             ${loading ? `<div style="display:flex;align-items:center;gap:12px;color:var(--muted);padding:18px 0;"><span class="cg-bounce-dots sm"><span></span><span></span><span></span></span> Зареждам правилата…</div>`
-              : failed ? `<div style="color:#f59e0b;font-size:14px;">Правилата не можаха да бъдат заредени. Провери дали файлът <b>Rules.md</b> съществува в repo-то.</div>`
-              : renderMarkdown(RULES_MD)}
+              : failed ? `<div style="color:#f59e0b;font-size:14px;padding:6px 0;">Правилата не можаха да бъдат заредени. Провери дали файлът <b>Rules.md</b> съществува в repo-то.</div>`
+              : emptyDoc ? `<div style="color:var(--muted);font-size:14px;padding:6px 0;">Файлът <b>Rules.md</b> е празен. Отвори го в GitHub и напиши правилата.</div>`
+              : body}
           </div>
         </div>`;
       }
