@@ -1,7 +1,9 @@
 name: Sync to Inspection (main site)
 
 on:
-  workflow_dispatch:  # Ръчно стартиране от GitHub Actions tab
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   sync:
@@ -19,16 +21,20 @@ jobs:
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-
           git clone https://x-access-token:${PAT}@github.com/nubabg/cinegrand-inspection.git /tmp/inspection
 
+          # задължителни файлове
           cp index.html favicon.svg /tmp/inspection/
-          [ -f Code.gs ] && cp Code.gs /tmp/inspection/
-          [ -f locks.gs ] && cp locks.gs /tmp/inspection/
-          [ -f AUDIT-REPORT.md ] && cp AUDIT-REPORT.md /tmp/inspection/
+
+          # по избор - || true пази job-а от спиране
+          for f in Code.gs locks.gs AUDIT-REPORT.md Halls.md Names.md Rules.md cloudflare-worker-nextclean.js AppsScript-COMPLETO.gs; do
+            [ -f "$f" ] && cp "$f" /tmp/inspection/ || true
+          done
+
+          # папки
+          [ -d banners ] && cp -r banners /tmp/inspection/ || true
 
           cd /tmp/inspection
-          git add index.html favicon.svg Code.gs locks.gs AUDIT-REPORT.md 2>/dev/null || true
           git add -A
           git diff --staged --quiet || git commit -m "Sync from cinegrand-staging"
           git push origin main
