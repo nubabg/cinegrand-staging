@@ -11,6 +11,25 @@ var LOCK_SHEET_NAME = "Locks";
 var LOCK_TIMEOUT_MIN = 10;
 var LOCK_SPREADSHEET_ID = "1UDZQAZU2WAs8G6Yh_II-PZp_0oTj6kGj__b8qecgMAU";
 
+// ── Лист „Почистване съблекални" ──
+var CHANGING_ROOMS_SHEET = "Почистване съблекални";
+
+/**
+ * Търси лист по име, толерантно към разлики в регистър и излишни интервали
+ * (напр. „Почистване  съблекални " след ръчно преименуване в таблицата).
+ */
+function getSheetLoose_(ss, name) {
+  var exact = ss.getSheetByName(name);
+  if (exact) return exact;
+  var norm = function (s) { return String(s).replace(/\s+/g, " ").trim().toLowerCase(); };
+  var want = norm(name);
+  var sheets = ss.getSheets();
+  for (var i = 0; i < sheets.length; i++) {
+    if (norm(sheets[i].getName()) === want) return sheets[i];
+  }
+  return null;
+}
+
 // -----------------------------------------------------------
 // 1. doGet(e) - четене на данни от таблицата (частен достъп)
 // -----------------------------------------------------------
@@ -34,8 +53,15 @@ function doGet(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+    if (action === "ping") {
+      // Лек warmup — само събужда скрипта, без да чете листове.
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: true, pong: true }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     if (action === "getChangingRooms") {
-      var sheet = ss.getSheetByName("Почистване съблекални");
+      var sheet = getSheetLoose_(ss, CHANGING_ROOMS_SHEET);
       if (!sheet) {
         return ContentService
           .createTextOutput(JSON.stringify({ success: false, error: "Sheet not found" }))
@@ -567,7 +593,7 @@ function applyDesignFull1000() {
 function handleUpdateChangingRoom_(data) {
   try {
     var ss    = SpreadsheetApp.openById("17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA");
-    var sheet = ss.getSheetByName("Почистване съблекални");
+    var sheet = getSheetLoose_(ss, CHANGING_ROOMS_SHEET);
     if (!sheet) {
       return ContentService
         .createTextOutput(JSON.stringify({ success: false, error: "Sheet not found" }))
