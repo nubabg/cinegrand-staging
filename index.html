@@ -94,6 +94,9 @@
            „изтекат" до ръба (напр. лентата за прогрес), се изтеглят точно с
            тази стойност, за да не създават хоризонтално преливане. */
         --shell-pad: 24px;
+
+        /* Ширина на страничната навигация */
+        --sidebar-w: 236px;
       }
       * { box-sizing: border-box; }
       html, body { min-height: 100%; }
@@ -115,19 +118,53 @@
       #app { position: relative; z-index: 1; }
       #modals { position: relative; z-index: 100; }
       .app-shell { min-height: 100vh; padding: var(--shell-pad) var(--shell-pad) var(--s7); }
-      .workspace { width: min(1280px, 100%); margin: 0 auto; }
+
+      /* ── Оформление: странична навигация + работна зона ── */
+      .app-layout {
+        display: grid;
+        grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
+        gap: var(--s5);
+        align-items: start;
+        width: min(1680px, 100%);
+        margin: 0 auto;
+      }
+      .workspace { min-width: 0; }
+
+      .sidebar {
+        position: sticky; top: var(--shell-pad);
+        display: flex; flex-direction: column;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--r-lg);
+        padding: var(--s4) var(--s3);
+        height: calc(100vh - 2 * var(--shell-pad));
+        overflow-y: auto; overscroll-behavior: contain;
+      }
+
+      /* Без навигация (QR достъп / качване от телефон) лентата не заема
+         колона — подрежда се хоризонтално над съдържанието. */
+      .app-layout.no-nav { grid-template-columns: minmax(0, 1fr); }
+      .app-layout.no-nav .sidebar {
+        position: static; height: auto; margin-bottom: var(--s4);
+      }
+      .app-layout.no-nav .topbar { flex-direction: row; align-items: center; }
+      .app-layout.no-nav .topbar-meta { flex-direction: row; flex-wrap: wrap; margin-top: 0; }
+      .app-layout.no-nav .product-strip { margin-bottom: 0; }
+
       @media (max-width: 768px) { :root { --shell-pad: 16px; } .app-shell { padding-bottom: var(--s6); } }
       @media (max-width: 430px) { :root { --shell-pad: 12px; } .app-shell { padding-bottom: var(--s5); } }
 
+
+
       .product-strip {
         position: relative;
-        display: flex; align-items: center; justify-content: center;
+        display: flex; align-items: center;
         gap: var(--s3); margin-bottom: var(--s4); color: var(--muted);
-        min-height: 44px;
+        min-height: 44px; padding: 0 var(--s2);
       }
       .product-strip-left {
-        display: flex; align-items: center; gap: 12px;
-        margin: 0 auto;
+        display: flex; align-items: center; gap: var(--s3);
+        margin: 0;
       }
       .product-strip-status {
         position: absolute;
@@ -155,19 +192,27 @@
         color: var(--muted-2);
       }
 
-      .topbar-shell { position: sticky; top: var(--s3); z-index: 20; margin-bottom: var(--s5); }
+      .topbar-shell { display: flex; flex-direction: column; flex: 1; min-height: 0; }
       .topbar {
-        display: flex; justify-content: space-between; align-items: center;
-        gap: var(--s4); padding: var(--s2) var(--s3);
-        border: 1px solid var(--border); border-radius: var(--r-lg);
-        background: var(--panel);
-        box-shadow: var(--shadow-2);
+        display: flex; flex-direction: column; flex: 1;
+        gap: var(--s4); padding: 0;
+        border: none; border-radius: 0;
+        background: transparent;
+        box-shadow: none;
       }
-      .topbar-nav { display: flex; flex-wrap: wrap; gap: var(--s1); align-items: center; }
+      /* Навигацията се чете като списък — един елемент на ред */
+      .topbar-nav {
+        display: flex; flex-direction: column; gap: 2px;
+        align-items: stretch;
+      }
+      /* Контекстът (локация, търсене, ефекти) сяда в дъното на лентата */
       .topbar-meta {
-        display: flex; gap: var(--s2); align-items: center;
+        display: flex; flex-wrap: wrap; gap: var(--s2);
+        align-items: center; margin-top: auto; padding-top: var(--s4);
+        border-top: 1px solid var(--border-subtle);
         color: var(--muted); white-space: nowrap;
       }
+      .topbar-meta > .meta-chip { flex: 1 1 100%; justify-content: center; }
 
       /* === SEARCH BAR === */
       .search-wrap { position: relative; display: flex; align-items: center; }
@@ -305,18 +350,22 @@
       .btn-secondary:hover { background: rgba(79,143,208,.22); border-color: var(--blue); }
       /* ── Навигация: активният елемент се чете по фон + долен маркер ── */
       .nav-btn {
-        display: inline-flex; align-items: center; gap: var(--s1);
-        min-height: var(--control-h);
+        display: flex; align-items: center; gap: var(--s2);
+        width: 100%; min-height: var(--control-h);
         background: transparent; border: 1px solid transparent;
-        color: var(--muted); border-radius: var(--r-md); padding: 0 var(--s3);
+        color: var(--muted); border-radius: var(--r-md);
+        padding: 0 var(--s3) 0 calc(var(--s3) + 3px);
         font-family: var(--font-ui); font-size: var(--fs-body); font-weight: 600;
         letter-spacing: .01em; cursor: pointer; text-decoration: none;
+        text-align: left; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis;
         position: relative;
         transition: color .15s ease, background .15s ease, border-color .15s ease;
       }
+      /* Активният елемент се маркира с кант отляво — както се чете списък */
       .nav-btn::after {
-        content: ""; position: absolute; left: var(--s3); right: var(--s3); bottom: 5px;
-        height: 2px; border-radius: 2px; background: var(--gold-2);
+        content: ""; position: absolute; left: 0; top: 6px; bottom: 6px;
+        width: 3px; border-radius: 0 2px 2px 0; background: var(--gold-2);
         opacity: 0; transition: opacity .15s ease;
         pointer-events: none;
       }
@@ -1376,6 +1425,32 @@
         .cg-side-banner.has-image { display: block; }
       }
       body.low-perf .cg-prog-fill, body.low-perf .cg-prog-head { transition: none; }
+
+      /* ── Под 1024px няма място за колона: същите елементи се подреждат
+         хоризонтално над съдържанието. Без скриване и без нови контроли. ── */
+      @media (max-width: 1024px) {
+        .app-layout { grid-template-columns: minmax(0, 1fr); gap: var(--s4); }
+        .sidebar {
+          position: static; height: auto; overflow: visible;
+          padding: var(--s3);
+        }
+        .topbar { flex-direction: column; gap: var(--s3); }
+        .topbar-nav { flex-direction: row; flex-wrap: wrap; gap: var(--s1); }
+        .nav-btn {
+          width: auto; padding: 0 var(--s3);
+          overflow: visible; text-overflow: clip;
+        }
+        .nav-btn::after {
+          left: var(--s3); right: var(--s3); top: auto; bottom: 5px;
+          width: auto; height: 2px; border-radius: 2px;
+        }
+        .topbar-meta {
+          flex-direction: row; flex-wrap: wrap; align-items: center;
+          margin-top: 0; padding-top: var(--s3);
+        }
+        .topbar-meta > .meta-chip { flex: 0 0 auto; }
+        .product-strip { justify-content: flex-start; margin-bottom: var(--s3); }
+      }
 
     </style>
   </head>
@@ -4018,12 +4093,20 @@
       }
 
       function renderShell(content) {
+        /* При QR-достъп и при страницата за качване от телефон навигацията е
+           празна — тогава страничната лента не заема колона, а става тънка
+           лента отгоре. Същите елементи, само друго подреждане. */
+        const hasNav = !(isQROnlySession() || state.screen === "phone-photo-upload");
         return `
-          <div class="app-shell"><div class="workspace">
-            ${renderTopbar()}
-            ${renderAnnStrip()}
-            ${content}
-          </div></div>`;
+          <div class="app-shell">
+            <div class="app-layout${hasNav ? "" : " no-nav"}">
+              <aside class="sidebar">${renderTopbar()}</aside>
+              <div class="workspace">
+                ${renderAnnStrip()}
+                ${content}
+              </div>
+            </div>
+          </div>`;
       }
 
       function renderRangeOptions(selected) {
