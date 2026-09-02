@@ -169,11 +169,73 @@
 
         color-scheme: light;
       }
+      /* ══════════════════════════════════════════════════════════════
+         ОРАНЖЕВА ТЕМА — светла работна повърхност с оранжев акцент и
+         петролено син контрапункт. Същата система, трети набор стойности.
+         Контрастите са проверени по същия критерий като другите две.
+         ══════════════════════════════════════════════════════════════ */
+      :root[data-theme="orange"] {
+        --bg: #f5f6f8;
+        --bg-2: #ebedf0;
+        --panel: #ffffff;
+        --panel-2: #f1f3f6;
+        --panel-3: #f9fafb;
+        --panel-2-hover: #e7eaee;
+        --row-alt: rgba(31,42,55,.022);
+        --surface: var(--panel);
+        --surface-raised: var(--panel-2);
+        --surface-sunken: var(--panel-3);
+
+        --border: #e5e8ec;
+        --border-strong: #cdd3da;
+        --border-subtle: #eff1f4;
+        --border-control: #727d8b;
+
+        --text: #1f2a37;
+        --muted: #525c68;
+        --muted-2: #5a6470;
+
+        /* Марковият акцент тук е оранжев */
+        --gold: #c2410c;
+        --gold-2: #b04413;
+        --gold-ink: #ffffff;
+        --gold-soft: rgba(194,65,12,.10);
+        --gold-line: rgba(194,65,12,.32);
+        --logo-ink: #134b5f;      /* логото застава в петролено синьо */
+        --on-fill: #ffffff;
+        --on-heat: #ffffff;
+
+        --green: #157f42;   --green-2: #12703a;
+        --green-dark: #12703a; --green-soft: rgba(21,127,66,.10);
+        --red: #c9372c;     --red-2: #b83227;
+        --red-dark: #b83227;   --red-soft: rgba(201,55,44,.10);
+        --amber: #8f6209;   --amber-2: #7d5608;
+        --amber-soft: rgba(143,98,9,.10);
+        --blue: #0f5468;    --blue-2: #134b5f;   /* петрол */
+        --blue-soft: rgba(15,84,104,.10);
+        --purple: #6248b8;  --purple-2: #57409f;
+        --purple-soft: rgba(98,72,184,.10);
+
+        --shadow-1: 0 1px 2px rgba(31,42,55,.06);
+        --shadow-2: 0 2px 8px rgba(31,42,55,.08);
+        --shadow-3: 0 16px 40px rgba(31,42,55,.16);
+        --shadow: var(--shadow-2);
+
+        --selection-bg: rgba(194,65,12,.18);
+        --selection-fg: #1f2a37;
+
+        --focus-ring: 0 0 0 2px var(--panel), 0 0 0 4px var(--gold);
+
+        color-scheme: light;
+      }
+
       /* Атмосферният слой е ефект за тъмната тема — на светъл фон
          петната изглеждат като зацапване, затова се неутрализират. */
-      :root[data-theme="light"] .bloom-layer { display: none; }
+      :root[data-theme="light"] .bloom-layer,
+      :root[data-theme="orange"] .bloom-layer { display: none; }
       /* Полетата за дата ползват системна палитра */
-      :root[data-theme="light"] .day-date-input { color-scheme: light; }
+      :root[data-theme="light"] .day-date-input,
+      :root[data-theme="orange"] .day-date-input { color-scheme: light; }
       * { box-sizing: border-box; }
       html, body { min-height: 100%; }
       body {
@@ -1844,9 +1906,13 @@
 
       /* ── Тема на интерфейса (тъмна / светла) ── */
       const THEME_KEY = "cg_theme";
+      /* Наличните палитри. Първата е по подразбиране. */
+      const THEMES = ["dark", "light", "orange"];
       function currentTheme() {
-        try { return localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark"; }
-        catch (_) { return "dark"; }
+        try {
+          const t = localStorage.getItem(THEME_KEY);
+          return THEMES.includes(t) ? t : THEMES[0];
+        } catch (_) { return THEMES[0]; }
       }
       function applyTheme() {
         document.documentElement.setAttribute("data-theme", currentTheme());
@@ -2732,7 +2798,7 @@
         "Визуални ефекти": "Visual effects",
         "Изключи за по-плавна работа на слаби устройства": "Turn off for smoother performance on slower devices",
         "Вкл": "On", "Изкл": "Off", "Търси функция": "Search",
-        "Тъмна": "Dark", "Светла": "Light", "Затвори": "Close",
+        "Тъмна": "Dark", "Светла": "Light", "Оранжева": "Orange", "Затвори": "Close",
         "Контрол на хигиена": "Hygiene Control", "Парк Център София": "Park Center Sofia",
         /* Home */
         "Контрол на Хигиената": "Hygiene Control",
@@ -5599,6 +5665,7 @@
               <div class="seg" role="group" aria-label="Тема">
                 ${seg("set-theme", "theme", "dark", "Тъмна", theme === "dark")}
                 ${seg("set-theme", "theme", "light", "Светла", theme === "light")}
+                ${seg("set-theme", "theme", "orange", "Оранжева", theme === "orange")}
               </div>
             </div>
 
@@ -6545,7 +6612,8 @@
           return;
         }
         if (action === "set-theme") {
-          const next = btn.dataset.theme === "light" ? "light" : "dark";
+          const chosen = btn.dataset.theme;
+          const next = THEMES.includes(chosen) ? chosen : THEMES[0];
           try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
           applyTheme();
           render();
