@@ -289,15 +289,19 @@
       .topbar-meta > .meta-chip { flex: 1 1 100%; justify-content: center; }
 
       /* === SEARCH BAR === */
-      .search-wrap { position: relative; display: flex; align-items: center; }
+      .search-wrap { position: relative; display: block; margin-bottom: var(--s4); }
       .search-btn-icon {
-        display: flex; align-items: center; justify-content: center;
-        width: 36px; height: 36px; border-radius: 50%;
-        border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04);
-        color: var(--muted); cursor: pointer; transition: background .2s, color .2s, transform .15s;
-        flex-shrink: 0;
+        display: flex; align-items: center; gap: var(--s2);
+        width: 100%; min-height: var(--control-h);
+        padding: 0 var(--s3); border-radius: var(--r-md);
+        border: 1px solid var(--border); background: var(--panel-2);
+        color: var(--muted-2); cursor: pointer; text-align: left;
+        font-family: var(--font-ui); font-size: var(--fs-meta);
+        transition: background .15s, color .15s, border-color .15s;
       }
-      .search-btn-icon:hover { background: rgba(255,255,255,.08); color: var(--text); transform: translateY(-1px); }
+      .search-btn-icon:hover { background: var(--panel-2-hover); color: var(--text); border-color: var(--border-strong); }
+      .search-btn-icon:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+      .search-btn-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .search-btn-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
       /* Expanded search — fixed, centered at the top */
       .search-field-wrap {
@@ -347,7 +351,7 @@
       }
       .search-item:last-child { border-bottom: none; }
       .search-item:hover, .search-item.focused { background: rgba(200,120,24,.1); }
-      .search-item-icon { font-size: 20px; flex-shrink: 0; width: 32px; text-align: center; }
+      .search-item-icon { flex-shrink: 0; width: 32px; display: inline-flex; align-items: center; justify-content: center; color: var(--gold-2); }
       .search-item-label { font-size: 14px; font-weight: 600; color: var(--text); }
       .search-item-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
       .search-item-arrow { margin-left: auto; color: var(--muted); font-size: 16px; }
@@ -1111,45 +1115,6 @@
         .cg-review-card { padding: 12px 14px; }
       }
 
-      /* ── Превключвател за визуални ефекти ── */
-      .cg-fx-switch {
-        display: flex; align-items: center; gap: var(--s2);
-        min-height: var(--control-h-sm);
-        padding: 0 var(--s2); border-radius: var(--r-md);
-        background: var(--panel-2); border: 1px solid var(--border);
-        cursor: pointer; user-select: none; flex-shrink: 0;
-        transition: border-color .15s ease;
-      }
-      .cg-fx-switch:hover { border-color: var(--border-strong); }
-      .cg-fx-label {
-        font-size: var(--fs-micro); font-weight: 700; letter-spacing: .08em;
-        transition: color .2s;
-      }
-      .cg-fx-label-off { color: var(--muted-2); }
-      .cg-fx-label-on  { color: var(--green-2); }
-      body.low-perf .cg-fx-label-off { color: var(--text); }
-      body.low-perf .cg-fx-label-on  { color: var(--muted-2); }
-      .cg-fx-track {
-        position: relative; width: 38px; height: 20px; border-radius: var(--r-pill);
-        background: var(--green-dark); transition: background .2s;
-        flex-shrink: 0;
-      }
-      body.low-perf .cg-fx-track { background: var(--panel-3); transition: none; }
-      .cg-fx-thumb {
-        position: absolute; top: 3px; left: 3px;
-        width: 14px; height: 14px; border-radius: 50%;
-        background: var(--green-2);
-        transition: transform .2s ease, background .2s;
-        transform: translateX(18px);
-      }
-      .cg-fx-thumb::after { content: none; }
-      body.low-perf .cg-fx-thumb {
-        transform: translateX(0);
-        background: var(--muted-2);
-        transition: none;
-      }
-      body.low-perf .cg-fx-label { transition: none; }
-
       /* ── Важно съобщение: сериозен акцент, без пулсиране и сияние ── */
       .cg-ann-banner {
         background: var(--red-soft);
@@ -1500,6 +1465,20 @@
       }
       body.low-perf .cg-prog-fill, body.low-perf .cg-prog-head { transition: none; }
 
+      /* ── CineGrand икони ── */
+      .cg-icon {
+        width: 1.25em; height: 1.25em;
+        flex-shrink: 0; display: inline-block;
+        vertical-align: -.2em;
+        color: currentColor;
+      }
+      /* Плочка за икона — където досега емоджито стоеше върху цветен фон */
+      .cg-icon-tile {
+        display: inline-flex; align-items: center; justify-content: center;
+        flex-shrink: 0; border-radius: var(--r-sm);
+      }
+      .cg-icon-tile .cg-icon { width: 60%; height: 60%; vertical-align: 0; }
+
       /* ── Настройки: редове с етикет и сегментиран превключвател ── */
       .settings-head {
         display: flex; align-items: center; justify-content: space-between;
@@ -1570,6 +1549,92 @@
     </style>
   </head>
   <body>
+    <!-- ══════════════════════════════════════════════════════════════
+         CineGrand Custom Icon System — авторски икони, вградени тук, за
+         да остане приложението един самостоятелен файл (sync workflow-ът
+         копира само изброени файлове). Всяка икона наследява currentColor,
+         затова работи и в двете теми без дублиране.
+         ══════════════════════════════════════════════════════════════ -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true" focusable="false">
+      <symbol id="cg-hall" viewBox="0 0 24 24">
+        <rect x="3" y="3.5" width="18" height="11" rx="2.25" fill="none" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M6 14.5v4.25M10 14.5v4.25M14 14.5v4.25M18 14.5v4.25M4.75 18.75h14.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+        <path d="M8.2 8.95 10.75 11V6.9L8.2 8.95Z" fill="currentColor"/>
+        <path d="M13.25 7.2h4M13.25 10.7h2.55" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="cg-screening" viewBox="0 0 24 24">
+        <rect x="3.25" y="7.25" width="17.5" height="12.75" rx="2.25" fill="none" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M3.8 7.25 5.7 3.6h14.1a1.2 1.2 0 0 1 .85 2.05l-1.6 1.6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="m8.25 3.6-2 3.65M13.15 3.6l-2 3.65M18.05 3.6l-2 3.65M9.85 11.15l4.7 2.75-4.7 2.75v-5.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="cg-data" viewBox="0 0 24 24">
+        <rect x="3.25" y="3.25" width="17.5" height="17.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M7.25 16.75v-3.8M12 16.75V7.25M16.75 16.75V10.1" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/>
+        <path d="M6.5 7.55h1.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="cg-rules" viewBox="0 0 24 24">
+        <path d="M6.25 3.25h8.4l3.1 3.1v14.4H6.25a2 2 0 0 1-2-2V5.25a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+        <path d="M14.4 3.45v3.2h3.15M8 10.1l.8.8 1.45-1.6M12.5 10.2h2.75M8 14.3l.8.8 1.45-1.6M12.5 14.4h2.75M8 18.5l.8.8 1.45-1.6M12.5 18.6h2.75" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="cg-sheets" viewBox="0 0 24 24">
+        <path d="M8 5.25H5.75a2 2 0 0 0-2 2v12.5h12.5a2 2 0 0 0 2-2V15.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="7.25" y="3.25" width="13" height="13" rx="2.25" fill="none" stroke="currentColor" stroke-width="1.75"/>
+        <path d="m10.2 9.85 2 2 4.2-4.35" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="cg-occupancy" viewBox="0 0 24 24">
+        <path d="M3.25 11.25a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v4h7.5v-4a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v6.5a2 2 0 0 1-2 2H5.25a2 2 0 0 1-2-2v-6.5Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+        <path d="M8.25 13.25h7.5M8.25 16.25h7.5M7.25 19.75v1M16.75 19.75v1" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+        <path d="M8.3 6.5h7.4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+        <circle cx="6" cy="5.25" r="1.35" fill="currentColor"/>
+        <circle cx="18" cy="5.25" r="1.35" fill="currentColor"/>
+      </symbol>
+      <symbol id="cg-no-data" viewBox="0 0 24 24">
+        <path d="M4 11.5a1.75 1.75 0 0 1 1.75-1.75h.75a1.75 1.75 0 0 1 1.75 1.75v3.25h7.5V11.5a1.75 1.75 0 0 1 1.75-1.75h.75A1.75 1.75 0 0 1 20 11.5v5.25H4V11.5Z" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linejoin="round"/>
+        <path d="M3.5 3.5 20.5 20.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="cg-inspection" viewBox="0 0 24 24">
+        <path d="M12 2.9 20 7v5.1c0 4.85-3.2 7.55-8 9-4.8-1.45-8-4.15-8-9V7l8-4.1Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+        <path d="m8.3 12.2 2.35 2.35 5.05-5.1" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="cg-restroom-men" viewBox="0 0 24 24">
+        <path d="M4 20.5V5.25a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2V20.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+        <circle cx="12" cy="7.15" r="1.45" fill="currentColor"/>
+        <path d="M8.9 12.3c.25-1.65 1.2-2.5 3.1-2.5s2.85.85 3.1 2.5M10.15 12.3v3.1l-.7 4.85M13.85 12.3v3.1l.7 4.85M10.15 15.4h3.7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="cg-restroom-women" viewBox="0 0 24 24">
+        <path d="M4 20.5V5.25a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2V20.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+        <circle cx="12" cy="7.15" r="1.45" fill="currentColor"/>
+        <path d="M9.2 12.15c.2-1.55 1.15-2.35 2.8-2.35s2.6.8 2.8 2.35l1.15 4.7h-7.9l1.15-4.7ZM10.15 16.85l-.45 3.4M13.85 16.85l.45 3.4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="cg-locker-men" viewBox="0 0 24 24">
+        <rect x="3.25" y="3.25" width="17.5" height="17.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M9 3.5v17M5.9 7h1.5M5.9 9.4h1.5M15.85 7h2" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+        <circle cx="14.1" cy="11.15" r="1.15" fill="currentColor"/>
+        <path d="M11.8 15.1c.15-1.35.9-2.05 2.3-2.05 1.4 0 2.15.7 2.3 2.05M12.75 15.1v2.7M15.45 15.1v2.7" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="cg-locker-women" viewBox="0 0 24 24">
+        <rect x="3.25" y="3.25" width="17.5" height="17.5" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M9 3.5v17M5.9 7h1.5M5.9 9.4h1.5M15.85 7h2" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+        <circle cx="14.1" cy="11.05" r="1.15" fill="currentColor"/>
+        <path d="M12 14.9c.15-1.25.85-1.85 2.1-1.85 1.25 0 1.95.6 2.1 1.85l.65 2.25h-5.5l.65-2.25ZM13.2 17.15v.75M15 17.15v.75" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="cg-qr" viewBox="0 0 24 24">
+        <path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+        <path d="M14 14h2v2h-2v-2Zm4 0h2v4h-2v-4Zm-4 4h4v2h-4v-2Z" fill="currentColor"/>
+      </symbol>
+      <symbol id="cg-settings" viewBox="0 0 24 24">
+        <path d="m9.85 3.75.45-1h3.4l.45 1 .25 1.3a7.7 7.7 0 0 1 1.4.8l1.25-.4 1.1-.1 1.7 2.95-.7.8-1 .9c.05.35.08.7.08 1s-.03.65-.08 1l1 .9.7.8-1.7 2.95-1.1-.1-1.25-.4a7.7 7.7 0 0 1-1.4.8l-.25 1.3-.45 1h-3.4l-.45-1-.25-1.3a7.7 7.7 0 0 1-1.4-.8l-1.25.4-1.1.1-1.7-2.95.7-.8 1-.9a7.3 7.3 0 0 1 0-2l-1-.9-.7-.8 1.7-2.95 1.1.1 1.25.4a7.7 7.7 0 0 1 1.4-.8l.25-1.3Z" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
+        <circle cx="12" cy="12" r="2.45" fill="none" stroke="currentColor" stroke-width="1.75"/>
+      </symbol>
+      <symbol id="cg-live" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+        <path d="M7.75 7.75a6 6 0 0 0 0 8.5M16.25 7.75a6 6 0 0 1 0 8.5M5 5a9.9 9.9 0 0 0 0 14M19 5a9.9 9.9 0 0 1 0 14" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="cg-play-next" viewBox="0 0 24 24">
+        <path d="M8 5.75 16.75 12 8 18.25V5.75Z" fill="currentColor"/>
+        <path d="M19.5 5.75v12.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+      </symbol>
+    </svg>
     <div class="bloom-layer" aria-hidden="true">
       <span class="bloom-orb bloom-orb--gold"></span>
       <span class="bloom-orb bloom-orb--blue"></span>
@@ -2178,9 +2243,9 @@
 
       /* Само тези локации се показват в QR модала */
       const QR_LOCATIONS = [
-        ...HALLS.map((loc) => ({ type: "hall", location: loc, icon: "🎬" })),
-        { type: "bathroom", location: "Дамска тоалетна", icon: "🚿" },
-        { type: "bathroom", location: "Мъжка тоалетна", icon: "🚿" },
+        ...HALLS.map((loc) => ({ type: "hall", location: loc, icon: "hall" })),
+        { type: "bathroom", location: "Дамска тоалетна", icon: "restroom-women" },
+        { type: "bathroom", location: "Мъжка тоалетна", icon: "restroom-men" },
       ];
 
       const CONFIGS = {
@@ -2550,10 +2615,14 @@
 
       const EN_EXACT = {
         /* Topbar / nav */
-        "Начало": "Home", "QR кодове": "QR Codes", "🎬 Зали": "🎬 Halls", "📊 Данни": "📊 Data",
-        "⚙ Настройки": "⚙ Settings", "Настройки": "Settings",
+        "Начало": "Home", "QR кодове": "QR Codes",
+        /* Иконите вече са SVG, затова ключовете са само текстът */
+        "Зали": "Halls", "Данни": "Data", "Правила": "Rules", "Настройки": "Settings",
         "Език": "Language", "Език на интерфейса": "Interface language",
         "Тема": "Theme", "Цвят на интерфейса": "Interface colour",
+        "Визуални ефекти": "Visual effects",
+        "Изключи за по-плавна работа на слаби устройства": "Turn off for smoother performance on slower devices",
+        "Вкл": "On", "Изкл": "Off", "Търси функция": "Search",
         "Тъмна": "Dark", "Светла": "Light", "Затвори": "Close",
         "Контрол на хигиена": "Hygiene Control", "Парк Център София": "Park Center Sofia",
         /* Home */
@@ -2570,10 +2639,10 @@
         "＋ Добави важно съобщение": "＋ Add important announcement",
         /* Статус на проверките */
         "Статус на проверките": "Inspection Status",
-        "🎬 Кинозали": "🎬 Cinema Halls", "🚿 Тоалетни": "🚿 Restrooms",
+        "Кинозали": "Cinema Halls", "Тоалетни": "Restrooms",
         "Няма данни": "No data", "— няма данни —": "— no data —", "никога": "never", "току-що": "just now",
         "до 2ч": "under 2h", "2–4ч": "2–4h", "над 4ч": "over 4h",
-        "✅ свърши — провери залата": "✅ show ended — check the hall",
+        "свърши — провери залата": "show ended — check the hall",
         "● проблем": "● issue", "зареждам…": "loading…",
         /* Зали таб */
         "📋 Правила": "📋 Rules", "Правила за работа": "Work Rules",
@@ -2592,11 +2661,12 @@
         "няма данни": "no data",
         "В момента няма текущи прожекции.": "No screenings are running right now.",
         "В момента няма прожекции на таблото.": "No screenings on the board right now.",
-        "🔜 Следващи прожекции": "🔜 Upcoming screenings",
-        "✅ ПРОВЕРИ ЗАЛАТА": "✅ CHECK THE HALL", "ЗАЛА": "HALL",
-        "🎬 Свърши в": "🎬 Ended at", "Свършва": "Ends", "Започва": "Starts", "· току-що": "· just now",
-        "✅ свършила = провери залата дали е почистена (стои 5 мин) · 🎬 тече = скоро се освобождава · 🔜 предстои":
-          "✅ ended = check whether the hall is cleaned (stays 5 min) · 🎬 running = frees up soon · 🔜 upcoming",
+        "Следващи прожекции": "Upcoming screenings",
+        "ПРОВЕРИ ЗАЛАТА": "CHECK THE HALL", "ЗАЛА": "HALL",
+        "Свърши в": "Ended at", "Свършва": "Ends", "Започва": "Starts", "· току-що": "· just now",
+        "свършила = провери залата дали е почистена (стои 5 мин) ·": "ended = check whether the hall is cleaned (stays 5 min) ·",
+        "тече = скоро се освобождава ·": "running = frees up soon ·",
+        "предстои": "upcoming",
         /* Inspection screen */
         "Проверка на кинозала": "Cinema Hall Inspection", "Проверка на тоалетна": "Restroom Inspection",
         "Данните ще се изпратят автоматично към Google Sheets след запис.": "Data is sent to Google Sheets automatically after saving.",
@@ -2673,7 +2743,7 @@
         [/^📱 Снимки получени от телефон \((\d+)\):$/, "📱 Photos received from phone ($1):"],
         [/^(.+) вече се проверява\. Опитайте след ~(\d+) мин\.$/, "$1 is already being inspected. Try again in ~$2 min."],
         [/^(.+) вече се проверява от друг потребител\. Опитайте след ~(\d+) мин\.$/, "$1 is already being inspected by another user. Try again in ~$2 min."],
-        [/^🎬 свършва (\d{1,2}:\d{2})/, "🎬 ends $1"],
+        [/^свършва (\d{1,2}:\d{2})/, "ends $1"],
         [/^📊 Данни \((\d+)\)$/, "📊 Data ($1)"],
         [/^Проверяващ \*$/, "Inspector *"], [/^Локация \*$/, "Location *"],
       ];
@@ -2976,7 +3046,7 @@
           if (!o) {
             return `<div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:96px;padding:9px 12px;border-radius:var(--r-lg);background:var(--panel-2);border:1.5px dashed var(--border);" title="Няма данни за свободните места на тази прожекция">
                 <div style="display:flex;align-items:baseline;gap:3px;line-height:1;">
-                  <span style="font-size:var(--fs-body);margin-right:2px;opacity:.5;">👥</span>
+                  <span style="margin-right:2px;opacity:.5;display:inline-flex;">${cgIcon("no-data", 14)}</span>
                   <span style="font-size:26px;font-weight:700;color:var(--muted-2);font-family:'Oswald',sans-serif;">—</span>
                 </div>
                 <div style="font-size:var(--fs-micro);font-weight:700;color:var(--muted-2);letter-spacing:.09em;text-transform:uppercase;margin-top:4px;white-space:nowrap;">няма данни</div>
@@ -2984,7 +3054,7 @@
           }
           return `<div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:96px;padding:9px 12px;border-radius:var(--r-lg);background:linear-gradient(135deg,${o.color}2e,${o.color}12);border:1.5px solid ${o.color}77;box-shadow:0 0 16px ${o.color}33;" title="${o.taken} заети от ${o.cap} места · ${o.free} свободни">
               <div style="display:flex;align-items:baseline;gap:3px;line-height:1;">
-                <span style="font-size:var(--fs-body);margin-right:2px;">👥</span>
+                <span style="margin-right:2px;display:inline-flex;">${cgIcon("occupancy", 14)}</span>
                 <span style="font-size:26px;font-weight:700;color:${o.color};font-family:'Oswald',sans-serif;">${o.taken}</span>
                 <span style="font-size:var(--fs-body);font-weight:700;color:var(--muted-2);font-family:'Oswald',sans-serif;">/${o.cap}</span>
               </div>
@@ -2999,9 +3069,9 @@
             ${hallBadge(hc, hallNum, true)}
             <div style="flex:1;min-width:0;">
               <div style="font-size:var(--fs-body);font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(movie)}</div>
-              <div style="font-size:var(--fs-meta);color:var(--text);opacity:.9;margin-top:3px;">🎬 Свърши в <b>${escapeHtml(end)}</b>${agoMin > 0 ? ` · преди ${agoMin} мин` : " · току-що"}</div>
+              <div style="font-size:var(--fs-meta);color:var(--text);opacity:.9;margin-top:3px;display:flex;align-items:center;gap:5px;">${cgIcon("screening", 14)} Свърши в <b>${escapeHtml(end)}</b>${agoMin > 0 ? ` · преди ${agoMin} мин` : " · току-що"}</div>
             </div>
-            <div class="cg-clean-badge" style="flex-shrink:0;font-size:var(--fs-meta);font-weight:700;color:var(--on-fill);background:var(--green);padding:9px 15px;border-radius:var(--r-pill);letter-spacing:.03em;box-shadow:none;white-space:nowrap;">✅ ПРОВЕРИ ЗАЛАТА</div>
+            <div class="cg-clean-badge" style="flex-shrink:0;font-size:var(--fs-meta);font-weight:700;color:var(--on-fill);background:var(--green);padding:9px 15px;border-radius:var(--r-pill);letter-spacing:.03em;box-shadow:none;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">${cgIcon("inspection", 15)} ПРОВЕРИ ЗАЛАТА</div>
           </div>`;
         };
 
@@ -3086,7 +3156,7 @@
               <div style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;">
                 <span style="font-size:${isNext ? "16px" : "14px"};font-weight:${isNext ? "800" : "600"};color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</span>
                 ${extra && extra.format ? `<span style="flex-shrink:0;font-size:var(--fs-micro);font-weight:700;color:var(--on-fill);background:var(--gold-2);padding:2px 8px;border-radius:var(--r-pill);letter-spacing:.06em;">${escapeHtml(extra.format)}</span>` : ""}
-                ${isNext ? "" : `<span style="flex-shrink:0;font-size:var(--fs-micro);color:var(--muted-2);">🔜</span>`}
+                ${isNext ? "" : `<span style="flex-shrink:0;color:var(--muted-2);display:inline-flex;">${cgIcon("play-next", 14)}</span>`}
               </div>
               <div style="font-size:${isNext ? "12.5px" : "11.5px"};color:${isNext ? hc.c : "var(--muted)"};font-weight:${isNext ? "700" : "600"};margin-top:3px;">${bits.join(" · ")}${cntTxt ? ` · <b>${cntTxt}</b>` : ""}</div>
             </div>
@@ -3103,14 +3173,14 @@
 
         return `<div class="panel" style="margin-bottom:var(--s4);">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
-            <h3 style="font-size:var(--fs-card);font-weight:700;color:var(--text);margin:0;letter-spacing:.04em;display:flex;align-items:center;gap:8px;"><span style="font-size:17px;">🎬</span> Кога се освобождават залите</h3>
+            <h3 style="font-size:var(--fs-card);font-weight:700;color:var(--text);margin:0;letter-spacing:.04em;display:flex;align-items:center;gap:8px;">${cgIcon("hall", 17)} Кога се освобождават залите</h3>
             <span style="font-size:var(--fs-micro);color:var(--green-2);display:inline-flex;align-items:center;gap:5px;">${hasData ? '<span class="live-dot"></span> на живо от киното' : "зареждам…"}</span>
           </div>
           ${(boardRows || stickyRows) ? `<div style="display:grid;gap:10px;">${boardRows}${stickyRows}</div>`
             : `<div style="font-size:var(--fs-body);color:var(--muted-2);padding:6px 2px;">В момента няма прожекции на таблото.</div>`}
           ${_nextBoardSupported === false ? `<div style="font-size:var(--fs-micro);color:var(--amber-2);margin-top:10px;">ℹ️ За места и 2D/3D формат обнови Cloudflare Worker-а с новия код от cloudflare-worker-nextclean.js в repo-то.</div>` : ""}
           ${(_nextBoardSupported === true && _nextBoardVersion && _nextBoardVersion !== "v3") ? `<div style="font-size:var(--fs-micro);color:var(--amber-2);margin-top:10px;">ℹ️ Част от прожекциите са без брой зрители, защото Worker-ът (${escapeHtml(_nextBoardVersion)}) чете само първите 10. Обнови го с новия код (v3) от cloudflare-worker-nextclean.js.</div>` : ""}
-          <div style="font-size:var(--fs-micro);color:var(--muted-2);margin-top:12px;">✅ свършила = провери залата дали е почистена (стои 5 мин) · 🎬 тече = скоро се освобождава · 🔜 предстои</div>
+          <div style="font-size:var(--fs-micro);color:var(--muted-2);margin-top:12px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">${cgIcon("inspection", 13)} свършила = провери залата дали е почистена (стои 5 мин) · ${cgIcon("screening", 13)} тече = скоро се освобождава · ${cgIcon("play-next", 13)} предстои</div>
         </div>`;
       }
 
@@ -3119,7 +3189,7 @@
         return `<div class="page">
           <div class="toolbar">
             <div>
-              <h1 class="hero-title" style="display:flex;align-items:center;gap:12px;"><span style="font-size:28px;">🎬</span> Статус на залите</h1>
+              <h1 class="hero-title" style="display:flex;align-items:center;gap:12px;">${cgIcon("screening", 26)} Статус на залите</h1>
               <div class="muted">Прожекции на живо от киното — кога всяка зала се освобождава за проверка.</div>
             </div>
             <button class="btn btn-outline" data-action="go-home">← Начало</button>
@@ -3341,7 +3411,7 @@
           state.pcSessionId = "pcs_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
         }
         console.log("[ntfy] start polling for topic cg-photos-" + state.pcSessionId);
-        updatePhonePollStatus("🟢 Слушане за снимки от телефон…", "ok");
+        updatePhonePollStatus("Слушане за снимки от телефон…", "ok");
         pollNtfyOnce(); // immediate
         _phonePollTimer = setInterval(pollNtfyOnce, NTFY_POLL_INTERVAL_MS);
       }
@@ -3407,8 +3477,8 @@
           // Status: connected, showing count
           updatePhonePollStatus(
             (state.remotePhotoUrls && state.remotePhotoUrls.length > 0)
-              ? `🟢 Получени ${state.remotePhotoUrls.length} снимки от телефон`
-              : "🟢 Слушане за снимки от телефон…",
+              ? `Получени ${state.remotePhotoUrls.length} снимки от телефон`
+              : "Слушане за снимки от телефон…",
             "ok"
           );
         } catch (err) {
@@ -3906,12 +3976,12 @@
       function renderTopbar() {
         const navItems = (isQROnlySession() || state.screen === "phone-photo-upload") ? "" : [
           state.screen !== "home" ? `<button class="nav-btn" data-action="go-home" aria-label="Начална страница">Начало</button>` : "",
-          `<button class="nav-btn" data-action="open-qr" aria-label="QR кодове за печат">QR кодове</button>`,
-          `<a class="nav-btn${isSheetsConfigured() ? ' state' : ''}" href="${SHEETS_SPREADSHEET_URL}" target="_blank" rel="noopener" aria-label="Отвори Sheets таблица">${isSheetsConfigured() ? "Sheets ✓" : "Sheets ✗"}</a>`,
-          NEXTCLEAN_PROXY_URL ? `<button class="nav-btn ${state.screen === 'halls' ? 'state' : ''}" data-action="go-halls" aria-label="Статус на залите">&#127916; Зали</button>` : "",
-          `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''} ${chartsCooldownUntil > Date.now() ? 'cooldown' : ''}" data-action="go-charts" aria-label="Данни от Sheets" ${chartsCooldownUntil > Date.now() ? 'disabled' : ''}>&#128202; ${chartsCooldownUntil > Date.now() ? "Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : "Данни"}</button>`,
-          `<button class="nav-btn ${state.screen === 'rules' ? 'state' : ''}" data-action="go-rules" aria-label="Правила за работа">&#128203; Правила</button>`,
-          `<button class="nav-btn ${state.showSettingsModal ? 'state' : ''}" data-action="open-settings" aria-label="Настройки">&#9881; Настройки</button>`,
+          `<button class="nav-btn" data-action="open-qr" aria-label="QR кодове за печат">${cgIcon("qr", 18)} QR кодове</button>`,
+          `<a class="nav-btn${isSheetsConfigured() ? ' state' : ''}" href="${SHEETS_SPREADSHEET_URL}" target="_blank" rel="noopener" aria-label="Отвори Sheets таблица">${cgIcon("sheets", 18)} ${isSheetsConfigured() ? "Sheets ✓" : "Sheets ✗"}</a>`,
+          NEXTCLEAN_PROXY_URL ? `<button class="nav-btn ${state.screen === 'halls' ? 'state' : ''}" data-action="go-halls" aria-label="Статус на залите">${cgIcon("hall", 18)} Зали</button>` : "",
+          `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''} ${chartsCooldownUntil > Date.now() ? 'cooldown' : ''}" data-action="go-charts" aria-label="Данни от Sheets" ${chartsCooldownUntil > Date.now() ? 'disabled' : ''}>${cgIcon("data", 18)} ${chartsCooldownUntil > Date.now() ? "Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : "Данни"}</button>`,
+          `<button class="nav-btn ${state.screen === 'rules' ? 'state' : ''}" data-action="go-rules" aria-label="Правила за работа">${cgIcon("rules", 18)} Правила</button>`,
+          `<button class="nav-btn ${state.showSettingsModal ? 'state' : ''}" data-action="open-settings" aria-label="Настройки">${cgIcon("settings", 18)} Настройки</button>`,
         ].filter(Boolean).join("");
 
         return `
@@ -3921,30 +3991,26 @@
               <div class="brand-meta"><strong>Cine Grand</strong><span>Control Platform</span></div>
             </div>
           </div>
+          <div class="search-wrap" id="search-wrap">
+            <button class="search-btn-icon" id="search-open-btn" type="button" aria-label="Отвори търсене" title="Търси функция">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <span class="search-btn-text">Търси функция</span>
+            </button>
+            <div class="search-field-wrap" id="search-field-wrap">
+              <div class="search-field-inner">
+                <span class="search-icon-inner"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                <input class="search-input" id="search-input" type="text" placeholder="Търси функция..." autocomplete="off" aria-label="Търси функция" />
+                <button class="search-clear" id="search-clear" type="button" aria-label="Изчисти търсенето"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+              </div>
+              <div class="search-dropdown" id="search-dropdown" style="display:none;"></div>
+            </div>
+          </div>
           <div class="topbar-shell">
             <div class="topbar" role="navigation" aria-label="Главна навигация">
               <div class="topbar-nav">${navItems}</div>
               <div class="topbar-meta">
                 <span class="meta-chip">Парк Център София</span>
                 <span class="meta-chip">Контрол на хигиена</span>
-                <div class="search-wrap" id="search-wrap">
-                  <button class="search-btn-icon" id="search-open-btn" type="button" aria-label="Отвори търсене" title="Търси функция">
-                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  </button>
-                  <div class="search-field-wrap" id="search-field-wrap">
-                    <div class="search-field-inner">
-                      <span class="search-icon-inner"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-                      <input class="search-input" id="search-input" type="text" placeholder="Търси функция..." autocomplete="off" aria-label="Търси функция" />
-                      <button class="search-clear" id="search-clear" type="button" aria-label="Изчисти търсенето"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-                    </div>
-                    <div class="search-dropdown" id="search-dropdown" style="display:none;"></div>
-                  </div>
-                </div>
-                <div class="cg-fx-switch" data-action="toggle-perf" title="Включи/изключи визуални ефекти" role="switch" aria-label="Визуални ефекти">
-                  <span class="cg-fx-label cg-fx-label-off">OFF</span>
-                  <div class="cg-fx-track"><div class="cg-fx-thumb"></div></div>
-                  <span class="cg-fx-label cg-fx-label-on">ON</span>
-                </div>
               </div>
             </div>
           </div>`;
@@ -4073,8 +4139,8 @@
 
         const now = Date.now();
         const groups = [
-          { title: "Кинозали", icon: "🎬", items: HALLS },
-          { title: "Тоалетни", icon: "🚿", items: BATHROOMS },
+          { title: "Кинозали", icon: "hall", items: HALLS },
+          { title: "Тоалетни", icon: "restroom-women", items: BATHROOMS },
         ];
 
         // Summary counts across all locations
@@ -4117,10 +4183,10 @@
             <div style="padding:11px 13px;display:flex;align-items:center;gap:11px;min-width:0;flex:1;overflow:hidden;border-radius:0 var(--r-md) var(--r-md) 0;">
               ${(() => {
                 const hnn = (loc.match(/(\d+)/) || [])[1];
-                const hc = (hnn && groupIcon === "🎬") ? hallColor(parseInt(hnn, 10)) : null;
+                const hc = (hnn && groupIcon === "hall") ? hallColor(parseInt(hnn, 10)) : null;
                 const bg = hc ? `rgba(${hc.g},.18)` : m.soft;
                 const bd = hc ? `border:1px solid rgba(${hc.g},.4);` : "";
-                return `<div style="width:34px;height:34px;border-radius:var(--r-sm);background:${bg};${bd}display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;">${groupIcon}</div>`;
+                return `<div class="cg-icon-tile" style="width:34px;height:34px;background:${bg};${bd}color:${hc ? hc.c : "var(--muted)"};">${cgIcon(groupIcon)}</div>`;
               })()}
               <div style="min-width:0;flex:1;">
                 <div style="font-size:var(--fs-body);font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(loc)}</div>
@@ -4135,12 +4201,12 @@
                   // Свършила прожекция (задържана поне 5 мин) → почисти сега
                   const endedShow = _endedHallsSeen[num] && (Date.now() - _endedHallsSeen[num].ts <= ENDED_STICKY_MS);
                   if (endedShow) {
-                    return `<div style="font-size:var(--fs-micro);color:var(--green-2);font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">✅ свърши — провери залата</div>`;
+                    return `<div style="font-size:var(--fs-micro);color:var(--green-2);font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px;">${cgIcon("inspection", 13)} свърши — провери залата</div>`;
                   }
                   const show = _currentShowForHall(num);
                   if (!show) return "";
                   const soon = show.endsInMin != null && show.endsInMin <= 15;
-                  return `<div style="font-size:var(--fs-micro);color:${soon ? 'var(--red-2)' : 'var(--muted-2)'};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎬 свършва ${escapeHtml(show.end)}${show.endsInMin != null ? ` (${show.endsInMin} мин)` : ""}</div>`;
+                  return `<div style="font-size:var(--fs-micro);color:${soon ? 'var(--red-2)' : 'var(--muted-2)'};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px;">${cgIcon("screening", 13)} свършва ${escapeHtml(show.end)}${show.endsInMin != null ? ` (${show.endsInMin} мин)` : ""}</div>`;
                 })()}
               </div>
               ${!isNone ? `<div style="font-size:var(--fs-micro);color:var(--muted-2);text-align:right;flex-shrink:0;white-space:nowrap;">${escapeHtml(m.sub)}</div>` : ''}
@@ -4157,7 +4223,7 @@
           </div>
           ${groups.map(g => `
             <div style="margin-bottom:14px;">
-              <div style="font-size:var(--fs-micro);font-weight:700;letter-spacing:.1em;color:var(--muted-2);margin-bottom:8px;text-transform:uppercase;">${g.icon} ${g.title}</div>
+              <div style="font-size:var(--fs-micro);font-weight:700;letter-spacing:.1em;color:var(--muted-2);margin-bottom:8px;text-transform:uppercase;display:flex;align-items:center;gap:6px;">${cgIcon(g.icon, 14)} ${g.title}</div>
               <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px;">
                 ${g.items.map(loc => renderCard(loc, g.icon)).join("")}
               </div>
@@ -4469,7 +4535,7 @@
               return `<tr>
                 <td>${fmt(r.timestamp)}</td>
                 <td style="display:flex;align-items:center;gap:6px;">
-                  <span style="font-size:var(--fs-body);">${r.type === "hall" ? "🎬" : "🚿"}</span>
+                  <span style="display:inline-flex;color:var(--muted);">${cgIcon(r.type === "hall" ? "hall" : "restroom-women", 15)}</span>
                   ${escapeHtml(r.location)}
                 </td>
                 <td class="muted">${escapeHtml(r.inspector)}</td>
@@ -5019,8 +5085,8 @@
               <div class="chart-title">Проверки по локация</div>
               <div class="chart-subtitle">Разпределение по зали и тоалетни</div>
               <div class="chart-wrap" style="min-height:240px;">
-                ${hallLocs.length ? `<div class="zone-group"><div class="zone-group-title">🎬 Кинозали</div>${hallLocs.map(([loc, count]) => { const pct = maxLoc ? Math.round(count/maxLoc*100) : 0; return `<div class="zone-item"><span style="min-width:100px;">${escapeHtml(loc)}</span><div class="charts-bar-bg"><div class="charts-bar-fill charts-bar-fill--blue" style="width:${pct}%;"></div></div><span style="font-weight:600;">${count}</span></div>`; }).join('')}</div>` : ''}
-                ${toiletLocs.length ? `<div class="zone-group"><div class="zone-group-title">🚿 Тоалетни</div>${toiletLocs.map(([loc, count]) => { const pct = maxLoc ? Math.round(count/maxLoc*100) : 0; return `<div class="zone-item"><span style="min-width:100px;">${escapeHtml(loc)}</span><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${pct}%;background:var(--blue-2);"></div></div><span style="font-weight:600;">${count}</span></div>`; }).join('')}</div>` : ''}
+                ${hallLocs.length ? `<div class="zone-group"><div class="zone-group-title" style="display:flex;align-items:center;gap:6px;">${cgIcon("hall", 14)} Кинозали</div>${hallLocs.map(([loc, count]) => { const pct = maxLoc ? Math.round(count/maxLoc*100) : 0; return `<div class="zone-item"><span style="min-width:100px;">${escapeHtml(loc)}</span><div class="charts-bar-bg"><div class="charts-bar-fill charts-bar-fill--blue" style="width:${pct}%;"></div></div><span style="font-weight:600;">${count}</span></div>`; }).join('')}</div>` : ''}
+                ${toiletLocs.length ? `<div class="zone-group"><div class="zone-group-title" style="display:flex;align-items:center;gap:6px;">${cgIcon("restroom-women", 14)} Тоалетни</div>${toiletLocs.map(([loc, count]) => { const pct = maxLoc ? Math.round(count/maxLoc*100) : 0; return `<div class="zone-item"><span style="min-width:100px;">${escapeHtml(loc)}</span><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${pct}%;background:var(--blue-2);"></div></div><span style="font-weight:600;">${count}</span></div>`; }).join('')}</div>` : ''}
                 ${!hallLocs.length && !toiletLocs.length ? '<div class="chart-empty">Няма данни по локации</div>' : ''}
               </div>
             </div>
@@ -5080,7 +5146,7 @@
           <div class="toolbar">
             <div>
               <h1 class="hero-title" style="display:flex;align-items:center;gap:12px;">
-                <span style="font-size:28px;">${state.inspectionType === "hall" ? "🎬" : "🚿"}</span>
+                ${cgIcon(state.inspectionType === "hall" ? "hall" : "restroom-women", 26)}
                 ${config.title}
               </h1>
               <div class="muted">${isSheetsConfigured() ? "Данните ще се изпратят автоматично към Google Sheets след запис." : "Локален запис в браузъра."}</div>
@@ -5385,9 +5451,17 @@
         return html;
       }
 
+      /* Връща авторска икона от вградената система.
+         size е в px и повтаря размера на емоджито, което заменя. */
+      function cgIcon(name, size, extraStyle) {
+        const px = size ? `width:${size}px;height:${size}px;` : "";
+        return `<svg class="cg-icon" style="${px}${extraStyle || ""}" aria-hidden="true" focusable="false"><use href="#cg-${name}"></use></svg>`;
+      }
+
       /* ── Настройки: език и тема на интерфейса ── */
       function renderSettingsModal() {
         const theme = currentTheme();
+        const lowPerf = localStorage.getItem(PERF_KEY) === "1";
         const seg = (action, key, value, label, active) =>
           `<button type="button" class="seg-btn${active ? " active" : ""}" data-action="${action}" data-${key}="${value}"${active ? ' aria-pressed="true"' : ' aria-pressed="false"'}>${label}</button>`;
         return `<div class="modal-backdrop" data-action="close-settings" role="presentation">
@@ -5416,6 +5490,17 @@
               <div class="seg" role="group" aria-label="Тема">
                 ${seg("set-theme", "theme", "dark", "Тъмна", theme === "dark")}
                 ${seg("set-theme", "theme", "light", "Светла", theme === "light")}
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-text">
+                <div class="settings-label">Визуални ефекти</div>
+                <div class="settings-hint">Изключи за по-плавна работа на слаби устройства</div>
+              </div>
+              <div class="seg" role="group" aria-label="Визуални ефекти">
+                ${seg("set-perf", "perf", "on", "Вкл", !lowPerf)}
+                ${seg("set-perf", "perf", "off", "Изкл", lowPerf)}
               </div>
             </div>
           </div>
@@ -5460,7 +5545,7 @@
         return `<div class="modal-backdrop" data-action="close-hall-detail" role="presentation">
           <div class="modal" role="dialog" aria-modal="true" onclick="if(!event.target.closest('[data-action]'))event.stopPropagation()" style="max-width:680px;">
             <div style="display:flex;align-items:center;gap:13px;margin-bottom:16px;">
-              <div style="width:52px;height:52px;border-radius:var(--r-md);background:rgba(${hc.g},.18);border:1px solid rgba(${hc.g},.45);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">${isHall ? "🎬" : "🚿"}</div>
+              <div class="cg-icon-tile" style="width:52px;height:52px;border-radius:var(--r-md);background:rgba(${hc.g},.18);border:1px solid rgba(${hc.g},.45);color:${hc.c};">${cgIcon(isHall ? "hall" : /жен|дамск/i.test(loc) ? "restroom-women" : "restroom-men")}</div>
               <div style="flex:1;min-width:0;">
                 <h2 class="section-title" style="margin:0;font-size:21px;">${escapeHtml(loc)}</h2>
                 <div style="font-size:var(--fs-meta);color:${m.color};font-weight:600;margin-top:2px;">${m.dot} ${escapeHtml(m.label)}${last ? " · " + escapeHtml(last.who || "") : ""}</div>
@@ -5536,7 +5621,7 @@
                 ${items.map(({ type, location, icon }) => {
                   const url = qrUrl(type, location);
                   return `<div class="panel" style="text-align:center; padding:16px;">
-                    <div style="font-size:24px; margin-bottom:8px;">${icon}</div>
+                    <div style="margin-bottom:8px;color:var(--gold-2);">${cgIcon(icon, 24)}</div>
                     <div style="font-weight:700;font-size:var(--fs-body); margin-bottom:12px;">${escapeHtml(location)}</div>
                     <img src="${imgSrc(url)}" width="160" height="160" alt="QR код: ${escapeHtml(location)}" style="display:block; margin:0 auto;border-radius:var(--r-md);" />
                   </div>`;
@@ -5598,28 +5683,8 @@
         const config = getConfig(state.inspectionType);
         const isHall = state.inspectionType === "hall";
         const title = isHall ? "Избор на Зала" : "Избор на Тоалетна";
-        const hallIcon = `
-          <svg viewBox="0 0 128 128" width="52" height="52" aria-hidden="true">
-            <defs>
-              <clipPath id="clapClipLg">
-                <rect x="10" y="10" width="108" height="26"/>
-              </clipPath>
-            </defs>
-            <rect x="10" y="45" width="108" height="73" rx="6" fill="#1e1e1e" stroke="#505050" stroke-width="2"/>
-            <line x1="11" y1="61" x2="117" y2="61" stroke="#363636" stroke-width="1.2"/>
-            <line x1="11" y1="77" x2="117" y2="77" stroke="#363636" stroke-width="1.2"/>
-            <line x1="11" y1="93" x2="117" y2="93" stroke="#363636" stroke-width="1.2"/>
-            <line x1="40" y1="46" x2="40" y2="117" stroke="#363636" stroke-width="1.2"/>
-            <rect x="8" y="34" width="112" height="13" rx="3" fill="#282828" stroke="#505050" stroke-width="2"/>
-            <rect x="10" y="10" width="108" height="26" fill="#eeeeee"/>
-            <g clip-path="url(#clapClipLg)">
-              <polygon points="10,36 26,36 52,10 36,10" fill="#111111"/>
-              <polygon points="42,36 58,36 84,10 68,10" fill="#111111"/>
-              <polygon points="74,36 90,36 116,10 100,10" fill="#111111"/>
-              <polygon points="106,36 118,36 118,24" fill="#111111"/>
-            </g>
-            <rect x="10" y="10" width="108" height="26" fill="none" stroke="#333333" stroke-width="2"/>
-          </svg>`;
+        /* Авторската икона за зала — заменя старата рисувана клапа */
+        const hallIcon = cgIcon("hall", 46);
         return `
           <div style="padding:24px;max-width:480px;margin:0 auto;">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
@@ -5633,7 +5698,7 @@
                   style="background:var(--panel-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px 12px 16px;cursor:pointer;text-align:center;color:var(--text);font-size:var(--fs-body);font-weight:600;transition:background .15s,border-color .15s,transform .15s;"
                   onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.borderColor='var(--gold)'"
                   onmouseout="this.style.background='rgba(255,255,255,.04)';this.style.borderColor='var(--border)'">
-                  <div style="display:flex;justify-content:center;align-items:center;min-height:58px;margin-bottom:8px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4));">${isHall ? hallIcon : '<span style="font-size:30px;">🚿</span>'}</div>
+                  <div style="display:flex;justify-content:center;align-items:center;min-height:58px;margin-bottom:8px;color:var(--gold-2);">${isHall ? hallIcon : cgIcon(/жен|дамск/i.test(loc) ? "restroom-women" : "restroom-men", 46)}</div>
                   <div>${escapeHtml(loc)}</div>
                 </button>
               `).join("")}
@@ -5817,14 +5882,14 @@
                 style="background:var(--panel-2);border:1px solid var(--border);border-radius:var(--r-md);padding:16px 10px 14px;cursor:pointer;text-align:center;color:var(--text);font-size:var(--fs-body);font-weight:600;transition:background .15s,border-color .15s;"
                 onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.borderColor='var(--gold)'"
                 onmouseout="this.style.background='rgba(255,255,255,.04)';this.style.borderColor='var(--border)'">
-                <div style="font-size:28px;margin-bottom:8px;">🚹</div>
+                <div style="margin-bottom:8px;color:var(--gold-2);">${cgIcon("locker-men", 28)}</div>
                 <div>Мъжка съблекалня</div>
               </button>
               <button data-action="select-cr-type" data-crtype="female"
                 style="background:var(--panel-2);border:1px solid var(--border);border-radius:var(--r-md);padding:16px 10px 14px;cursor:pointer;text-align:center;color:var(--text);font-size:var(--fs-body);font-weight:600;transition:background .15s,border-color .15s;"
                 onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.borderColor='var(--gold)'"
                 onmouseout="this.style.background='rgba(255,255,255,.04)';this.style.borderColor='var(--border)'">
-                <div style="font-size:28px;margin-bottom:8px;">🚺</div>
+                <div style="margin-bottom:8px;color:var(--gold-2);">${cgIcon("locker-women", 28)}</div>
                 <div>Женска съблекалня</div>
               </button>
             </div>
@@ -5834,7 +5899,7 @@
       /* ── Render: detail view for selected changing room ── */
       function renderChangingRoomDetail() {
         const typeLabel = state.crType === "male" ? "Мъжка съблекалня" : "Женска съблекалня";
-        const typeIcon  = state.crType === "male" ? "🚹" : "🚺";
+        const typeIcon  = cgIcon(state.crType === "male" ? "locker-men" : "locker-women", 20);
 
         /* Loading */
         if (state.crLoading) {
@@ -5947,8 +6012,8 @@
               <table style="width:100%;border-collapse:collapse;font-size:var(--fs-meta);">
                 <thead><tr style="background:var(--panel-2);">
                   <th style="padding:6px 10px;text-align:left;color:var(--muted);font-weight:600;">Дата</th>
-                  <th style="padding:6px 10px;text-align:left;color:var(--muted);font-weight:600;">🚹 Мъжка</th>
-                  <th style="padding:6px 10px;text-align:left;color:var(--muted);font-weight:600;">🚺 Женска</th>
+                  <th style="padding:6px 10px;text-align:left;color:var(--muted);font-weight:600;">${cgIcon("locker-men", 14)} Мъжка</th>
+                  <th style="padding:6px 10px;text-align:left;color:var(--muted);font-weight:600;">${cgIcon("locker-women", 14)} Женска</th>
                 </tr></thead>
                 <tbody>
                   ${state.crData.allRows.map((r, idx) => `
@@ -6016,12 +6081,12 @@
 
       /* ── Search Bar ── */
       const SEARCH_ITEMS = [
-        { icon: "🎬", label: "Проверка на зали", sub: "Кинозала — Зали 1–6", action: "start-inspection", type: "hall" },
-        { icon: "🚿", label: "Проверка на тоалетни", sub: "Санитарен Възел — WC", action: "start-inspection", type: "bathroom" },
-        { icon: "👗", label: "Почистване на съблекалня", sub: "Мъжка / Женска съблекалня", action: "start-changing-room" },
-        { icon: "📊", label: "Данни и статистики", sub: "Графики от Sheets", action: "go-charts" },
-        { icon: "🏠", label: "Начало", sub: "Главен екран", action: "go-home" },
-        { icon: "🔗", label: "QR кодове", sub: "Генерирай и принтирай QR", action: "open-qr" },
+        { icon: "hall", label: "Проверка на зали", sub: "Кинозала — Зали 1–6", action: "start-inspection", type: "hall" },
+        { icon: "restroom-women", label: "Проверка на тоалетни", sub: "Санитарен Възел — WC", action: "start-inspection", type: "bathroom" },
+        { icon: "locker-women", label: "Почистване на съблекалня", sub: "Мъжка / Женска съблекалня", action: "start-changing-room" },
+        { icon: "data", label: "Данни и статистики", sub: "Графики от Sheets", action: "go-charts" },
+        { icon: "inspection", label: "Начало", sub: "Главен екран", action: "go-home" },
+        { icon: "qr", label: "QR кодове", sub: "Генерирай и принтирай QR", action: "open-qr" },
       ];
 
       let _searchBarInited = false;
@@ -6064,7 +6129,7 @@
           } else {
             dropdown.innerHTML = items.map((item, idx) => `
               <div class="search-item" data-idx="${idx}" data-search-action="${item.action}" ${item.type ? `data-search-type="${item.type}"` : ""} role="option" tabindex="-1">
-                <span class="search-item-icon">${item.icon}</span>
+                <span class="search-item-icon">${cgIcon(item.icon, 20)}</span>
                 <div>
                   <div class="search-item-label">${item.label}</div>
                   <div class="search-item-sub">${item.sub || ""}</div>
@@ -6226,10 +6291,11 @@
         if (action === "ann-pass-submit") { _cgAnnPassSubmit(); return; }
         if (action === "ann-save")        { _cgAnnSave(); return; }
 
-        if (action === "toggle-perf") {
-          const next = localStorage.getItem(PERF_KEY) === "1" ? "0" : "1";
-          localStorage.setItem(PERF_KEY, next);
+        if (action === "set-perf") {
+          const next = btn.dataset.perf === "off" ? "1" : "0";
+          try { localStorage.setItem(PERF_KEY, next); } catch (_) {}
           applyPerfMode();
+          render();
           return;
         }
 
