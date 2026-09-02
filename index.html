@@ -22,6 +22,10 @@
         --panel: #161b21;         /* карти, панели, таблици             */
         --panel-2: #1c222a;       /* повдигнато: hover, полета, чипове  */
         --panel-3: #12161b;       /* вдлъбнато: table header, tracks    */
+        --panel-2-hover: #232b34; /* hover върху повдигната повърхност  */
+        --row-alt: rgba(255,255,255,.015); /* зебра в таблиците         */
+        --selection-bg: rgba(200,120,24,.32);
+        --selection-fg: #ffffff;
         --surface: var(--panel);
         --surface-raised: var(--panel-2);
         --surface-sunken: var(--panel-3);
@@ -42,6 +46,7 @@
         --gold-2: #e9a844;        /* акцент за текст/hover  ~7.4:1      */
         --gold-ink: #17110a;      /* текст върху златна повърхност      */
         --on-fill: #0d1014;       /* текст върху плътен semantic цвят    */
+        --on-heat: #ffffff;       /* текст върху клетка на топлинна карта*/
         --gold-soft: rgba(200,120,24,.14);
         --gold-line: rgba(200,120,24,.34);
 
@@ -97,7 +102,76 @@
 
         /* Ширина на страничната навигация */
         --sidebar-w: 236px;
+
+        color-scheme: dark;
       }
+      /* Системните падащи менюта се рисуват от браузъра — задаваме им явно
+         цветовете, за да следват темата, а не UA подразбирането. */
+      select option { color: var(--text); background: var(--panel); }
+
+      /* ══════════════════════════════════════════════════════════════
+         СВЕТЛА ТЕМА — същата система, обърнати повърхности.
+         Всеки текстов цвят е проверен за ≥4.5:1 спрямо най-светлата
+         повърхност, върху която се използва; плътните бутони носят бяло
+         мастило с ≥4.5:1. Превключва се от Настройки.
+         ══════════════════════════════════════════════════════════════ */
+      :root[data-theme="light"] {
+        --bg: #f4f6f8;
+        --bg-2: #e9edf2;
+        --panel: #ffffff;
+        --panel-2: #eef1f5;
+        --panel-3: #f7f9fb;
+        --panel-2-hover: #e4e9ef;
+        --row-alt: rgba(16,24,40,.025);
+        --surface: var(--panel);
+        --surface-raised: var(--panel-2);
+        --surface-sunken: var(--panel-3);
+
+        --border: #dfe4ea;
+        --border-strong: #c8d0da;
+        --border-subtle: #ecf0f4;
+        --border-control: #727d8b;
+
+        --text: #1d2430;
+        --muted: #56606e;
+        --muted-2: #5f6a78;
+
+        --gold: #95590b;
+        --gold-2: #7d4c0e;
+        --gold-ink: #ffffff;
+        --gold-soft: rgba(149,89,11,.10);
+        --gold-line: rgba(149,89,11,.32);
+        --on-fill: #ffffff;
+        --on-heat: #ffffff;
+
+        --green: #227a4e;   --green-2: #1a6641;
+        --green-dark: #1a6641; --green-soft: rgba(34,122,78,.10);
+        --red: #b83f37;     --red-2: #9c3029;
+        --red-dark: #9c3029;   --red-soft: rgba(184,63,55,.10);
+        --amber: #8a6112;   --amber-2: #74510f;
+        --amber-soft: rgba(138,97,18,.10);
+        --blue: #2c6ca8;    --blue-2: #22568a;
+        --blue-soft: rgba(44,108,168,.10);
+        --purple: #6d5cc0;  --purple-2: #5b4bab;
+        --purple-soft: rgba(109,92,192,.10);
+
+        --shadow-1: 0 1px 2px rgba(16,24,40,.06);
+        --shadow-2: 0 2px 8px rgba(16,24,40,.08);
+        --shadow-3: 0 16px 40px rgba(16,24,40,.16);
+        --shadow: var(--shadow-2);
+
+        --selection-bg: rgba(149,89,11,.20);
+        --selection-fg: #1d2430;
+
+        --focus-ring: 0 0 0 2px var(--panel), 0 0 0 4px var(--gold);
+
+        color-scheme: light;
+      }
+      /* Атмосферният слой е ефект за тъмната тема — на светъл фон
+         петната изглеждат като зацапване, затова се неутрализират. */
+      :root[data-theme="light"] .bloom-layer { display: none; }
+      /* Полетата за дата ползват системна палитра */
+      :root[data-theme="light"] .day-date-input { color-scheme: light; }
       * { box-sizing: border-box; }
       html, body { min-height: 100%; }
       body {
@@ -325,7 +399,7 @@
         background: var(--panel-2); color: var(--text);
         border-color: var(--border-strong);
       }
-      .btn-outline:hover { background: #232b34; border-color: var(--border-control); }
+      .btn-outline:hover { background: var(--panel-2-hover); border-color: var(--border-control); }
       .btn-outline:active { background: var(--panel-3); }
 
       /* Positive */
@@ -508,7 +582,7 @@
         line-height: 1;
       }
       .btn-back::before { content: none; }
-      .btn-back:hover { background: #232b34; border-color: var(--border-control); }
+      .btn-back:hover { background: var(--panel-2-hover); border-color: var(--border-control); }
       .btn-back:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
       .card-body {
@@ -602,7 +676,7 @@
         border-bottom: 1px solid var(--border);
       }
       tbody tr:last-child td { border-bottom: none; }
-      tbody tr:nth-child(even) td { background: rgba(255,255,255,.015); }
+      tbody tr:nth-child(even) td { background: var(--row-alt); }
       tbody tr:hover td { background: var(--panel-2); }
 
       /* ── Status pill: фон + контур + текст, не само цвят ── */
@@ -852,7 +926,7 @@
       .heatmap-grid { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; padding: 12px 0; }
       .heatmap-cell { aspect-ratio: 1; min-height: 20px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; transition: outline-color .15s ease; outline: 1px solid transparent; }
       .heatmap-cell:hover { outline-color: var(--border-control); }
-      .heatmap-cell.has-data { color: #fff; }
+      .heatmap-cell.has-data { color: var(--on-heat); }
       .heatmap-cell.empty { background: var(--panel-3); color: transparent; }
       .heatmap-legend { display: flex; justify-content: space-between; font-size: var(--fs-micro); color: var(--muted); margin-top: var(--s2); }
       .chart-card {
@@ -1101,7 +1175,7 @@
                       min-height: var(--control-h-sm); padding: 0 var(--s3);
                       font-size: var(--fs-meta); cursor: pointer; font-family: inherit;
                       transition: background .15s, border-color .15s; white-space: nowrap; }
-      .cg-ann-btn:hover { background: #232b34; border-color: var(--border-control); }
+      .cg-ann-btn:hover { background: var(--panel-2-hover); border-color: var(--border-control); }
 
       /* ── Индикатор в навигацията ── */
       .cg-ann-dot {
@@ -1166,7 +1240,7 @@
         background: var(--panel-2); color: var(--text);
         border: 1px solid var(--border-strong); cursor: pointer; font-family: inherit;
       }
-      .cg-ann-modal-cancel:hover { background: #232b34; }
+      .cg-ann-modal-cancel:hover { background: var(--panel-2-hover); }
 
       /* ── Филтър по дата: компактна лента с еднакви по височина контроли ── */
       .day-filter-bar { display: flex; gap: var(--s2); align-items: center; flex-wrap: wrap; margin-bottom: var(--s3); }
@@ -1179,7 +1253,7 @@
         transition: background .15s, color .15s, border-color .15s;
         font-family: inherit;
       }
-      .day-filter-btn:hover { background: #232b34; border-color: var(--border-strong); }
+      .day-filter-btn:hover { background: var(--panel-2-hover); border-color: var(--border-strong); }
       .day-filter-btn.active { background: var(--gold); color: var(--gold-ink); border-color: var(--gold); }
       .day-filter-sep { color: var(--muted-2); font-size: var(--fs-meta); padding: 0 2px; }
       .day-date-input {
@@ -1242,7 +1316,7 @@
         background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
         cursor: pointer; font-family: inherit;
       }
-      .day-cal-clear:hover { background: #232b34; }
+      .day-cal-clear:hover { background: var(--panel-2-hover); }
       .day-cal-wrap { position: relative; display: inline-block; }
       .day-cal-trigger {
         min-height: var(--control-h-sm); padding: 0 var(--s3); border-radius: var(--r-sm);
@@ -1252,7 +1326,7 @@
         font-family: inherit; display: flex; align-items: center; gap: var(--s1);
         transition: background .15s, border-color .15s;
       }
-      .day-cal-trigger:hover { background: #232b34; border-color: var(--border-strong); }
+      .day-cal-trigger:hover { background: var(--panel-2-hover); border-color: var(--border-strong); }
       .day-cal-trigger.has-range { border-color: var(--gold-line); color: var(--gold-2); }
       .day-cal-max-note { font-size: 10px; color: var(--muted-2); margin-top: var(--s1); text-align: center; }
 
@@ -1265,8 +1339,8 @@
       html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
 
       /* Маркиране на текст в марковите цветове */
-      ::selection { background: rgba(200,120,24,.32); color: #fff; }
-      ::-moz-selection { background: rgba(200,120,24,.32); color: #fff; }
+      ::selection { background: var(--selection-bg); color: var(--selection-fg); }
+      ::-moz-selection { background: var(--selection-bg); color: var(--selection-fg); }
 
       /* Скролбари — неутрални, в тон с повърхностите */
       * { scrollbar-width: thin; scrollbar-color: var(--border-control) transparent; }
@@ -1426,6 +1500,47 @@
       }
       body.low-perf .cg-prog-fill, body.low-perf .cg-prog-head { transition: none; }
 
+      /* ── Настройки: редове с етикет и сегментиран превключвател ── */
+      .settings-head {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: var(--s3); margin-bottom: var(--s5);
+      }
+      .settings-row {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: var(--s4); padding: var(--s4) 0;
+        border-top: 1px solid var(--border-subtle);
+      }
+      .settings-row:first-of-type { border-top: none; padding-top: 0; }
+      .settings-text { min-width: 0; }
+      .settings-label { font-size: var(--fs-body); font-weight: 700; color: var(--text); }
+      .settings-hint  { font-size: var(--fs-meta); color: var(--muted); margin-top: 2px; }
+
+      .seg {
+        display: inline-flex; flex-shrink: 0;
+        background: var(--panel-3);
+        border: 1px solid var(--border); border-radius: var(--r-md);
+        padding: 3px; gap: 3px;
+      }
+      .seg-btn {
+        min-height: 34px; padding: 0 var(--s4);
+        border: 1px solid transparent; border-radius: var(--r-sm);
+        background: transparent; color: var(--muted);
+        font-family: var(--font-ui); font-size: var(--fs-meta); font-weight: 600;
+        cursor: pointer; white-space: nowrap;
+        transition: background .15s ease, color .15s ease, border-color .15s ease;
+      }
+      .seg-btn:hover { color: var(--text); background: var(--panel-2); }
+      .seg-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+      .seg-btn.active {
+        background: var(--gold); color: var(--gold-ink);
+        border-color: var(--gold); font-weight: 700;
+      }
+      @media (max-width: 480px) {
+        .settings-row { flex-direction: column; align-items: stretch; gap: var(--s3); }
+        .seg { align-self: stretch; }
+        .seg-btn { flex: 1; }
+      }
+
       /* ── Под 1024px няма място за колона: същите елементи се подреждат
          хоризонтално над съдържанието. Без скриване и без нови контроли. ── */
       @media (max-width: 1024px) {
@@ -1552,6 +1667,17 @@
         document.body.classList.toggle("low-perf", on);
       }
       applyPerfMode();
+
+      /* ── Тема на интерфейса (тъмна / светла) ── */
+      const THEME_KEY = "cg_theme";
+      function currentTheme() {
+        try { return localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark"; }
+        catch (_) { return "dark"; }
+      }
+      function applyTheme() {
+        document.documentElement.setAttribute("data-theme", currentTheme());
+      }
+      applyTheme();
       const LOCAL_RETENTION_DAYS = 7; /* Локални записи се пазят 7 дни */
 
       /* ══════════════════════════════════════════════════
@@ -2099,6 +2225,7 @@
         showValidation: false,
         showDeleteModal: false,
         showQRModal: false,
+        showSettingsModal: false,
         showPhonePhotoQRModal: false,
         hallDetail: null,          /* име на локация → отворен детайлен изглед */
         phonePhotoLoc: "",
@@ -2424,6 +2551,10 @@
       const EN_EXACT = {
         /* Topbar / nav */
         "Начало": "Home", "QR кодове": "QR Codes", "🎬 Зали": "🎬 Halls", "📊 Данни": "📊 Data",
+        "⚙ Настройки": "⚙ Settings", "Настройки": "Settings",
+        "Език": "Language", "Език на интерфейса": "Interface language",
+        "Тема": "Theme", "Цвят на интерфейса": "Interface colour",
+        "Тъмна": "Dark", "Светла": "Light", "Затвори": "Close",
         "Контрол на хигиена": "Hygiene Control", "Парк Център София": "Park Center Sofia",
         /* Home */
         "Контрол на Хигиената": "Hygiene Control",
@@ -3123,7 +3254,7 @@
             const lvl = m[1].length;
             const size = [26, 19, 15.5, 14][lvl - 1];
             const mt = lvl === 1 ? 0 : 22;
-            out.push(`<div style="font-family:'Oswald',sans-serif;font-size:${size}px;font-weight:${lvl <= 2 ? 700 : 600};color:${lvl === 1 ? "#fff" : "var(--gold-2)"};letter-spacing:.03em;margin:${mt}px 0 10px;${lvl === 1 ? "text-transform:uppercase;" : ""}">${inline(m[2])}</div>`);
+            out.push(`<div style="font-family:'Oswald',sans-serif;font-size:${size}px;font-weight:${lvl <= 2 ? 700 : 600};color:${lvl === 1 ? "var(--text)" : "var(--gold-2)"};letter-spacing:.03em;margin:${mt}px 0 10px;${lvl === 1 ? "text-transform:uppercase;" : ""}">${inline(m[2])}</div>`);
           } else if ((m = /^&gt;\s?(.*)$/.exec(l))) {
             closeList();
             out.push(`<div style="border-left:3px solid var(--gold);background:var(--gold-soft);padding:11px 14px;border-radius:0 10px 10px 0;margin:12px 0;color:var(--gold-2);font-size:var(--fs-body);line-height:1.6;">${inline(m[1])}</div>`);
@@ -3780,7 +3911,7 @@
           NEXTCLEAN_PROXY_URL ? `<button class="nav-btn ${state.screen === 'halls' ? 'state' : ''}" data-action="go-halls" aria-label="Статус на залите">&#127916; Зали</button>` : "",
           `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''} ${chartsCooldownUntil > Date.now() ? 'cooldown' : ''}" data-action="go-charts" aria-label="Данни от Sheets" ${chartsCooldownUntil > Date.now() ? 'disabled' : ''}>&#128202; ${chartsCooldownUntil > Date.now() ? "Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : "Данни"}</button>`,
           `<button class="nav-btn ${state.screen === 'rules' ? 'state' : ''}" data-action="go-rules" aria-label="Правила за работа">&#128203; Правила</button>`,
-          `<button class="nav-btn ${currentLang === 'en' ? 'state' : ''}" data-action="toggle-lang" aria-label="Language / Език">${currentLang === "en" ? "🌐 БГ" : "🌐 EN"}</button>`,
+          `<button class="nav-btn ${state.showSettingsModal ? 'state' : ''}" data-action="open-settings" aria-label="Настройки">&#9881; Настройки</button>`,
         ].filter(Boolean).join("");
 
         return `
@@ -4610,16 +4741,26 @@
       /* Self-healing зареждане на ИНФО данните — извиква се от badge-овете на
          home когато няма кеширани данни. Прави най-много едно паралелно
          извикване и пре-рендерира home при успех. */
+      /* Самолечение: ако началният екран няма данни, дърпа ги веднъж.
+         ВАЖНО: render() отново минава през renderLastCheckedBadges(), който
+         вика тази функция — затова без cooldown и без проверка дали има
+         реални данни се получава безкраен цикъл render → fetch → render.
+         При недостъпен Sheets това означаваше стотици заявки в секунда. */
+      let _sheetsSelfHealAt = 0;
+      const SHEETS_SELF_HEAL_MS = 60000;
       function ensureSheetsDataLoaded() {
         if (_cachedChartRows && _cachedChartRows.length > 0) return;
         if (_sheetsFetchInFlight) return;
         if (!isSheetsConfigured()) return;
+        if (Date.now() - _sheetsSelfHealAt < SHEETS_SELF_HEAL_MS) return;
+        _sheetsSelfHealAt = Date.now();
         _sheetsFetchInFlight = true;
         fetchSheetsData().then(r => {
           _cachedChartRows = r;
         }).catch(() => {}).finally(() => {
           _sheetsFetchInFlight = false;
-          if (state.screen === "home") render();
+          /* Пре-рендер само когато наистина е пристигнало нещо за показване. */
+          if (state.screen === "home" && _cachedChartRows && _cachedChartRows.length > 0) render();
         });
       }
 
@@ -5236,11 +5377,49 @@
             </div>
           </div>`;
         }
+        if (state.showSettingsModal) html += renderSettingsModal();
         if (state.showQRModal) html += renderQRModal();
         if (state.showPhonePhotoQRModal) html += renderPhonePhotoQRModal();
         if (state.hallDetail) html += renderHallDetailModal();
         if (state.toast) html += `<div class="toast ${escapeHtml(state.toast.type)}" role="status" aria-live="polite">${escapeHtml(state.toast.msg)}</div>`;
         return html;
+      }
+
+      /* ── Настройки: език и тема на интерфейса ── */
+      function renderSettingsModal() {
+        const theme = currentTheme();
+        const seg = (action, key, value, label, active) =>
+          `<button type="button" class="seg-btn${active ? " active" : ""}" data-action="${action}" data-${key}="${value}"${active ? ' aria-pressed="true"' : ' aria-pressed="false"'}>${label}</button>`;
+        return `<div class="modal-backdrop" data-action="close-settings" role="presentation">
+          <div class="modal" id="modal-settings" role="dialog" aria-modal="true" aria-label="Настройки" onclick="if(!event.target.closest('[data-action]'))event.stopPropagation()">
+            <div class="settings-head">
+              <h2 class="section-title" style="margin:0;">Настройки</h2>
+              <button type="button" class="btn-back" data-action="close-settings" aria-label="Затвори">&#10005;</button>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-text">
+                <div class="settings-label">Език</div>
+                <div class="settings-hint">Език на интерфейса</div>
+              </div>
+              <div class="seg" role="group" aria-label="Език">
+                ${seg("set-lang", "lang", "bg", "БГ", currentLang !== "en")}
+                ${seg("set-lang", "lang", "en", "EN", currentLang === "en")}
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-text">
+                <div class="settings-label">Тема</div>
+                <div class="settings-hint">Цвят на интерфейса</div>
+              </div>
+              <div class="seg" role="group" aria-label="Тема">
+                ${seg("set-theme", "theme", "dark", "Тъмна", theme === "dark")}
+                ${seg("set-theme", "theme", "light", "Светла", theme === "light")}
+              </div>
+            </div>
+          </div>
+        </div>`;
       }
 
       /* Детайлен изглед на зала — история, статистика, проблеми. */
@@ -6170,10 +6349,30 @@
         if (action === "go-history") { state.screen = "history"; render(); return; }
         if (action === "go-halls") { state.screen = "halls"; fetchNextClean(); fetchNextBoard(); render(); return; }
         if (action === "go-rules") { state.screen = "rules"; if (RULES_MD === null) loadRules(); render(); return; }
-        if (action === "toggle-lang") {
-          currentLang = currentLang === "bg" ? "en" : "bg";
-          try { localStorage.setItem(LANG_KEY, currentLang); } catch (_) {}
-          document.documentElement.lang = currentLang === "en" ? "en" : "bg";
+        if (action === "open-settings") {
+          state.showSettingsModal = true;
+          render();
+          return;
+        }
+        if (action === "close-settings") {
+          state.showSettingsModal = false;
+          render();
+          return;
+        }
+        if (action === "set-lang") {
+          const next = btn.dataset.lang === "en" ? "en" : "bg";
+          if (next !== currentLang) {
+            currentLang = next;
+            try { localStorage.setItem(LANG_KEY, currentLang); } catch (_) {}
+            document.documentElement.lang = currentLang === "en" ? "en" : "bg";
+          }
+          render();
+          return;
+        }
+        if (action === "set-theme") {
+          const next = btn.dataset.theme === "light" ? "light" : "dark";
+          try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
+          applyTheme();
           render();
           return;
         }
