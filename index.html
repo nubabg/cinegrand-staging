@@ -1893,28 +1893,6 @@
 
       /* ── Constants ── */
       const HALLS = ["Зала 1", "Зала 2", "Зала 3", "Зала 4", "Зала 5", "Зала 6"];
-      const HALL_GOLD_ICON = `
-        <svg viewBox="0 0 96 96" width="40" height="40" aria-hidden="true">
-          <defs>
-            <clipPath id="clapClipSm">
-              <rect x="8" y="8" width="80" height="20"/>
-            </clipPath>
-          </defs>
-          <rect x="8" y="34" width="80" height="54" rx="5" fill="#1e1e1e" stroke="#505050" stroke-width="1.5"/>
-          <line x1="9" y1="48" x2="87" y2="48" stroke="#363636" stroke-width="1"/>
-          <line x1="9" y1="60" x2="87" y2="60" stroke="#363636" stroke-width="1"/>
-          <line x1="9" y1="72" x2="87" y2="72" stroke="#363636" stroke-width="1"/>
-          <line x1="30" y1="35" x2="30" y2="87" stroke="#363636" stroke-width="1"/>
-          <rect x="6" y="26" width="84" height="10" rx="2" fill="#282828" stroke="#505050" stroke-width="1.5"/>
-          <rect x="8" y="8" width="80" height="20" fill="#eeeeee"/>
-          <g clip-path="url(#clapClipSm)">
-            <polygon points="8,28 20,28 40,8 28,8" fill="#111111"/>
-            <polygon points="32,28 44,28 64,8 52,8" fill="#111111"/>
-            <polygon points="56,28 68,28 88,8 76,8" fill="#111111"/>
-            <polygon points="80,28 88,28 88,20" fill="#111111"/>
-          </g>
-          <rect x="8" y="8" width="80" height="20" fill="none" stroke="#333333" stroke-width="1.5"/>
-        </svg>`;
       const BATHROOMS = [
         "Дамска тоалетна",
         "Мъжка тоалетна",
@@ -5091,7 +5069,7 @@
             buildChartsFromData(container, _cachedChartRows);
           } else {
             container.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--muted);">
-              <div style="font-size:28px;margin-bottom:12px;">&#128202;</div>
+              <div style="margin-bottom:12px;color:var(--muted-2);">${cgIcon("data", 28)}</div>
               <div style="font-weight:600;margin-bottom:8px;">Презареди страницата (F5)</div>
               <div style="font-size:var(--fs-body);">за да заредиш данните от Google Sheets.</div>
             </div>`;
@@ -5387,7 +5365,9 @@
           <div class="toolbar">
             <div>
               <h1 class="hero-title" style="display:flex;align-items:center;gap:12px;">
-                ${cgIcon(state.inspectionType === "hall" ? "hall" : "restroom-women", 26)}
+                ${state.inspectionType === "hall"
+                  ? `<span style="display:inline-flex;color:${hallColor(parseInt(String(state.location || "").replace(/\D+/g, ""), 10)).c};">${cgIcon("hall", 26)}</span>`
+                  : `<span style="display:inline-flex;color:var(--gold-2);">${cgIcon(/жен|дамск/i.test(String(state.location || "")) ? "restroom-women" : "restroom-men", 26)}</span>`}
                 ${config.title}
               </h1>
               <div class="muted">${isSheetsConfigured() ? "Данните ще се изпратят автоматично към Google Sheets след запис." : "Локален запис в браузъра."}</div>
@@ -5905,17 +5885,16 @@
       }
 
 
+      /* Всяка зала носи цвета си и в избора за проверка — същата идентичност
+         както на таблото. Иконата идва от рендера (авторската cg-hall);
+         тук ѝ подаваме само цвета, за да не се подменя разметката. */
       function decorateHallSelectionIcons() {
         if (state.screen !== "select-hall" || state.inspectionType !== "hall") return;
-        document.querySelectorAll('[data-action="select-hall-location"] > div:first-child').forEach((iconWrap) => {
-          if (iconWrap.dataset.goldApplied === "1") return;
-          iconWrap.innerHTML = `<span style="display:flex;justify-content:center;align-items:center;pointer-events:none;">${HALL_GOLD_ICON}</span>`;
-          iconWrap.style.display = "flex";
-          iconWrap.style.justifyContent = "center";
-          iconWrap.style.alignItems = "center";
-          iconWrap.style.minHeight = "46px";
-          iconWrap.style.marginBottom = "8px";
-          iconWrap.style.filter = "drop-shadow(0 3px 8px rgba(0,0,0,.4))";
+        document.querySelectorAll('[data-action="select-hall-location"]').forEach((btn) => {
+          const iconWrap = btn.querySelector("div");
+          if (!iconWrap || iconWrap.dataset.goldApplied === "1") return;
+          const n = parseInt(String(btn.dataset.location || "").replace(/\D+/g, ""), 10);
+          iconWrap.style.color = hallColor(n).c;
           iconWrap.style.pointerEvents = "none";
           iconWrap.dataset.goldApplied = "1";
         });
@@ -6702,7 +6681,7 @@
               const btn = document.querySelector('[data-action="go-charts"]');
               if (btn) {
                 const inCooldown = chartsCooldownUntil > Date.now();
-                btn.innerHTML = inCooldown ? "&#128202; Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : "&#128202; Данни";
+                btn.innerHTML = cgIcon("data", 18) + (inCooldown ? " Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : " Данни");
                 btn.classList.toggle('cooldown', inCooldown);
                 btn.disabled = inCooldown;
               }
@@ -6712,7 +6691,7 @@
           if (state.screen === "charts") {
             /* Вече сме на Данни — не презареждаме, данните остават; само обновяваме бутона */
             const btn = document.querySelector('[data-action="go-charts"]');
-            if (btn) { btn.classList.add('cooldown'); btn.disabled = true; btn.innerHTML = "&#128202; Данни (" + CHARTS_COOLDOWN_SEC + ")"; }
+            if (btn) { btn.classList.add('cooldown'); btn.disabled = true; btn.innerHTML = cgIcon("data", 18) + " Данни (" + CHARTS_COOLDOWN_SEC + ")"; }
             return;
           }
           state.screen = "charts"; render();
