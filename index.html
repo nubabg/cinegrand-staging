@@ -42,26 +42,54 @@
         --muted-2: #8592a2;       /* метаданни     ~5.3:1               */
 
         /* ── Бранд ── */
-        --gold: #c87818;          /* марков акцент за плътни площи      */
-        --gold-2: #e9a844;        /* акцент за текст/hover  ~7.4:1      */
+        --gold: #e0891c;          /* марков акцент за плътни площи      */
+        --gold-2: #f0b455;        /* акцент за текст/hover  ~8.7:1      */
         --gold-ink: #17110a;      /* текст върху златна повърхност      */
         --logo-ink: #C49A3A;      /* марков цвят на логото (тъмна тема) */
         --on-fill: #0d1014;       /* текст върху плътен semantic цвят    */
         --on-heat: #ffffff;       /* текст върху клетка на топлинна карта*/
-        --gold-soft: rgba(200,120,24,.14);
-        --gold-line: rgba(200,120,24,.34);
+        --gold-soft: rgba(224,137,28,.14);
+        --gold-line: rgba(224,137,28,.34);
 
-        /* ── Semantic (приглушени, не неонови) ── */
-        --green: #35a56d;         --green-2: #5ec98f;   /* текст ~6.9:1 */
-        --green-dark: #17603f;    --green-soft: rgba(53,165,109,.14);
-        --red: #e06a6a;           --red-2: #f08d8d;     /* текст ~7.2:1 */
-        --red-dark: #7d2b2b;      --red-soft: rgba(224,106,106,.14);
-        --amber: #c9902c;         --amber-2: #e0ac4e;
-        --amber-soft: rgba(201,144,44,.14);
-        --blue: #4f8fd0;          --blue-2: #82b4e8;    /* текст ~7.1:1 */
-        --blue-soft: rgba(79,143,208,.14);
-        --purple: #8b7ad6;        --purple-2: #a99af0;
-        --purple-soft: rgba(139,122,214,.14);
+        /* ── Semantic (наситени, но не неонови) ──
+           Всеки тон държи ≥4.5:1 върху --panel-2, защото служи и за текст. */
+        --green: #3fbf80;         --green-2: #6ad79c;   /* текст ~6.8:1 */
+        --green-dark: #17603f;    --green-soft: rgba(63,191,128,.14);
+        --red: #f0736f;           --red-2: #ff938f;     /* текст ~5.6:1 */
+        --red-dark: #7d2b2b;      --red-soft: rgba(240,115,111,.14);
+        --amber: #e0a63a;         --amber-2: #f2bd5c;
+        --amber-soft: rgba(224,166,58,.14);
+        --blue: #5aa2ee;          --blue-2: #8cc0f8;    /* текст ~6.0:1 */
+        --blue-soft: rgba(90,162,238,.14);
+        --purple: #a58cf5;        --purple-2: #bda9ff;
+        --purple-soft: rgba(165,140,245,.14);
+
+        /* ── Цветове за графики ──
+           Отделени са от текстовите: диаграмите са графика, за която важи
+           праг 3:1, а не 4.5:1. Затова тук тоновете са наситени и живи,
+           докато етикетите остават с текстовите цветове. */
+        --c-brand:  #eda33c;
+        --c-green:  #34d17f;
+        --c-red:    #f4595e;
+        --c-blue:   #4ea3f7;
+        --c-purple: #a98bfa;
+        --c-teal:   #2dd4bf;
+        --c-amber:  #f7b93f;
+        --c-pink:   #f472b6;
+        --c-lime:   #a3e635;
+
+        /* ── Идентичност на залите ──
+           --hall-N е наситеният тон за графика (икони, рамки, ленти) — праг 3:1.
+           --hall-N-rgb го дава като тройка за прозрачните подложки.
+           --hall-N-t е текстовият вариант; той служи и за плътен фон
+           под --on-fill, затова държи 4.5:1 и в двете посоки. */
+        --hall-1: #ff7a5c;  --hall-1-rgb: 255,122,92;  --hall-1-t: #ff8f74;   /* тухла */
+        --hall-2: #f5b23c;  --hall-2-rgb: 245,178,60;  --hall-2-t: #f7c05c;   /* охра */
+        --hall-3: #a98bfa;  --hall-3-rgb: 169,139,250;  --hall-3-t: #b9a0ff;   /* виолетово */
+        --hall-4: #2fc9d8;  --hall-4-rgb: 47,201,216;  --hall-4-t: #4bd6e2;   /* тюркоаз */
+        --hall-5: #f472b6;  --hall-5-rgb: 244,114,182;  --hall-5-t: #f98fc6;   /* слива */
+        --hall-6: #a3e635;  --hall-6-rgb: 163,230,53;  --hall-6-t: #b2ec55;   /* маслина */
+        --hall-0: #8fa0b3;  --hall-0-rgb: 143,160,179;  --hall-0-t: #a3b4c6;   /* без номер */
 
         /* ── Височина: меки, не тежки сенки ── */
         --shadow-1: 0 1px 2px rgba(0,0,0,.35);
@@ -137,25 +165,44 @@
         --muted: #56606e;
         --muted-2: #5f6a78;
 
-        --gold: #95590b;
-        --gold-2: #7d4c0e;
+        --gold: #a84f07;
+        --gold-2: #8c4106;
         --gold-ink: #ffffff;
         --logo-ink: #172A3A;      /* марков цвят на логото (светла тема) */
-        --gold-soft: rgba(149,89,11,.10);
-        --gold-line: rgba(149,89,11,.32);
+        --gold-soft: rgba(168,79,7,.10);
+        --gold-line: rgba(168,79,7,.32);
         --on-fill: #ffffff;
         --on-heat: #ffffff;
 
-        --green: #227a4e;   --green-2: #1a6641;
-        --green-dark: #1a6641; --green-soft: rgba(34,122,78,.10);
-        --red: #b83f37;     --red-2: #9c3029;
-        --red-dark: #9c3029;   --red-soft: rgba(184,63,55,.10);
-        --amber: #8a6112;   --amber-2: #74510f;
-        --amber-soft: rgba(138,97,18,.10);
-        --blue: #2c6ca8;    --blue-2: #22568a;
-        --blue-soft: rgba(44,108,168,.10);
-        --purple: #6d5cc0;  --purple-2: #5b4bab;
-        --purple-soft: rgba(109,92,192,.10);
+        --green: #0f7a45;   --green-2: #0b6238;
+        --green-dark: #0b6238; --green-soft: rgba(15,122,69,.10);
+        --red: #c62a26;     --red-2: #a51f1c;
+        --red-dark: #a51f1c;   --red-soft: rgba(198,42,38,.10);
+        --amber: #965404;   --amber-2: #7c4503;
+        --amber-soft: rgba(150,84,4,.10);
+        --blue: #1668c4;    --blue-2: #1153a0;
+        --blue-soft: rgba(22,104,196,.10);
+        --purple: #6b41d8;  --purple-2: #5834b5;
+        --purple-soft: rgba(107,65,216,.10);
+
+        --c-brand:  #c2660a;
+        --c-green:  #16a34a;
+        --c-red:    #dc2626;
+        --c-blue:   #2563eb;
+        --c-purple: #7c3aed;
+        --c-teal:   #0d9488;
+        --c-amber:  #b8860b;
+        --c-pink:   #db2777;
+        --c-lime:   #5c920c;
+
+        /* Идентичност на залите — виж коментара в основната палитра. */
+        --hall-1: #d9451f;  --hall-1-rgb: 217,69,31;  --hall-1-t: #ad2e11;   /* тухла */
+        --hall-2: #bd7c00;  --hall-2-rgb: 189,124,0;  --hall-2-t: #815800;   /* охра */
+        --hall-3: #6d4ceb;  --hall-3-rgb: 109,76,235;  --hall-3-t: #5133c9;   /* виолетово */
+        --hall-4: #0b8f9c;  --hall-4-rgb: 11,143,156;  --hall-4-t: #08656d;   /* тюркоаз */
+        --hall-5: #cc3f92;  --hall-5-rgb: 204,63,146;  --hall-5-t: #9e246a;   /* слива */
+        --hall-6: #55911c;  --hall-6-rgb: 85,145,28;  --hall-6-t: #3c6a10;   /* маслина */
+        --hall-0: #5c6b7f;  --hall-0-rgb: 92,107,127;   --hall-0-t: #48566a;   /* без номер */
 
         --shadow-1: 0 1px 2px rgba(16,24,40,.06);
         --shadow-2: 0 2px 8px rgba(16,24,40,.08);
@@ -169,11 +216,92 @@
 
         color-scheme: light;
       }
+      /* ══════════════════════════════════════════════════════════════
+         ОРАНЖЕВА ТЕМА — светла работна повърхност с оранжев акцент и
+         петролено син контрапункт. Същата система, трети набор стойности.
+         Контрастите са проверени по същия критерий като другите две.
+         ══════════════════════════════════════════════════════════════ */
+      :root[data-theme="orange"] {
+        --bg: #f5f6f8;
+        --bg-2: #ebedf0;
+        --panel: #ffffff;
+        --panel-2: #f1f3f6;
+        --panel-3: #f9fafb;
+        --panel-2-hover: #e7eaee;
+        --row-alt: rgba(31,42,55,.022);
+        --surface: var(--panel);
+        --surface-raised: var(--panel-2);
+        --surface-sunken: var(--panel-3);
+
+        --border: #e5e8ec;
+        --border-strong: #cdd3da;
+        --border-subtle: #eff1f4;
+        --border-control: #727d8b;
+
+        --text: #1f2a37;
+        --muted: #525c68;
+        --muted-2: #5a6470;
+
+        /* Марковият акцент тук е оранжев */
+        --gold: #bb400a;
+        --gold-2: #9c3507;
+        --gold-ink: #ffffff;
+        --gold-soft: rgba(187,64,10,.10);
+        --gold-line: rgba(187,64,10,.32);
+        --logo-ink: #134b5f;      /* логото застава в петролено синьо */
+        --on-fill: #ffffff;
+        --on-heat: #ffffff;
+
+        --green: #0f7a45;   --green-2: #0b6238;
+        --green-dark: #0b6238; --green-soft: rgba(15,122,69,.10);
+        --red: #c62a26;     --red-2: #a51f1c;
+        --red-dark: #a51f1c;   --red-soft: rgba(198,42,38,.10);
+        --amber: #965404;   --amber-2: #7c4503;
+        --amber-soft: rgba(150,84,4,.10);
+        --blue: #0d6f8c;    --blue-2: #0a5a73;   /* петрол */
+        --blue-soft: rgba(13,111,140,.10);
+        --purple: #6b41d8;  --purple-2: #5834b5;
+        --purple-soft: rgba(107,65,216,.10);
+
+        --c-brand:  #ea580c;
+        --c-green:  #16a34a;
+        --c-red:    #dc2626;
+        --c-blue:   #0e7490;
+        --c-purple: #7c3aed;
+        --c-teal:   #0d9488;
+        --c-amber:  #b8860b;
+        --c-pink:   #db2777;
+        --c-lime:   #5c920c;
+
+        /* Идентичност на залите — виж коментара в основната палитра. */
+        --hall-1: #d9451f;  --hall-1-rgb: 217,69,31;  --hall-1-t: #ad2e11;   /* тухла */
+        --hall-2: #bd7c00;  --hall-2-rgb: 189,124,0;  --hall-2-t: #815800;   /* охра */
+        --hall-3: #6d4ceb;  --hall-3-rgb: 109,76,235;  --hall-3-t: #5133c9;   /* виолетово */
+        --hall-4: #0b8f9c;  --hall-4-rgb: 11,143,156;  --hall-4-t: #08656d;   /* тюркоаз */
+        --hall-5: #cc3f92;  --hall-5-rgb: 204,63,146;  --hall-5-t: #9e246a;   /* слива */
+        --hall-6: #55911c;  --hall-6-rgb: 85,145,28;  --hall-6-t: #3c6a10;   /* маслина */
+        --hall-0: #5c6b7f;  --hall-0-rgb: 92,107,127;   --hall-0-t: #48566a;   /* без номер */
+
+        --shadow-1: 0 1px 2px rgba(31,42,55,.06);
+        --shadow-2: 0 2px 8px rgba(31,42,55,.08);
+        --shadow-3: 0 16px 40px rgba(31,42,55,.16);
+        --shadow: var(--shadow-2);
+
+        --selection-bg: rgba(194,65,12,.18);
+        --selection-fg: #1f2a37;
+
+        --focus-ring: 0 0 0 2px var(--panel), 0 0 0 4px var(--gold);
+
+        color-scheme: light;
+      }
+
       /* Атмосферният слой е ефект за тъмната тема — на светъл фон
          петната изглеждат като зацапване, затова се неутрализират. */
-      :root[data-theme="light"] .bloom-layer { display: none; }
+      :root[data-theme="light"] .bloom-layer,
+      :root[data-theme="orange"] .bloom-layer { display: none; }
       /* Полетата за дата ползват системна палитра */
-      :root[data-theme="light"] .day-date-input { color-scheme: light; }
+      :root[data-theme="light"] .day-date-input,
+      :root[data-theme="orange"] .day-date-input { color-scheme: light; }
       * { box-sizing: border-box; }
       html, body { min-height: 100%; }
       body {
@@ -690,7 +818,7 @@
       .pill.bad { color: var(--red-2);   background: var(--red-soft); }
 
       .progress { height: 6px; background: var(--panel-3); border-radius: var(--r-pill); overflow: hidden; }
-      .progress > div { height: 100%; background: var(--gold); transition: width .3s ease; }
+      .progress > div { height: 100%; background: var(--c-brand); transition: width .3s ease; }
 
       .tabs { display: flex; gap: var(--s2); flex-wrap: wrap; }
       .tab {
@@ -861,12 +989,12 @@
         background: var(--panel-3); border-radius: var(--r-pill); height: 8px; width: 100%; max-width: 200px;
       }
       .charts-bar-fill {
-        background: var(--gold); border-radius: var(--r-pill); height: 100%;
+        background: var(--c-brand); border-radius: var(--r-pill); height: 100%;
       }
-      .charts-bar-fill--green { background: var(--green); }
-      .charts-bar-fill--red { background: var(--red); }
-      .charts-bar-fill--blue { background: var(--blue); }
-      .charts-bar-fill--purple { background: var(--purple); }
+      .charts-bar-fill--green { background: var(--c-green); }
+      .charts-bar-fill--red { background: var(--c-red); }
+      .charts-bar-fill--blue { background: var(--c-blue); }
+      .charts-bar-fill--purple { background: var(--c-purple); }
       .charts-html-list { display: flex; flex-direction: column; gap: var(--s2); }
       .charts-html-row { display: flex; align-items: center; gap: var(--s3); font-size: var(--fs-body); padding: var(--s1) 0; border-radius: var(--r-sm); transition: background .15s ease; }
       .charts-html-row:hover { background: var(--panel-2); }
@@ -890,19 +1018,19 @@
       .charts-vertical-wrap { display: flex; align-items: flex-end; gap: 12px; height: 200px; padding: 0 8px; }
       .charts-vertical-col { flex: 1; min-width: 36px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
       .daily-bar-track { width: 100%; height: 150px; display: flex; flex-direction: column; justify-content: flex-end; background: var(--panel-3); border-radius: var(--r-sm) var(--r-sm) 0 0; overflow: hidden; }
-      .daily-bar-fill { width: 100%; min-height: 8px; border-radius: 6px 6px 0 0; background: var(--gold); transition: height .25s ease; }
+      .daily-bar-fill { width: 100%; min-height: 8px; border-radius: 6px 6px 0 0; background: var(--c-brand); transition: height .25s ease; }
       /* Hourly histogram */
       .hourly-histogram { display: flex; align-items: flex-end; gap: 4px; height: 200px; padding: 0 4px; }
       .hourly-col { flex: 1; min-width: 14px; display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; }
       .hourly-bar-track { width: 100%; height: 160px; display: flex; flex-direction: column; justify-content: flex-end; background: var(--panel-3); border-radius: var(--r-sm) var(--r-sm) 0 0; overflow: visible; }
-      .hourly-bar-fill { width: 100%; min-height: 2px; border-radius: var(--r-sm) var(--r-sm) 0 0; background: var(--purple); transition: height .25s ease; }
+      .hourly-bar-fill { width: 100%; min-height: 2px; border-radius: var(--r-sm) var(--r-sm) 0 0; background: var(--c-purple); transition: height .25s ease; }
       .hourly-label { font-size: 9px; color: var(--muted-2); }
       .hourly-value { font-size: 9px; font-weight: 700; color: var(--text); }
       /* Leaderboard */
       .leaderboard-item { display: flex; align-items: center; gap: var(--s3); padding: var(--s2) var(--s3); border-radius: var(--r-sm); margin-bottom: var(--s1); transition: background .15s ease; }
       .leaderboard-item:hover { background: var(--panel-2); }
       .leaderboard-rank { width: 26px; height: 26px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: var(--fs-meta); flex-shrink: 0; }
-      .leaderboard-rank.top1 { background: var(--gold); color: var(--gold-ink); }
+      .leaderboard-rank.top1 { background: var(--c-brand); color: var(--on-fill); }
       .leaderboard-rank.top2 { background: var(--border-control); color: var(--text); }
       .leaderboard-rank.top3 { background: var(--border-strong); color: var(--text); }
       .leaderboard-rank.other { background: var(--panel-3); color: var(--muted); }
@@ -913,9 +1041,9 @@
       .issue-item { display: flex; align-items: center; gap: var(--s3); padding: var(--s2) var(--s3); border-radius: var(--r-sm); margin-bottom: var(--s1); border-left: 3px solid var(--red); background: var(--red-soft); transition: background .15s ease; }
       .issue-item:hover { background: rgba(224,106,106,.2); }
       .issue-severity { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-      .issue-severity.high { background: var(--red); }
-      .issue-severity.med { background: var(--gold); }
-      .issue-severity.low { background: var(--muted); }
+      .issue-severity.high { background: var(--c-red); }
+      .issue-severity.med { background: var(--c-amber); }
+      .issue-severity.low { background: var(--muted-2); }
       .issue-count { font-weight: 700; color: var(--red-2); min-width: 24px; text-align: right; }
       .issue-pct { font-size: var(--fs-micro); color: var(--muted); }
       /* Grouped distribution */
@@ -939,13 +1067,13 @@
       .chart-card:hover { border-color: var(--border-strong); }
       /* Категорията на картата се маркира с тънка лента отгоре, не с фонов градиент */
       .chart-card::before {
-        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-        background: var(--gold);
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+        background: var(--c-brand);
         pointer-events: none;
       }
-      .chart-card.card-donut::before  { background: var(--green); }
-      .chart-card.card-issues::before { background: var(--red); }
-      .chart-card.card-time::before   { background: var(--purple); }
+      .chart-card.card-donut::before  { background: var(--c-green); }
+      .chart-card.card-issues::before { background: var(--c-red); }
+      .chart-card.card-time::before   { background: var(--c-purple); }
       .chart-title {
         font-weight: 600; font-size: var(--fs-card); color: var(--text); margin-bottom: 2px;
         font-family: var(--font-display); letter-spacing: 0;
@@ -1765,28 +1893,6 @@
 
       /* ── Constants ── */
       const HALLS = ["Зала 1", "Зала 2", "Зала 3", "Зала 4", "Зала 5", "Зала 6"];
-      const HALL_GOLD_ICON = `
-        <svg viewBox="0 0 96 96" width="40" height="40" aria-hidden="true">
-          <defs>
-            <clipPath id="clapClipSm">
-              <rect x="8" y="8" width="80" height="20"/>
-            </clipPath>
-          </defs>
-          <rect x="8" y="34" width="80" height="54" rx="5" fill="#1e1e1e" stroke="#505050" stroke-width="1.5"/>
-          <line x1="9" y1="48" x2="87" y2="48" stroke="#363636" stroke-width="1"/>
-          <line x1="9" y1="60" x2="87" y2="60" stroke="#363636" stroke-width="1"/>
-          <line x1="9" y1="72" x2="87" y2="72" stroke="#363636" stroke-width="1"/>
-          <line x1="30" y1="35" x2="30" y2="87" stroke="#363636" stroke-width="1"/>
-          <rect x="6" y="26" width="84" height="10" rx="2" fill="#282828" stroke="#505050" stroke-width="1.5"/>
-          <rect x="8" y="8" width="80" height="20" fill="#eeeeee"/>
-          <g clip-path="url(#clapClipSm)">
-            <polygon points="8,28 20,28 40,8 28,8" fill="#111111"/>
-            <polygon points="32,28 44,28 64,8 52,8" fill="#111111"/>
-            <polygon points="56,28 68,28 88,8 76,8" fill="#111111"/>
-            <polygon points="80,28 88,28 88,20" fill="#111111"/>
-          </g>
-          <rect x="8" y="8" width="80" height="20" fill="none" stroke="#333333" stroke-width="1.5"/>
-        </svg>`;
       const BATHROOMS = [
         "Дамска тоалетна",
         "Мъжка тоалетна",
@@ -1844,9 +1950,13 @@
 
       /* ── Тема на интерфейса (тъмна / светла) ── */
       const THEME_KEY = "cg_theme";
+      /* Наличните палитри. Първата е по подразбиране. */
+      const THEMES = ["dark", "light", "orange"];
       function currentTheme() {
-        try { return localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark"; }
-        catch (_) { return "dark"; }
+        try {
+          const t = localStorage.getItem(THEME_KEY);
+          return THEMES.includes(t) ? t : THEMES[0];
+        } catch (_) { return THEMES[0]; }
       }
       function applyTheme() {
         document.documentElement.setAttribute("data-theme", currentTheme());
@@ -2732,7 +2842,7 @@
         "Визуални ефекти": "Visual effects",
         "Изключи за по-плавна работа на слаби устройства": "Turn off for smoother performance on slower devices",
         "Вкл": "On", "Изкл": "Off", "Търси функция": "Search",
-        "Тъмна": "Dark", "Светла": "Light", "Затвори": "Close",
+        "Тъмна": "Dark", "Светла": "Light", "Оранжева": "Orange", "Затвори": "Close",
         "Контрол на хигиена": "Hygiene Control", "Парк Център София": "Park Center Sofia",
         /* Home */
         "Контрол на Хигиената": "Hygiene Control",
@@ -2895,18 +3005,18 @@
       const ENDED_STICKY_MS = 5 * 60 * 1000;
 
       /* Цвят-идентичност на всяка зала — за бързо разпознаване в списъци и
-         табла. Приглушени тонове с еднаква яркост, за да не се съревновават
-         със semantic цветовете (зелено/червено/кехлибар = състояние).
-         c=hex, g=RGB за прозрачни варианти. */
-      const HALL_COLORS = {
-        1: { c: "#c9705f", g: "201,112,95"  }, // тухла
-        2: { c: "#c2913c", g: "194,145,60"  }, // охра
-        3: { c: "#8b7ad6", g: "139,122,214" }, // виолетово
-        4: { c: "#4f97a8", g: "79,151,168"  }, // тюркоаз
-        5: { c: "#b06f9c", g: "176,111,156" }, // слива
-        6: { c: "#7a9e55", g: "122,158,85"  }, // маслина
-      };
-      function hallColor(n) { return HALL_COLORS[n] || { c: "#7f8b9a", g: "127,139,154" }; }
+         табла. Стойностите идват от --hall-* токените, за да са наситени в
+         тъмната палитра и достатъчно тъмни в светлите, без да се сменя кодът.
+         c = наситеният тон за графика, g = RGB тройка за прозрачни подложки,
+         t = текстовият вариант (и плътен фон под --on-fill). */
+      const HALL_COLORS = (() => {
+        const m = {};
+        for (let i = 1; i <= 6; i++) {
+          m[i] = { c: `var(--hall-${i})`, g: `var(--hall-${i}-rgb)`, t: `var(--hall-${i}-t)` };
+        }
+        return m;
+      })();
+      function hallColor(n) { return HALL_COLORS[n] || { c: "var(--hall-0)", g: "var(--hall-0-rgb)", t: "var(--hall-0-t)" }; }
 
       /* Връща залите, свършили в последните 5 мин (задържани дори таблото да ги е сменило). */
       /* Прогрес на течаща прожекция: докъде е стигнала (0–100%).
@@ -3144,9 +3254,9 @@
         if (!NEXTCLEAN_PROXY_URL) return "";
         const hasData = _nextCleanShows.length > 0;
 
-        const hallBadge = (hc, num, forDark) => `<div style="width:54px;height:54px;border-radius:var(--r-md);background:${forDark ? hc.c : `rgba(${hc.g},.16)`};border:1px solid rgba(${hc.g},.45);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
-            <span style="font-size:var(--fs-micro);font-weight:700;letter-spacing:.1em;color:${forDark ? 'var(--on-fill)' : `rgba(${hc.g},.9)`};font-family:'Oswald',sans-serif;line-height:1;">ЗАЛА</span>
-            <span style="font-size:22px;font-weight:700;color:${forDark ? '#0a0a0a' : hc.c};font-family:'Oswald',sans-serif;line-height:1;margin-top:1px;">${num}</span>
+        const hallBadge = (hc, num, forDark) => `<div style="width:54px;height:54px;border-radius:var(--r-md);background:${forDark ? hc.t : `rgba(${hc.g},.16)`};border:1px solid rgba(${hc.g},.45);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
+            <span style="font-size:var(--fs-micro);font-weight:700;letter-spacing:.1em;color:${forDark ? 'var(--on-fill)' : hc.t};font-family:'Oswald',sans-serif;line-height:1;">ЗАЛА</span>
+            <span style="font-size:22px;font-weight:700;color:${forDark ? 'var(--on-fill)' : hc.t};font-family:'Oswald',sans-serif;line-height:1;margin-top:1px;">${num}</span>
           </div>`;
 
         /* Блок със зрителите. При липсващи данни показва „—", за да е ясно, че
@@ -3259,7 +3369,7 @@
           const isNext = nextMin != null && mins != null && mins === nextMin;
           const cntTxt = mins == null ? "" : (mins <= 0 ? "всеки момент" : "след " + mins + " мин");
           return `<div class="${isNext ? "cg-next-card" : ""}" style="${isNext ? `--n-glow:rgba(${hc.g},.5);` : ""}position:relative;display:flex;align-items:center;gap:14px;padding:${isNext ? "15px 16px" : "12px 14px"};border-radius:var(--r-md);background:${isNext ? `rgba(${hc.g},.14)` : "var(--panel-2)"};border:${isNext ? `1px solid ${hc.c}` : `1px dashed var(--border)`};${isNext ? "" : "opacity:.72;"}">
-            ${isNext ? `<span class="cg-next-pill" style="position:absolute;top:-9px;left:14px;font-size:var(--fs-micro);font-weight:700;letter-spacing:.1em;color:var(--on-fill);background:${hc.c};padding:3px 10px;border-radius:var(--r-pill);white-space:nowrap;">▶ СЛЕДВАЩА</span>` : ""}
+            ${isNext ? `<span class="cg-next-pill" style="position:absolute;top:-9px;left:14px;font-size:var(--fs-micro);font-weight:700;letter-spacing:.1em;color:var(--on-fill);background:${hc.t};padding:3px 10px;border-radius:var(--r-pill);white-space:nowrap;">▶ СЛЕДВАЩА</span>` : ""}
             ${hallBadge(hc, s.hallNum, isNext)}
             <div style="flex:1;min-width:0;">
               <div style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;">
@@ -3267,7 +3377,7 @@
                 ${extra && extra.format ? `<span style="flex-shrink:0;font-size:var(--fs-micro);font-weight:700;color:var(--on-fill);background:var(--gold-2);padding:2px 8px;border-radius:var(--r-pill);letter-spacing:.06em;">${escapeHtml(extra.format)}</span>` : ""}
                 ${isNext ? "" : `<span style="flex-shrink:0;color:var(--muted-2);display:inline-flex;">${cgIcon("play-next", 14)}</span>`}
               </div>
-              <div style="font-size:${isNext ? "12.5px" : "11.5px"};color:${isNext ? hc.c : "var(--muted)"};font-weight:${isNext ? "700" : "600"};margin-top:3px;">${bits.join(" · ")}${cntTxt ? ` · <b>${cntTxt}</b>` : ""}</div>
+              <div style="font-size:${isNext ? "12.5px" : "11.5px"};color:${isNext ? hc.t : "var(--muted)"};font-weight:${isNext ? "700" : "600"};margin-top:3px;">${bits.join(" · ")}${cntTxt ? ` · <b>${cntTxt}</b>` : ""}</div>
             </div>
             ${occBlock}
           </div>`;
@@ -4959,7 +5069,7 @@
             buildChartsFromData(container, _cachedChartRows);
           } else {
             container.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--muted);">
-              <div style="font-size:28px;margin-bottom:12px;">&#128202;</div>
+              <div style="margin-bottom:12px;color:var(--muted-2);">${cgIcon("data", 28)}</div>
               <div style="font-weight:600;margin-bottom:8px;">Презареди страницата (F5)</div>
               <div style="font-size:var(--fs-body);">за да заредиш данните от Google Sheets.</div>
             </div>`;
@@ -5135,7 +5245,7 @@
               <div class="chart-subtitle">Обща оценка на всички проверки</div>
               <div class="chart-wrap" style="min-height:240px;">
                 <div class="charts-donut-wrap">
-                  <div class="charts-donut" style="background:conic-gradient(var(--green) 0% ${cleanPct}%, var(--red) ${cleanPct}% 100%);">
+                  <div class="charts-donut" style="background:conic-gradient(var(--c-green) 0% ${cleanPct}%, var(--c-red) ${cleanPct}% 100%);">
                     <div class="charts-donut-center" style="background:var(--panel-2);"><span style="font-size:28px;font-weight:700;color:var(--green);">${cleanPct}%</span><span style="font-size:var(--fs-micro);color:var(--muted);">ЧИСТО</span></div>
                   </div>
                   <div style="display:flex;flex-direction:column;gap:10px;">
@@ -5169,7 +5279,7 @@
                 <div>${inspEntries.map(([name, count], i) => {
                   const pct = Math.round(count/maxInsp*100);
                   const rankCls = i === 0 ? 'top1' : i === 1 ? 'top2' : i === 2 ? 'top3' : 'other';
-                  const col = 'var(--gold)';
+                  const col = 'var(--c-brand)';
                   return `<div class="leaderboard-item"><span class="leaderboard-rank ${rankCls}">${i+1}</span><span class="leaderboard-avatar">${getInitials(name)}</span><span style="flex:1;font-weight:600;">${escapeHtml(name)}</span><div class="leaderboard-bar"><div class="leaderboard-bar-fill" style="width:${pct}%;background:${col};"></div></div><span style="font-weight:700;min-width:28px;">${count}</span></div>`;
                 }).join('')}</div>
               </div>
@@ -5195,7 +5305,7 @@
               <div class="chart-subtitle">Разпределение по зали и тоалетни</div>
               <div class="chart-wrap" style="min-height:240px;">
                 ${hallLocs.length ? `<div class="zone-group"><div class="zone-group-title" style="display:flex;align-items:center;gap:6px;">${cgIcon("hall", 14)} Кинозали</div>${hallLocs.map(([loc, count]) => { const pct = maxLoc ? Math.round(count/maxLoc*100) : 0; return `<div class="zone-item"><span style="min-width:100px;">${escapeHtml(loc)}</span><div class="charts-bar-bg"><div class="charts-bar-fill charts-bar-fill--blue" style="width:${pct}%;"></div></div><span style="font-weight:600;">${count}</span></div>`; }).join('')}</div>` : ''}
-                ${toiletLocs.length ? `<div class="zone-group"><div class="zone-group-title" style="display:flex;align-items:center;gap:6px;">${cgIcon("restroom-women", 14)} Тоалетни</div>${toiletLocs.map(([loc, count]) => { const pct = maxLoc ? Math.round(count/maxLoc*100) : 0; return `<div class="zone-item"><span style="min-width:100px;">${escapeHtml(loc)}</span><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${pct}%;background:var(--blue-2);"></div></div><span style="font-weight:600;">${count}</span></div>`; }).join('')}</div>` : ''}
+                ${toiletLocs.length ? `<div class="zone-group"><div class="zone-group-title" style="display:flex;align-items:center;gap:6px;">${cgIcon("restroom-women", 14)} Тоалетни</div>${toiletLocs.map(([loc, count]) => { const pct = maxLoc ? Math.round(count/maxLoc*100) : 0; return `<div class="zone-item"><span style="min-width:100px;">${escapeHtml(loc)}</span><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${pct}%;background:var(--c-teal);"></div></div><span style="font-weight:600;">${count}</span></div>`; }).join('')}</div>` : ''}
                 ${!hallLocs.length && !toiletLocs.length ? '<div class="chart-empty">Няма данни по локации</div>' : ''}
               </div>
             </div>
@@ -5255,7 +5365,9 @@
           <div class="toolbar">
             <div>
               <h1 class="hero-title" style="display:flex;align-items:center;gap:12px;">
-                ${cgIcon(state.inspectionType === "hall" ? "hall" : "restroom-women", 26)}
+                ${state.inspectionType === "hall"
+                  ? `<span style="display:inline-flex;color:${hallColor(parseInt(String(state.location || "").replace(/\D+/g, ""), 10)).c};">${cgIcon("hall", 26)}</span>`
+                  : `<span style="display:inline-flex;color:var(--gold-2);">${cgIcon(/жен|дамск/i.test(String(state.location || "")) ? "restroom-women" : "restroom-men", 26)}</span>`}
                 ${config.title}
               </h1>
               <div class="muted">${isSheetsConfigured() ? "Данните ще се изпратят автоматично към Google Sheets след запис." : "Локален запис в браузъра."}</div>
@@ -5599,6 +5711,7 @@
               <div class="seg" role="group" aria-label="Тема">
                 ${seg("set-theme", "theme", "dark", "Тъмна", theme === "dark")}
                 ${seg("set-theme", "theme", "light", "Светла", theme === "light")}
+                ${seg("set-theme", "theme", "orange", "Оранжева", theme === "orange")}
               </div>
             </div>
 
@@ -5772,17 +5885,16 @@
       }
 
 
+      /* Всяка зала носи цвета си и в избора за проверка — същата идентичност
+         както на таблото. Иконата идва от рендера (авторската cg-hall);
+         тук ѝ подаваме само цвета, за да не се подменя разметката. */
       function decorateHallSelectionIcons() {
         if (state.screen !== "select-hall" || state.inspectionType !== "hall") return;
-        document.querySelectorAll('[data-action="select-hall-location"] > div:first-child').forEach((iconWrap) => {
-          if (iconWrap.dataset.goldApplied === "1") return;
-          iconWrap.innerHTML = `<span style="display:flex;justify-content:center;align-items:center;pointer-events:none;">${HALL_GOLD_ICON}</span>`;
-          iconWrap.style.display = "flex";
-          iconWrap.style.justifyContent = "center";
-          iconWrap.style.alignItems = "center";
-          iconWrap.style.minHeight = "46px";
-          iconWrap.style.marginBottom = "8px";
-          iconWrap.style.filter = "drop-shadow(0 3px 8px rgba(0,0,0,.4))";
+        document.querySelectorAll('[data-action="select-hall-location"]').forEach((btn) => {
+          const iconWrap = btn.querySelector("div");
+          if (!iconWrap || iconWrap.dataset.goldApplied === "1") return;
+          const n = parseInt(String(btn.dataset.location || "").replace(/\D+/g, ""), 10);
+          iconWrap.style.color = hallColor(n).c;
           iconWrap.style.pointerEvents = "none";
           iconWrap.dataset.goldApplied = "1";
         });
@@ -6545,7 +6657,8 @@
           return;
         }
         if (action === "set-theme") {
-          const next = btn.dataset.theme === "light" ? "light" : "dark";
+          const chosen = btn.dataset.theme;
+          const next = THEMES.includes(chosen) ? chosen : THEMES[0];
           try { localStorage.setItem(THEME_KEY, next); } catch (_) {}
           applyTheme();
           render();
@@ -6568,7 +6681,7 @@
               const btn = document.querySelector('[data-action="go-charts"]');
               if (btn) {
                 const inCooldown = chartsCooldownUntil > Date.now();
-                btn.innerHTML = inCooldown ? "&#128202; Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : "&#128202; Данни";
+                btn.innerHTML = cgIcon("data", 18) + (inCooldown ? " Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : " Данни");
                 btn.classList.toggle('cooldown', inCooldown);
                 btn.disabled = inCooldown;
               }
@@ -6578,7 +6691,7 @@
           if (state.screen === "charts") {
             /* Вече сме на Данни — не презареждаме, данните остават; само обновяваме бутона */
             const btn = document.querySelector('[data-action="go-charts"]');
-            if (btn) { btn.classList.add('cooldown'); btn.disabled = true; btn.innerHTML = "&#128202; Данни (" + CHARTS_COOLDOWN_SEC + ")"; }
+            if (btn) { btn.classList.add('cooldown'); btn.disabled = true; btn.innerHTML = cgIcon("data", 18) + " Данни (" + CHARTS_COOLDOWN_SEC + ")"; }
             return;
           }
           state.screen = "charts"; render();
