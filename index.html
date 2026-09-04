@@ -90,6 +90,9 @@
         --hall-5: #f472b6;  --hall-5-rgb: 244,114,182;  --hall-5-t: #f98fc6;   /* слива */
         --hall-6: #a3e635;  --hall-6-rgb: 163,230,53;  --hall-6-t: #b2ec55;   /* маслина */
         --hall-0: #8fa0b3;  --hall-0-rgb: 143,160,179;  --hall-0-t: #a3b4c6;   /* без номер */
+        /* Линията на иконите: златна в тъмната тема, както е зададена в
+           иконния пакет; в светлите остава неутрална. */
+        --icon-nav: #e1a53f;
 
         /* ── Височина: меки, не тежки сенки ── */
         --shadow-1: 0 1px 2px rgba(0,0,0,.35);
@@ -203,6 +206,7 @@
         --hall-5: #cc3f92;  --hall-5-rgb: 204,63,146;  --hall-5-t: #9e246a;   /* слива */
         --hall-6: #55911c;  --hall-6-rgb: 85,145,28;  --hall-6-t: #3c6a10;   /* маслина */
         --hall-0: #5c6b7f;  --hall-0-rgb: 92,107,127;   --hall-0-t: #48566a;   /* без номер */
+        --icon-nav: #536071;
 
         --shadow-1: 0 1px 2px rgba(16,24,40,.06);
         --shadow-2: 0 2px 8px rgba(16,24,40,.08);
@@ -281,6 +285,7 @@
         --hall-5: #cc3f92;  --hall-5-rgb: 204,63,146;  --hall-5-t: #9e246a;   /* слива */
         --hall-6: #55911c;  --hall-6-rgb: 85,145,28;  --hall-6-t: #3c6a10;   /* маслина */
         --hall-0: #5c6b7f;  --hall-0-rgb: 92,107,127;   --hall-0-t: #48566a;   /* без номер */
+        --icon-nav: #536071;
 
         --shadow-1: 0 1px 2px rgba(31,42,55,.06);
         --shadow-2: 0 2px 8px rgba(31,42,55,.08);
@@ -585,6 +590,11 @@
       }
       .nav-btn.state::after { opacity: 1; }
       .nav-btn.cooldown { opacity: .5; cursor: not-allowed; pointer-events: none; }
+      /* Иконите носят цвета от иконния пакет — златна линия в тъмната тема.
+         Активният и посоченият ред минават към акцентното злато. */
+      .nav-btn .cg-icon { color: var(--icon-nav); }
+      .nav-btn:hover .cg-icon,
+      .nav-btn.state .cg-icon { color: var(--gold-2); }
 
       .page { padding: 0 0 var(--s6); }
       .grid { display: grid; gap: var(--s3); }
