@@ -768,6 +768,8 @@
       .item-row.dirty { border-left-color: var(--red);   background: var(--red-soft); }
       .item-row.missing { border-left-color: var(--amber); }
       .item-title { font-weight: 700; margin-bottom: 2px; }
+      /* Иконата на точката стои на реда на текста и носи цвета на темата. */
+      .item-sym { display: inline-flex; vertical-align: -4px; color: var(--icon-nav); }
 
       .status-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
       .status-btn {
@@ -1771,6 +1773,35 @@
       </symbol>
 
       <!-- Премиум лого: марка и хоризонтален вариант -->
+      <symbol id="cg-cup-holders" viewBox="0 0 24 24">
+        <ellipse cx="12" cy="16.25" rx="8.25" ry="4.25" fill="none" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M8.4 5.25h7.2l-.85 10.3a2 2 0 0 1-2 1.85h-1.5a2 2 0 0 1-2-1.85L8.4 5.25Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+        <path d="M7.65 7.8h8.7M10.4 3.25h3.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="cg-cinema-seat" viewBox="0 0 24 24">
+        <rect x="7" y="3.25" width="10" height="10.5" rx="2.75" fill="none" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M5.25 11.25v5a2 2 0 0 0 2 2h9.5a2 2 0 0 0 2-2v-5M7.1 13.75h9.8M8 18.25v2.5M16 18.25v2.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M5.25 14h1.8M16.95 14h1.8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="cg-carpet" viewBox="0 0 24 24">
+        <path d="M5.25 4.25h11.5a2 2 0 0 1 2 2v11.5a2 2 0 0 1-2 2H5.25V4.25Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+        <path d="M18.75 7.25h.5a2 2 0 0 1 0 4h-.5M8 7.5l2 2-2 2 2 2-2 2 2 2M13.75 7.5l2 2-2 2 2 2-2 2 2 2M5.25 19.75v1M8.25 19.75v1M11.25 19.75v1M14.25 19.75v1M17.25 19.75v1" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="cg-surface" viewBox="0 0 24 24">
+        <rect x="3.25" y="10" width="17.5" height="4.25" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M5.25 14.25v5.5M18.75 14.25v5.5M3.75 19.75h3M17.25 19.75h3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+        <path d="M16.75 3.25v4M14.75 5.25h4M8 5.25v2M7 6.25h2" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="cg-hard-floor" viewBox="0 0 24 24">
+        <path d="M5.25 7.25h13.5l2 13.5H3.25l2-13.5Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+        <path d="M9.6 7.25 8.75 20.75M14.4 7.25l.85 13.5M4.3 13.8h15.4" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"/>
+        <path d="M18.25 2.75v3M16.75 4.25h3M12.75 3.25v1.5" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="cg-screen-zone" viewBox="0 0 24 24">
+        <rect x="3.25" y="3.25" width="17.5" height="10.5" rx="2.25" fill="none" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M6.25 16h11.5l2.25 4.75H4L6.25 16ZM12 16v4.75M5.25 18.35h13.5" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M7 7.25h10M7 10h6" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+      </symbol>
       <symbol id="cg-logo-mark" viewBox="0 0 256 256" fill="currentColor">
         <path
         style="fill:none;stroke:currentColor;stroke-width:3"
@@ -1912,13 +1943,15 @@
       const CHANGING_ROOM_SHEET_NAME = "Почистване съблекални";
       const SHEETS_SPREADSHEET_ID = "17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA";
 
+      /* sym = авторска икона от иконния пакет; icon остава като резерва за
+         точките, за които още няма нарисуван символ (санитарният възел). */
       const HALL_ITEMS = [
-        { id: "cup_holders", label: "Cup Holders", icon: "☕", desc: "Поставки за чаши" },
-        { id: "seats", label: "Седалки", icon: "💺", desc: "Тапицерия и механизъм" },
-        { id: "carpet", label: "Мокет", icon: "🟫", desc: "Под и пътеки" },
-        { id: "armrests", label: "Подлакътници", icon: "✋", desc: "Повърхности" },
-        { id: "floor", label: "Под (без мокет)", icon: "🧹", desc: "Твърди настилки" },
-        { id: "screen_area", label: "Зона до екрана", icon: "🎬", desc: "Предна зона" },
+        { id: "cup_holders", label: "Cup Holders", icon: "☕", sym: "cup-holders", desc: "Поставки за чаши" },
+        { id: "seats", label: "Седалки", icon: "💺", sym: "cinema-seat", desc: "Тапицерия и механизъм" },
+        { id: "carpet", label: "Мокет", icon: "🟫", sym: "carpet", desc: "Под и пътеки" },
+        { id: "armrests", label: "Подлакътници", icon: "✋", sym: "surface", desc: "Повърхности" },
+        { id: "floor", label: "Под (без мокет)", icon: "🧹", sym: "hard-floor", desc: "Твърди настилки" },
+        { id: "screen_area", label: "Зона до екрана", icon: "🎬", sym: "screen-zone", desc: "Предна зона" },
       ];
 
       const BATHROOM_ITEMS = [
@@ -5472,7 +5505,7 @@
         return `
           <div class="item-row ${cls}" data-item-id="${item.id}">
             <div>
-              <div class="item-title">${item.icon} ${item.label}</div>
+              <div class="item-title">${item.sym ? `<span class="item-sym">${cgIcon(item.sym, 20)}</span>` : item.icon} ${item.label}</div>
               <div class="muted">${item.desc}</div>
               ${state.showValidation && !value ? `<div style="color:var(--amber-2);font-size:var(--fs-meta);margin-top:4px;">Задължително поле</div>` : ""}
             </div>
