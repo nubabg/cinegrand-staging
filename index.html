@@ -17,66 +17,71 @@
          ══════════════════════════════════════════════════════════════ */
       :root {
         /* ── Повърхности: единна графитна стълбица (тъмно → светло) ── */
-        --bg: #0d1014;            /* работна повърхност на приложението */
-        --bg-2: #090b0e;          /* най-ниското ниво / зад модали      */
-        --panel: #161b21;         /* карти, панели, таблици             */
-        --panel-2: #1c222a;       /* повдигнато: hover, полета, чипове  */
-        --panel-3: #12161b;       /* вдлъбнато: table header, tracks    */
-        --panel-2-hover: #232b34; /* hover върху повдигната повърхност  */
-        --row-alt: rgba(255,255,255,.015); /* зебра в таблиците         */
-        --selection-bg: rgba(200,120,24,.32);
+        --bg: #07080b;            /* работна повърхност на приложението */
+        --bg-2: #050609;          /* най-ниското ниво / зад модали      */
+        /* Фонът не е плосък: два едва доловими светлинни центъра дават
+           дълбочина, без да пипат разположението. */
+        --bg-depth:
+          radial-gradient(1100px 720px at 18% -8%, rgba(96,132,190,.10), transparent 62%),
+          radial-gradient(900px 620px at 102% 2%, rgba(var(--gold-rgb),.06), transparent 58%);
+        --panel: #101319;         /* карти, панели, таблици             */
+        --panel-2: #171b23;       /* повдигнато: hover, полета, чипове  */
+        --panel-3: #0c0f14;       /* вдлъбнато: table header, tracks    */
+        --panel-2-hover: #1e242e; /* hover върху повдигната повърхност  */
+        --row-alt: rgba(255,255,255,.018); /* зебра в таблиците         */
+        --selection-bg: rgba(var(--gold-rgb),.34);
         --selection-fg: #ffffff;
         --surface: var(--panel);
         --surface-raised: var(--panel-2);
         --surface-sunken: var(--panel-3);
 
         /* ── Граници ── */
-        --border: #2a323c;        /* стандартна разделителна линия      */
-        --border-strong: #3a4552; /* hover / подчертано                 */
-        --border-subtle: #212832; /* вътрешни разделители в таблици     */
-        --border-control: #5c6b7d;/* контур на поле/контрола   3.2:1    */
+        --border: #2f3846;        /* стандартна разделителна линия      */
+        --border-strong: #455163; /* hover / подчертано                 */
+        --border-subtle: #232a35; /* вътрешни разделители в таблици     */
+        --border-control: #6b7a8d;/* контур на поле/контрола   4.3:1    */
 
         /* ── Текст (проверен контраст спрямо --panel) ── */
-        --text: #e9edf2;          /* основен      ~14.5:1               */
-        --muted: #a7b2c0;         /* вторичен      ~7.6:1               */
-        --muted-2: #8592a2;       /* метаданни     ~5.3:1               */
+        --text: #ffffff;          /* основен      ~18.6:1               */
+        --muted: #b9c3d0;         /* вторичен     ~10.4:1               */
+        --muted-2: #98a5b5;       /* метаданни     ~7.4:1               */
 
         /* ── Бранд ── */
         --gold: #e0891c;          /* марков акцент за плътни площи      */
         --gold-2: #f0b455;        /* акцент за текст/hover  ~8.7:1      */
         --gold-ink: #17110a;      /* текст върху златна повърхност      */
         --logo-ink: #C49A3A;      /* марков цвят на логото (тъмна тема) */
-        --on-fill: #0d1014;       /* текст върху плътен semantic цвят    */
+        --on-fill: #08090c;       /* текст върху плътен semantic цвят    */
         --on-heat: #ffffff;       /* текст върху клетка на топлинна карта*/
         --gold-soft: rgba(224,137,28,.14);
         --gold-line: rgba(224,137,28,.34);
 
         /* ── Semantic (наситени, но не неонови) ──
            Всеки тон държи ≥4.5:1 върху --panel-2, защото служи и за текст. */
-        --green: #3fbf80;         --green-2: #6ad79c;   /* текст ~6.8:1 */
-        --green-dark: #17603f;    --green-soft: rgba(63,191,128,.14);
-        --red: #f0736f;           --red-2: #ff938f;     /* текст ~5.6:1 */
-        --red-dark: #7d2b2b;      --red-soft: rgba(240,115,111,.14);
-        --amber: #e0a63a;         --amber-2: #f2bd5c;
-        --amber-soft: rgba(224,166,58,.14);
-        --blue: #5aa2ee;          --blue-2: #8cc0f8;    /* текст ~6.0:1 */
-        --blue-soft: rgba(90,162,238,.14);
-        --purple: #a58cf5;        --purple-2: #bda9ff;
-        --purple-soft: rgba(165,140,245,.14);
+        --green: #2fd67f;         --green-2: #5ee89f;   /* текст ~9.1:1 */
+        --green-dark: #0d6b41;    --green-soft: rgba(47,214,127,.14);
+        --red: #ff5a5a;           --red-2: #ff8080;     /* текст ~5.6:1 */
+        --red-dark: #8f1f1f;      --red-soft: rgba(255,90,90,.14);
+        --amber: #ffb02e;         --amber-2: #ffc45c;
+        --amber-soft: rgba(255,176,46,.14);
+        --blue: #4d9cff;          --blue-2: #82bcff;    /* текст ~6.2:1 */
+        --blue-soft: rgba(77,156,255,.14);
+        --purple: #a98bff;        --purple-2: #c0a8ff;
+        --purple-soft: rgba(169,139,255,.14);
 
         /* ── Цветове за графики ──
            Отделени са от текстовите: диаграмите са графика, за която важи
            праг 3:1, а не 4.5:1. Затова тук тоновете са наситени и живи,
            докато етикетите остават с текстовите цветове. */
-        --c-brand:  #eda33c;
-        --c-green:  #34d17f;
-        --c-red:    #f4595e;
-        --c-blue:   #4ea3f7;
-        --c-purple: #a98bfa;
-        --c-teal:   #2dd4bf;
-        --c-amber:  #f7b93f;
-        --c-pink:   #f472b6;
-        --c-lime:   #a3e635;
+        --c-brand:  #ffab35;
+        --c-green:  #10e07a;
+        --c-red:    #ff2d2d;
+        --c-blue:   #2f8bff;
+        --c-purple: #9d7bff;
+        --c-teal:   #1fdcc4;
+        --c-amber:  #ffb020;
+        --c-pink:   #ff5fb0;
+        --c-lime:   #a9f03a;
 
         /* ── Идентичност на залите ──
            --hall-N е наситеният тон за графика (икони, рамки, ленти) — праг 3:1.
@@ -94,10 +99,20 @@
            иконния пакет; в светлите остава неутрална. */
         --icon-nav: #e1a53f;
 
+        /* RGB тройки за прозрачните варианти на semantic цветовете.
+           Досега тези rgba() бяха изписани с фиксирани числа от старата
+           палитра и не следваха темата. */
+        --gold-rgb: 224,137,28;
+        --green-rgb: 47,214,127;
+        --red-rgb: 255,90,90;
+        --amber-rgb: 255,176,46;
+        --blue-rgb: 77,156,255;
+        --purple-rgb: 169,139,255;
+
         /* ── Височина: меки, не тежки сенки ── */
-        --shadow-1: 0 1px 2px rgba(0,0,0,.35);
-        --shadow-2: 0 4px 14px rgba(0,0,0,.32);
-        --shadow-3: 0 18px 44px rgba(0,0,0,.5);
+        --shadow-1: 0 1px 2px rgba(0,0,0,.5);
+        --shadow-2: 0 6px 18px rgba(0,0,0,.45);
+        --shadow-3: 0 22px 52px rgba(0,0,0,.62);
         --shadow: var(--shadow-2);
 
         /* ── Радиуси: три стъпки + pill ── */
@@ -208,6 +223,13 @@
         --hall-0: #5c6b7f;  --hall-0-rgb: 92,107,127;   --hall-0-t: #48566a;   /* без номер */
         --icon-nav: #536071;
 
+        --gold-rgb: 168,79,7;
+        --green-rgb: 15,122,69;
+        --red-rgb: 198,42,38;
+        --amber-rgb: 150,84,4;
+        --blue-rgb: 22,104,196;
+        --purple-rgb: 107,65,216;
+
         --shadow-1: 0 1px 2px rgba(16,24,40,.06);
         --shadow-2: 0 2px 8px rgba(16,24,40,.08);
         --shadow-3: 0 16px 40px rgba(16,24,40,.16);
@@ -287,6 +309,13 @@
         --hall-0: #5c6b7f;  --hall-0-rgb: 92,107,127;   --hall-0-t: #48566a;   /* без номер */
         --icon-nav: #536071;
 
+        --gold-rgb: 187,64,10;
+        --green-rgb: 15,122,69;
+        --red-rgb: 198,42,38;
+        --amber-rgb: 150,84,4;
+        --blue-rgb: 13,111,140;
+        --purple-rgb: 107,65,216;
+
         --shadow-1: 0 1px 2px rgba(31,42,55,.06);
         --shadow-2: 0 2px 8px rgba(31,42,55,.08);
         --shadow-3: 0 16px 40px rgba(31,42,55,.16);
@@ -314,7 +343,9 @@
         overscroll-behavior: none;
         -webkit-user-select: none; user-select: none;
         -webkit-touch-callout: none;
-        background: var(--bg);
+        background-color: var(--bg);
+        background-image: var(--bg-depth, none);
+        background-attachment: fixed;
         color: var(--text);
         font-family: var(--font-ui);
         font-size: var(--fs-body);
@@ -449,10 +480,10 @@
       .search-field-wrap.open { display: block; }
       .search-field-inner {
         display: flex; align-items: center; gap: 8px;
-        border: 1px solid rgba(200,120,24,.3); border-radius: 999px;
+        border: 1px solid rgba(var(--gold-rgb),.3); border-radius: 999px;
         background: linear-gradient(180deg, rgba(22,28,38,.98) 0%, rgba(12,16,22,.98) 100%);
         backdrop-filter: blur(20px);
-        box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(200,120,24,.08);
+        box-shadow: 0 8px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(var(--gold-rgb),.08);
       }
       .search-icon-inner { margin-left: 14px; color: var(--muted); flex-shrink: 0; }
       .search-icon-inner svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -474,7 +505,7 @@
       .search-dropdown {
         position: absolute; top: calc(100% + 8px); left: 0; right: 0;
         background: linear-gradient(180deg, rgba(19,24,33,.99) 0%, rgba(10,14,20,.99) 100%);
-        border: 1px solid rgba(200,120,24,.2); border-radius: 16px;
+        border: 1px solid rgba(var(--gold-rgb),.2); border-radius: 16px;
         box-shadow: 0 12px 40px rgba(0,0,0,.6); overflow: hidden;
         z-index: 301;
       }
@@ -484,7 +515,7 @@
         transition: background .15s; border-bottom: 1px solid rgba(255,255,255,.04);
       }
       .search-item:last-child { border-bottom: none; }
-      .search-item:hover, .search-item.focused { background: rgba(200,120,24,.1); }
+      .search-item:hover, .search-item.focused { background: rgba(var(--gold-rgb),.1); }
       .search-item-icon { flex-shrink: 0; width: 32px; display: inline-flex; align-items: center; justify-content: center; color: var(--gold-2); }
       .search-item-label { font-size: 14px; font-weight: 600; color: var(--text); }
       .search-item-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
@@ -543,23 +574,23 @@
       /* Positive */
       .btn-green {
         background: var(--green-soft); color: var(--green-2);
-        border-color: rgba(53,165,109,.42);
+        border-color: rgba(var(--green-rgb),.42);
       }
-      .btn-green:hover { background: rgba(53,165,109,.22); border-color: var(--green); }
+      .btn-green:hover { background: rgba(var(--green-rgb),.22); border-color: var(--green); }
 
       /* Destructive / negative */
       .btn-red {
         background: var(--red-soft); color: var(--red-2);
-        border-color: rgba(224,106,106,.42);
+        border-color: rgba(var(--red-rgb),.42);
       }
-      .btn-red:hover { background: rgba(224,106,106,.22); border-color: var(--red); }
+      .btn-red:hover { background: rgba(var(--red-rgb),.22); border-color: var(--red); }
 
       /* Informational */
       .btn-secondary {
         background: var(--blue-soft); color: var(--blue-2);
-        border-color: rgba(79,143,208,.38);
+        border-color: rgba(var(--blue-rgb),.38);
       }
-      .btn-secondary:hover { background: rgba(79,143,208,.22); border-color: var(--blue); }
+      .btn-secondary:hover { background: rgba(var(--blue-rgb),.22); border-color: var(--blue); }
       /* ── Навигация: активният елемент се чете по фон + долен маркер ── */
       .nav-btn {
         display: flex; align-items: center; gap: var(--s2);
@@ -891,7 +922,7 @@
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
       @keyframes slideIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
-      @keyframes liveBlink { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(45,204,112,.6); } 50% { opacity: .6; box-shadow: 0 0 8px 2px rgba(45,204,112,.8); } }
+      @keyframes liveBlink { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(var(--green-rgb),.6); } 50% { opacity: .6; box-shadow: 0 0 8px 2px rgba(var(--green-rgb),.8); } }
       .live-dot {
         display: inline-block; width: 8px; height: 8px; border-radius: 50%;
         background: var(--green); margin-right: 6px; vertical-align: middle;
@@ -1051,7 +1082,7 @@
       .leaderboard-bar-fill { height: 100%; border-radius: var(--r-pill); transition: width .25s ease; }
       /* Issue analysis */
       .issue-item { display: flex; align-items: center; gap: var(--s3); padding: var(--s2) var(--s3); border-radius: var(--r-sm); margin-bottom: var(--s1); border-left: 3px solid var(--red); background: var(--red-soft); transition: background .15s ease; }
-      .issue-item:hover { background: rgba(224,106,106,.2); }
+      .issue-item:hover { background: rgba(var(--red-rgb),.2); }
       .issue-severity { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
       .issue-severity.high { background: var(--c-red); }
       .issue-severity.med { background: var(--c-amber); }
@@ -1120,7 +1151,7 @@
       }
       .bloom-orb--gold {
         width: 55vw; height: 55vw; top: -14%; left: -12%;
-        background: radial-gradient(circle, rgba(200,120,24,.10), rgba(200,120,24,.03) 40%, transparent 70%);
+        background: radial-gradient(circle, rgba(var(--gold-rgb),.10), rgba(var(--gold-rgb),.03) 40%, transparent 70%);
         animation-duration: 15s; animation-delay: 0s;
       }
       .bloom-orb--blue {
@@ -1135,7 +1166,7 @@
       }
       .bloom-orb--gold2 {
         width: 35vw; height: 35vw; bottom: 14%; right: 0%;
-        background: radial-gradient(circle, rgba(200,120,24,.07), rgba(200,120,24,.02) 40%, transparent 70%);
+        background: radial-gradient(circle, rgba(var(--gold-rgb),.07), rgba(var(--gold-rgb),.02) 40%, transparent 70%);
         animation-duration: 16s; animation-delay: -2s;
       }
       .bloom-orb--purple {
@@ -1171,6 +1202,7 @@
       body.low-perf .modal-backdrop { animation: none; }
       body.low-perf .toast { animation: none; }
       body.low-perf .item-row { transition: none; }
+      body.low-perf { background-image: none; }
       body.low-perf .bar-fill { transition: none; }
       body.low-perf .progress > div { transition: none; }
       body.low-perf .progress > div::after { animation: none; display: none; }
@@ -1255,7 +1287,7 @@
       /* ── Важно съобщение: сериозен акцент, без пулсиране и сияние ── */
       .cg-ann-banner {
         background: var(--red-soft);
-        border: 1px solid rgba(224,106,106,.42);
+        border: 1px solid rgba(var(--red-rgb),.42);
         border-left: 3px solid var(--red);
         border-radius: var(--r-md); padding: var(--s4);
         display: flex; gap: var(--s3); align-items: flex-start;
@@ -1470,8 +1502,8 @@
       .field textarea { resize: vertical; min-height: 96px; line-height: 1.55; }
 
       /* Pills — контур за повече дефиниция */
-      .pill.ok  { box-shadow: inset 0 0 0 1px rgba(53,165,109,.34); }
-      .pill.bad { box-shadow: inset 0 0 0 1px rgba(224,106,106,.34); }
+      .pill.ok  { box-shadow: inset 0 0 0 1px rgba(var(--green-rgb),.34); }
+      .pill.bad { box-shadow: inset 0 0 0 1px rgba(var(--red-rgb),.34); }
       .pill { letter-spacing: .01em; }
 
       .meta-chip { transition: border-color .15s ease, color .15s ease; }
@@ -1540,7 +1572,7 @@
         background: var(--amber); color: var(--on-fill);
         box-shadow: 0 0 0 2px var(--panel);
       }
-      .cg-overdue-card { border-color: rgba(224,106,106,.42) !important; }
+      .cg-overdue-card { border-color: rgba(var(--red-rgb),.42) !important; }
       body.low-perf .cg-overdue-alert { animation: none; }
       body.low-perf .cg-overdue-card { animation: none; }
 
@@ -2068,7 +2100,7 @@
         document.getElementById("app").innerHTML = `
           <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
             <div style="text-align:center;max-width:400px;">
-              <div style="width:72px;height:72px;border-radius:50%;background:var(--red-soft);border:1px solid rgba(224,106,106,.42);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:28px;">&#9940;</div>
+              <div style="width:72px;height:72px;border-radius:50%;background:var(--red-soft);border:1px solid rgba(var(--red-rgb),.42);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:28px;">&#9940;</div>
               <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;color:var(--red-2);">ДОСТЪПЪТ Е БЛОКИРАН</div>
               <div style="color:var(--muted);font-size:var(--fs-body);line-height:1.6;">Твърде много неуспешни опити за достъп.<br>Опитайте отново след <strong style="color:var(--text);">${ACCESS_BLOCK_DISPLAY_MIN} минути</strong>.</div>
             </div>
@@ -2402,7 +2434,7 @@
         document.getElementById("app").innerHTML = `
           <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
             <div style="text-align:center;max-width:400px;">
-              <div style="width:72px;height:72px;border-radius:50%;background:var(--red-soft);border:1px solid rgba(224,106,106,.42);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:28px;">🔒</div>
+              <div style="width:72px;height:72px;border-radius:50%;background:var(--red-soft);border:1px solid rgba(var(--red-rgb),.42);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:28px;">🔒</div>
               <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;">ДОСТЪПЪТ Е ОТКАЗАН</div>
               <div style="color:var(--muted);font-size:var(--fs-body);line-height:1.6;">Сканирайте QR кода на Вашата локация, за да влезете в системата.</div>
             </div>
@@ -2428,7 +2460,7 @@
         document.getElementById("app").innerHTML = `
           <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
             <div style="text-align:center;max-width:400px;">
-              <div style="width:72px;height:72px;border-radius:50%;background:var(--red-soft);border:1px solid rgba(224,106,106,.42);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:28px;">📍</div>
+              <div style="width:72px;height:72px;border-radius:50%;background:var(--red-soft);border:1px solid rgba(var(--red-rgb),.42);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:28px;">📍</div>
               <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;">ИЗВЪН ЛОКАЦИЯТА</div>
               <div style="color:var(--muted);font-size:var(--fs-body);line-height:1.6;">Трябва да се намирате в <strong style="color:var(--text);">Cine Grand Park Center</strong>, за да използвате системата.</div>
             </div>
@@ -4544,7 +4576,7 @@
       function renderAnnStrip() {
         const ann = cgGetAnn();
         if (!ann || !ann.text || state.screen === 'home') return '';
-        return `<div style="background:var(--red-soft);border-bottom:1px solid rgba(224,106,106,.42);padding:6px 16px;display:flex;align-items:center;gap:8px;cursor:pointer;" data-action="go-home" title="Виж пълното съобщение">
+        return `<div style="background:var(--red-soft);border-bottom:1px solid rgba(var(--red-rgb),.42);padding:6px 16px;display:flex;align-items:center;gap:8px;cursor:pointer;" data-action="go-home" title="Виж пълното съобщение">
           <span class="cg-ann-dot"></span>
           <span style="font-size:var(--fs-micro);font-weight:700;color:var(--red-2);letter-spacing:.08em;">ВАЖНО</span>
           <span style="font-size:var(--fs-meta);color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(ann.text)}</span>
@@ -5360,7 +5392,7 @@
                   const v = hourData[i] || 0;
                   const barH = maxHour ? Math.max(4, Math.round(160 * v / maxHour)) : 0;
                   const peak = v > 0 && v === maxHour;
-                  return `<div class="hourly-col" title="${label}: ${v} проверки"><div class="hourly-bar-track"><div class="hourly-bar-fill" style="height:${barH}px;${peak ? 'background:var(--gold);box-shadow:0 0 8px rgba(200,120,24,.5);' : ''}"></div></div>${v > 0 ? `<span class="hourly-value">${v}</span>` : ''}</div>`;
+                  return `<div class="hourly-col" title="${label}: ${v} проверки"><div class="hourly-bar-track"><div class="hourly-bar-fill" style="height:${barH}px;${peak ? 'background:var(--gold);box-shadow:0 0 8px rgba(var(--gold-rgb),.5);' : ''}"></div></div>${v > 0 ? `<span class="hourly-value">${v}</span>` : ''}</div>`;
                 }).join('')}</div>
                 <div class="heatmap-legend"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
               </div>
@@ -5415,8 +5447,8 @@
               </h1>
               <div class="muted">${isSheetsConfigured() ? "Данните ще се изпратят автоматично към Google Sheets след запис." : "Локален запис в браузъра."}</div>
               ${isSheetsConfigured() ? (state.lockConfirmed
-                ? `<div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:var(--fs-meta);color:var(--green);background:var(--green-soft);border:1px solid rgba(45,204,112,.28);padding:4px 10px;border-radius:var(--r-pill);">🔒 Залата е заключена за теб</div>`
-                : `<div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:var(--fs-meta);color:var(--amber-2);background:var(--amber-soft);border:1px solid rgba(201,144,44,.42);padding:4px 10px;border-radius:var(--r-pill);">🔓 Без заключване (сървърна грешка) — друг може да отвори същата зала</div>`) : ""}
+                ? `<div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:var(--fs-meta);color:var(--green);background:var(--green-soft);border:1px solid rgba(var(--green-rgb),.28);padding:4px 10px;border-radius:var(--r-pill);">🔒 Залата е заключена за теб</div>`
+                : `<div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:var(--fs-meta);color:var(--amber-2);background:var(--amber-soft);border:1px solid rgba(var(--amber-rgb),.42);padding:4px 10px;border-radius:var(--r-pill);">🔓 Без заключване (сървърна грешка) — друг може да отвори същата зала</div>`) : ""}
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
               <span class="muted"><strong style="color:var(--green);">${filledCount}</strong>/${config.items.length} попълнени</span>
@@ -5449,7 +5481,7 @@
             <div class="items" id="items-container">
               ${config.items.map((item) => renderItemRow(item)).join("")}
             </div>
-            ${state.showValidation && !allFilled ? `<div style="margin-top:12px;padding:12px 14px;border:1px solid rgba(224,106,106,.42);border-radius:var(--r-md);background:var(--red-soft);color:var(--red-2);">Маркирай всяка точка като Чисто или Нечисто преди да запишеш.</div>` : ""}
+            ${state.showValidation && !allFilled ? `<div style="margin-top:12px;padding:12px 14px;border:1px solid rgba(var(--red-rgb),.42);border-radius:var(--r-md);background:var(--red-soft);color:var(--red-2);">Маркирай всяка точка като Чисто или Нечисто преди да запишеш.</div>` : ""}
           </div>
 
           <div class="panel" style="margin-bottom:16px;">
@@ -5473,10 +5505,10 @@
                   </div>`).join("")}
                 </div>
               </div>` : ""}
-              ${(state.remotePhotoUrls && state.remotePhotoUrls.length > 0) ? `<div style="margin-top:12px;padding:12px;background:var(--green-soft);border-radius:var(--r-md);border:1px solid rgba(53,165,109,.42);">
+              ${(state.remotePhotoUrls && state.remotePhotoUrls.length > 0) ? `<div style="margin-top:12px;padding:12px;background:var(--green-soft);border-radius:var(--r-md);border:1px solid rgba(var(--green-rgb),.42);">
                 <div style="font-size:var(--fs-meta);color:var(--green-2);margin-bottom:8px;font-weight:600;">📱 Снимки получени от телефон (${state.remotePhotoUrls.length}):</div>
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">
-                  ${state.remotePhotoUrls.map((url, idx) => `<a href="${url}" target="_blank" rel="noopener" style="position:relative;border-radius:var(--r-sm);overflow:hidden;border:1px solid rgba(53,165,109,.42);text-decoration:none;display:block;background:var(--panel-3);height:120px;">
+                  ${state.remotePhotoUrls.map((url, idx) => `<a href="${url}" target="_blank" rel="noopener" style="position:relative;border-radius:var(--r-sm);overflow:hidden;border:1px solid rgba(var(--green-rgb),.42);text-decoration:none;display:block;background:var(--panel-3);height:120px;">
                     <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--green-2);font-size:var(--fs-micro);text-align:center;padding:6px;">📱 Снимка ${idx + 1}<br/>(отвори в Drive)</div>
                     <span style="position:absolute;top:4px;left:4px;background:var(--green-soft);color:var(--on-fill);font-size:var(--fs-micro);padding:2px 6px;border-radius:var(--r-sm);font-weight:600;">📱 ${idx + 1}</span>
                   </a>`).join("")}
@@ -6188,7 +6220,7 @@
                 <button class="btn-back" data-action="cr-back-select">← Назад</button>
                 <h2 style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
               </div>
-              <div style="background:var(--red-soft);border:1px solid rgba(224,106,106,.42);border-radius:var(--r-md);padding:12px 16px;color:var(--red-2);font-size:var(--fs-body);margin-bottom:12px;">
+              <div style="background:var(--red-soft);border:1px solid rgba(var(--red-rgb),.42);border-radius:var(--r-md);padding:12px 16px;color:var(--red-2);font-size:var(--fs-body);margin-bottom:12px;">
                 ⚠ ${escapeHtml(state.crError)}
               </div>
               <button class="btn btn-outline" data-action="cr-reload" style="width:100%;">Опитай отново</button>
@@ -6219,7 +6251,7 @@
         /* Status pill */
         let statusPill = "";
         if (alreadyDone) {
-          statusPill = `<span style="display:inline-block;background:var(--green-soft);color:#4ade80;border:1px solid rgba(53,165,109,.42);border-radius:var(--r-lg);padding:4px 14px;font-size:var(--fs-meta);font-weight:600;">✓ Изпълнено</span>`;
+          statusPill = `<span style="display:inline-block;background:var(--green-soft);color:#4ade80;border:1px solid rgba(var(--green-rgb),.42);border-radius:var(--r-lg);padding:4px 14px;font-size:var(--fs-meta);font-weight:600;">✓ Изпълнено</span>`;
         } else if (isToday) {
           statusPill = `<span style="display:inline-block;background:rgba(201,162,39,.12);color:var(--gold);border:1px solid rgba(201,162,39,.3);border-radius:var(--r-lg);padding:4px 14px;font-size:var(--fs-meta);font-weight:600;">⬤ Предстои днес</span>`;
         } else {
@@ -6230,7 +6262,7 @@
         let actionArea = "";
         if (alreadyDone) {
           actionArea = `
-            <div style="background:var(--green-soft);border:1px solid rgba(53,165,109,.42);border-radius:var(--r-md);padding:11px 14px;color:var(--muted);font-size:var(--fs-body);">
+            <div style="background:var(--green-soft);border:1px solid rgba(var(--green-rgb),.42);border-radius:var(--r-md);padding:11px 14px;color:var(--muted);font-size:var(--fs-body);">
               ✓ Почистването е отчетено от: <strong style="color:var(--text);">${escapeHtml(myEntry)}</strong>
             </div>`;
         } else if (!isToday) {
@@ -6263,7 +6295,7 @@
             </div>`;
         } else if (state.crStep === "done") {
           actionArea = `
-            <div style="background:var(--green-soft);border:1px solid rgba(53,165,109,.42);border-radius:var(--r-md);padding:11px 14px;color:var(--muted);font-size:var(--fs-body);text-align:center;">
+            <div style="background:var(--green-soft);border:1px solid rgba(var(--green-rgb),.42);border-radius:var(--r-md);padding:11px 14px;color:var(--muted);font-size:var(--fs-body);text-align:center;">
               ✓ Записано успешно!
             </div>`;
         }
