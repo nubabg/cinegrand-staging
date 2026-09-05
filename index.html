@@ -994,7 +994,6 @@
         display: flex; align-items: center; justify-content: center;
         gap: 14px; padding: 80px 20px; color: var(--muted); font-size: 15px;
       }
-      .charts-loading .spinner { display: none; } /* replaced by bouncing dots */
       .charts-stat-row {
         display: grid; grid-template-columns: repeat(4, 1fr);
         gap: var(--s3); margin-bottom: var(--s5);
@@ -1254,36 +1253,25 @@
       .cg-reviews-link { display: inline-block; margin-top: var(--s3); color: var(--gold-2); font-size: var(--fs-meta); text-decoration: none; border-bottom: 1px solid var(--gold-line); padding-bottom: 1px; }
       .cg-reviews-link:hover { border-color: var(--gold-2); }
       .cg-reviews-loading { display: flex; align-items: center; gap: var(--s3); color: var(--muted); font-size: var(--fs-body); padding: var(--s4) 0; }
-      .cg-spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--gold-2); border-radius: 50%; animation: cgSpin .8s linear infinite; }
-      @keyframes cgSpin { to { transform: rotate(360deg); } }
-
-      /* ── Bouncing Dots Loader ── */
-      .cg-bounce-dots { display: flex; gap: 7px; align-items: center; justify-content: center; }
-      .cg-bounce-dots span {
-        display: block; width: 10px; height: 10px; border-radius: 50%;
-        background: var(--gold);
-        animation: cgBounce .6s ease-in-out infinite;
+      /* ══ Spokes — единственият индикатор за зареждане в приложението ══
+         Използва се навсякъде: fetch, запис, преход между екрани, бутон в
+         изчакване, зареждане на модал или таблица. Друг spinner, точки или
+         skeleton не се добавят.
+         Наследява currentColor, за да върви и с трите палитри, и с
+         акцентния цвят на мястото, където стои. Скоростта се задава с
+         --duration (по подразбиране 1s). */
+      @keyframes loading-ui-spokes-spin { to { transform: rotate(360deg); } }
+      .cg-spokes {
+        width: 24px; height: 24px; flex-shrink: 0;
+        display: inline-block; vertical-align: middle; color: currentColor;
+        animation: loading-ui-spokes-spin var(--duration, 1s) linear infinite;
       }
-      .cg-bounce-dots span:nth-child(2) { animation-delay: .2s; }
-      .cg-bounce-dots span:nth-child(3) { animation-delay: .4s; }
-      @keyframes cgBounce {
-        0%, 100% { transform: translateY(0); }
-        50%       { transform: translateY(-14px); }
-      }
-      /* Large — used in full-screen lock/loading overlay */
-      .cg-bounce-dots.lg span { width: 14px; height: 14px; }
-      /* Small — used inline next to text */
-      .cg-bounce-dots.sm span { width: 8px; height: 8px; }
-      .cg-bounce-dots.sm { gap: 5px; }
-      .cg-bounce-dots.sm span:nth-child(1),
-      .cg-bounce-dots.sm span:nth-child(2),
-      .cg-bounce-dots.sm span:nth-child(3) { animation: cgBounceSm .6s ease-in-out infinite; }
-      .cg-bounce-dots.sm span:nth-child(2) { animation-delay: .2s; }
-      .cg-bounce-dots.sm span:nth-child(3) { animation-delay: .4s; }
-      @keyframes cgBounceSm {
-        0%, 100% { transform: translateY(0); }
-        50%       { transform: translateY(-7px); }
-      }
+      .cg-spokes.sm { width: 16px; height: 16px; }
+      .cg-spokes.lg { width: 40px; height: 40px; }
+      /* Икономичният режим и намалената анимация само забавят въртенето —
+         индикаторът трябва да остане видим, за да се разбира, че се чака. */
+      body.low-perf .cg-spokes { --duration: 2s; }
+      @media (prefers-reduced-motion: reduce) { .cg-spokes { --duration: 2.4s; } }
       @keyframes cgFadeUp { to { opacity: 1; transform: translateY(0); } }
       @media (max-width: 600px) {
         .cg-reviews-heading { font-size: 17px; }
@@ -2451,7 +2439,7 @@
         document.getElementById("app").innerHTML = `
           <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;">
             <div style="text-align:center;">
-              <div class="cg-bounce-dots lg" style="margin:0 auto 20px;"><span></span><span></span><span></span></div>
+              ${spokes("lg", "margin:0 auto 20px;display:block;color:var(--gold-2);")}
               <div id="loading-text" style="color:var(--muted);font-size:var(--fs-body);">Проверка на достъп…</div>
             </div>
           </div>`;
@@ -3656,7 +3644,7 @@
             <button class="btn btn-outline" data-action="go-home">← Начало</button>
           </div>
           <div class="panel" style="padding:26px 30px;">
-            ${loading ? `<div style="display:flex;align-items:center;gap:12px;color:var(--muted);padding:18px 0;"><span class="cg-bounce-dots sm"><span></span><span></span><span></span></span> Зареждам правилата…</div>`
+            ${loading ? `<div style="display:flex;align-items:center;gap:12px;color:var(--muted);padding:18px 0;">${spokes("sm")} Зареждам правилата…</div>`
               : failed ? `<div style="color:var(--amber-2);font-size:var(--fs-body);padding:6px 0;">Правилата не можаха да бъдат заредени. Провери дали файлът <b>Rules.md</b> съществува в repo-то.</div>`
               : emptyDoc ? `<div style="color:var(--muted);font-size:var(--fs-body);padding:6px 0;">Файлът <b>Rules.md</b> е празен. Отвори го в GitHub и напиши правилата.</div>`
               : body}
@@ -4462,7 +4450,7 @@
           ${warn ? summaryPill("var(--amber-2)", "var(--amber-soft)", `◐ ${warn}`) : ""}
           ${stale ? summaryPill("var(--red-2)", "var(--red-soft)", `⚠ ${stale} просрочени`) : ""}
           ${problems ? summaryPill("var(--red-2)", "var(--red-soft)", `● ${problems} с проблем`) : ""}
-        </div>` : `<span style="font-size:var(--fs-meta);color:var(--muted-2);display:inline-flex;align-items:center;gap:6px;"><span class="cg-bounce-dots sm" style="transform:scale(.7);"><span></span><span></span><span></span></span> зареждам…</span>`;
+        </div>` : `<span style="font-size:var(--fs-meta);color:var(--muted-2);display:inline-flex;align-items:center;gap:6px;">${spokes("sm")} зареждам…</span>`;
 
         const renderCard = (loc, groupIcon) => {
           const m = _locStatusMeta(lastBy[loc], now);
@@ -4821,7 +4809,7 @@
           </div>
 
           <div id="cg-reviews-section" class="cg-reviews-wrap">
-            <div class="cg-reviews-loading"><div class="cg-bounce-dots sm"><span></span><span></span><span></span></div><span>Зареждане на ревюта...</span></div>
+            <div class="cg-reviews-loading">${spokes("sm")}<span>Зареждане на ревюта...</span></div>
           </div>
 
         </div>`;
@@ -4884,7 +4872,7 @@
             </div>
           </div>
           <div id="charts-container">
-            <div class="charts-loading"><div class="cg-bounce-dots" style="margin-right:4px;"><span></span><span></span><span></span></div><span>Зарежда от Sheets…</span></div>
+            <div class="charts-loading">${spokes("")}<span>Зарежда от Sheets…</span></div>
           </div>
         </div>`;
       }
@@ -5138,7 +5126,7 @@
 
       async function refreshChartsData() {
         const btn = document.getElementById('charts-refresh-btn');
-        if (btn) { btn.disabled = true; btn.textContent = 'Зарежда…'; }
+        if (btn) { btn.disabled = true; btn.innerHTML = spokes("sm", "margin-right:6px;") + 'Зарежда…'; }
         _cachedChartRows = null;
         _chartsLoading = false;
         await initChartsScreen(false);
@@ -5176,7 +5164,7 @@
 
         /* Don't destroy charts during loading — keep them visible */
         if (!_cachedChartRows) {
-          container.innerHTML = '<div class="charts-loading"><div class="cg-bounce-dots" style="margin-right:4px;"><span></span><span></span><span></span></div><span>Зарежда от Sheets…</span></div>';
+          container.innerHTML = `<div class="charts-loading">${spokes("")}<span>Зарежда от Sheets…</span></div>`;
         }
 
         let rows;
@@ -5761,6 +5749,17 @@
 
       /* Връща авторска икона от вградената система.
          size е в px и повтаря размера на емоджито, което заменя. */
+      /* Spokes — единственият индикатор за зареждане. size: "sm" (16px, в
+         бутон), без стойност (24px, в карта или секция) или "lg" (40px,
+         централно зареждане). extraStyle приема и --duration за по-бавна
+         или по-бърза анимация. */
+      function spokes(size, extraStyle) {
+        const cls = size === "sm" || size === "lg" ? " " + size : "";
+        return `<svg class="cg-spokes${cls}" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" style="${extraStyle || ""}">`
+          + `<path d="M12 2V6M16.2 7.8L19.1 4.9M18 12H22M16.2 16.2L19.1 19.1M12 18V22M4.9 19.1L7.8 16.2M2 12H6M4.9 4.9L7.8 7.8" `
+          + `stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      }
+
       function cgIcon(name, size, extraStyle) {
         const px = size ? `width:${size}px;height:${size}px;` : "";
         return `<svg class="cg-icon" style="${px}${extraStyle || ""}" aria-hidden="true" focusable="false"><use href="#cg-${name}"></use></svg>`;
@@ -6018,7 +6017,7 @@
         return `
           <div style="min-height:60vh;display:flex;align-items:center;justify-content:center;padding:24px;">
             <div style="text-align:center;">
-              <div class="cg-bounce-dots lg" style="margin:0 auto 24px;"><span></span><span></span><span></span></div>
+              ${spokes("lg", "margin:0 auto 24px;display:block;color:var(--gold-2);")}
               <div style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;letter-spacing:.06em;margin-bottom:8px;">Заключване на ${escapeHtml(state.location)}…</div>
               <div style="color:var(--muted);font-size:var(--fs-body);">Моля изчакайте</div>
             </div>
@@ -6218,7 +6217,7 @@
                 <h2 style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;letter-spacing:.06em;margin:0;">${typeIcon} ${typeLabel}</h2>
               </div>
               <div style="text-align:center;padding:32px 0;color:var(--muted);">
-                <div class="cg-bounce-dots" style="margin:0 auto 14px;"><span></span><span></span><span></span></div>
+                ${spokes("", "margin:0 auto 14px;display:block;")}
                 Зареждане на график…
               </div>
             </div>`;
@@ -6302,7 +6301,7 @@
         } else if (state.crStep === "submitting") {
           actionArea = `
             <div style="text-align:center;padding:16px;color:var(--muted);font-size:var(--fs-body);">
-              <div class="cg-bounce-dots sm" style="margin:0 auto 10px;"><span></span><span></span><span></span></div>
+              ${spokes("sm", "margin:0 auto 10px;display:block;")}
               Записване…
             </div>`;
         } else if (state.crStep === "done") {
@@ -7314,7 +7313,7 @@
             return;
           }
           _memCache = null;
-          inject('<div class="cg-reviews-loading"><div class="cg-bounce-dots sm"><span></span><span></span><span></span></div><span>Обновяване...</span></div>');
+          inject(`<div class="cg-reviews-loading">${spokes("sm")}<span>Обновяване...</span></div>`);
           fetchAndRender();
         };
       })();
