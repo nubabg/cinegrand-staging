@@ -4474,7 +4474,8 @@
           return `<div class="${cardGlow.trim()}" data-action="open-hall-detail" data-loc="${escapeHtml(loc)}" title="Виж подробна история за ${escapeHtml(loc)}" style="position:relative;display:flex;align-items:stretch;background:var(--panel-2);border:1px solid var(--border);border-radius:var(--r-md);overflow:visible;transition:background .2s,transform .15s,border-color .2s;min-width:0;cursor:pointer;">
             ${showAlert ? `<span class="${alertClass}" title="${alertTitle}" aria-label="${alertTitle}">!</span>` : ''}
             <div style="width:3px;flex-shrink:0;background:${m.accent};border-radius:var(--r-md) 0 0 var(--r-md);"></div>
-            <div style="padding:11px 13px;display:flex;align-items:center;gap:11px;min-width:0;flex:1;overflow:hidden;border-radius:0 var(--r-md) var(--r-md) 0;">
+            <div style="padding:11px 13px;display:flex;flex-direction:column;min-width:0;flex:1;overflow:hidden;border-radius:0 var(--r-md) var(--r-md) 0;">
+             <div style="display:flex;align-items:center;gap:11px;min-width:0;">
               ${(() => {
                 const hnn = (loc.match(/(\d+)/) || [])[1];
                 const hc = (hnn && groupIcon === "hall") ? hallColor(parseInt(hnn, 10)) : null;
@@ -4484,10 +4485,14 @@
               })()}
               <div style="min-width:0;flex:1;">
                 <div style="font-size:var(--fs-body);font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(loc)}</div>
-                <div style="font-size:var(--fs-meta);color:${m.color};font-weight:600;display:flex;align-items:center;gap:5px;margin-top:2px;">
-                  <span>${m.dot}</span><span>${m.label}</span>
-                  ${m.wasProblem ? '<span style="color:var(--red-2);font-size:var(--fs-micro);" title="Последна проверка: Проблем">● проблем</span>' : ''}
+                <div style="font-size:var(--fs-meta);color:${m.color};font-weight:600;display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-top:2px;min-width:0;">
+                  <span style="display:inline-flex;align-items:center;gap:5px;min-width:0;"><span style="flex-shrink:0;">${m.dot}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">${m.label}</span></span>
+                  ${m.wasProblem ? '<span style="color:var(--red-2);font-size:var(--fs-micro);flex-shrink:0;white-space:nowrap;" title="Последна проверка: Проблем">● проблем</span>' : ''}
                 </div>
+              </div>
+             </div>
+             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:5px;min-width:0;">
+              <div style="min-width:0;flex:1;">
                 ${(() => {
                   const hn = (loc.match(/(\d+)/) || [])[1];
                   if (!hn || !NEXTCLEAN_PROXY_URL) return "";
@@ -4495,15 +4500,16 @@
                   // Свършила прожекция (задържана поне 5 мин) → почисти сега
                   const endedShow = _endedHallsSeen[num] && (Date.now() - _endedHallsSeen[num].ts <= ENDED_STICKY_MS);
                   if (endedShow) {
-                    return `<div style="font-size:var(--fs-micro);color:var(--green-2);font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px;">${cgIcon("inspection", 13)} свърши — провери залата</div>`;
+                    return `<div style="font-size:var(--fs-micro);color:var(--green-2);font-weight:700;display:flex;align-items:center;gap:4px;min-width:0;">${cgIcon("inspection", 13, "flex-shrink:0;")}<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">свърши — провери залата</span></div>`;
                   }
                   const show = _currentShowForHall(num);
                   if (!show) return "";
                   const soon = show.endsInMin != null && show.endsInMin <= 15;
-                  return `<div style="font-size:var(--fs-micro);color:${soon ? 'var(--red-2)' : 'var(--muted-2)'};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px;">${cgIcon("screening", 13)} свършва ${escapeHtml(show.end)}${show.endsInMin != null ? ` (${show.endsInMin} мин)` : ""}</div>`;
+                  return `<div style="font-size:var(--fs-micro);color:${soon ? 'var(--red-2)' : 'var(--muted-2)'};display:flex;align-items:center;gap:4px;min-width:0;">${cgIcon("screening", 13, "flex-shrink:0;")}<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">свършва ${escapeHtml(show.end)}${show.endsInMin != null ? ` (${show.endsInMin} мин)` : ""}</span></div>`;
                 })()}
               </div>
-              ${!isNone ? `<div style="font-size:var(--fs-micro);color:var(--muted-2);text-align:right;flex-shrink:0;white-space:nowrap;">${escapeHtml(m.sub)}</div>` : ''}
+              ${!isNone ? `<div style="font-size:var(--fs-micro);color:var(--muted-2);flex-shrink:0;white-space:nowrap;">${escapeHtml(m.sub)}</div>` : ''}
+             </div>
             </div>
           </div>`;
         };
@@ -4518,7 +4524,7 @@
           ${groups.map(g => `
             <div style="margin-bottom:14px;">
               <div style="font-size:var(--fs-micro);font-weight:700;letter-spacing:.1em;color:var(--muted-2);margin-bottom:8px;text-transform:uppercase;display:flex;align-items:center;gap:6px;">${cgIcon(g.icon, 14)} ${g.title}</div>
-              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:9px;">
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(236px,1fr));gap:9px;">
                 ${g.items.map(loc => renderCard(loc, g.icon)).join("")}
               </div>
             </div>
