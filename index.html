@@ -1283,9 +1283,11 @@
 
       /* Лицето е живо: мига, поглежда леко настрани и се усмихва.
          Двете движения са в отделни групи, защото и двете са transform. */
-      .cg-face-look, .cg-face-eyes, .cg-face-mouth { transform-box: fill-box; }
-      .cg-face-look  { transform-origin: center; animation: cgLook 9s ease-in-out infinite; }
-      .cg-face-eyes  { transform-origin: center; animation: cgBlink 6.5s ease-in-out infinite; }
+      /* Центърът се задава в координатите на viewBox, а не с fill-box:
+         fill-box кара някои GPU-та да рисуват рамка около групата. */
+      .cg-face-look, .cg-face-eyes, .cg-face-mouth { transform-box: view-box; }
+      .cg-face-look  { transform-origin: 50px 41px; animation: cgLook 9s ease-in-out infinite; }
+      .cg-face-eyes  { transform-origin: 50px 41px; animation: cgBlink 6.5s ease-in-out infinite; }
       @keyframes cgBlink {
         0%, 90%, 100% { transform: scaleY(1); }
         93%           { transform: scaleY(.08); }
@@ -1298,7 +1300,7 @@
       }
       /* Усмивката леко „диша" — само когато лицето е доволно. */
       .cg-face--happy .cg-face-mouth {
-        transform-origin: center top;
+        transform-origin: 50px 58px;
         animation: cgSmile 4.5s ease-in-out infinite;
       }
       @keyframes cgSmile { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06, 1.14); } }
@@ -5922,24 +5924,24 @@
         let eyes, mouth, extra = "";
         if (state === "sleep") {
           eyes = closed(34) + closed(66);
-          mouth = `<path class="cg-face-ink" d="M43 66 Q50 72 57 66"/>`;
+          mouth = `<path class="cg-face-ink cg-face-mouth" d="M43 66 Q50 72 57 66"/>`;
         } else if (state === "angry") {
           eyes = eye(34) + eye(66);
           /* Вежди надолу към носа — оттам идва намръщеното. */
           extra = `<path class="cg-face-ink" style="stroke-width:6" d="M23 27 L42 34"/>`
                 + `<path class="cg-face-ink" style="stroke-width:6" d="M77 27 L58 34"/>`;
-          mouth = `<path class="cg-face-ink" d="M31 72 Q50 57 69 72"/>`;
+          mouth = `<path class="cg-face-ink cg-face-mouth" d="M31 72 Q50 57 69 72"/>`;
         } else if (state === "neutral") {
           eyes = eye(34) + eye(66);
-          mouth = `<path class="cg-face-ink" d="M34 66 H66"/>`;
+          mouth = `<path class="cg-face-ink cg-face-mouth" d="M34 66 H66"/>`;
         } else {
           eyes = eye(34) + eye(66);
-          mouth = `<path class="cg-face-ink" d="M28 58 Q50 80 72 58"/>`;
+          mouth = `<path class="cg-face-ink cg-face-mouth" d="M28 58 Q50 80 72 58"/>`;
         }
         return `<svg class="cg-face" viewBox="0 0 100 100" role="img" aria-label="Асистент" focusable="false">`
           + `<circle class="cg-face-circle" cx="50" cy="50" r="50"/>${extra}`
           + `<g class="cg-face-look"><g class="cg-face-eyes">${eyes}</g></g>`
-          + `<g class="cg-face-mouth">${mouth}</g></svg>`;
+          + `${mouth}</svg>`;
       }
 
       /* Помни кои локации са с проблем, за да може да похвали, когато отпадне. */
