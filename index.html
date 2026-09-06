@@ -1253,6 +1253,31 @@
       .cg-reviews-link { display: inline-block; margin-top: var(--s3); color: var(--gold-2); font-size: var(--fs-meta); text-decoration: none; border-bottom: 1px solid var(--gold-line); padding-bottom: 1px; }
       .cg-reviews-link:hover { border-color: var(--gold-2); }
       .cg-reviews-loading { display: flex; align-items: center; gap: var(--s3); color: var(--muted); font-size: var(--fs-body); padding: var(--s4) 0; }
+      /* Редовете на таблото се пренасят, когато не стигат по ширина —
+         иначе бутонът „ПРОВЕРИ ЗАЛАТА" и блокът със зрителите изтласкваха
+         реда извън екрана на телефон. На широк екран нищо не се променя. */
+      .cg-show-row { flex-wrap: wrap; }
+      .cg-show-main { flex: 1 1 170px; min-width: 0; }
+
+      /* ── Постер на филма ──
+         Един и същ размер за всеки ред, независимо дали прожекцията е
+         свършила, тече или предстои. object-fit:cover пази пропорцията —
+         по-широките изображения се изрязват, вместо да се разтягат.
+         Ако липсва или не се зареди, остава плочка с иконата за прожекция. */
+      .cg-poster {
+        width: 46px; height: 66px; flex-shrink: 0;
+        border-radius: var(--r-sm); overflow: hidden;
+        background: var(--panel-3);
+        border: 1px solid var(--pc, var(--border));
+        display: grid; place-items: center;
+        box-shadow: var(--shadow-1);
+      }
+      .cg-poster > img,
+      .cg-poster > .cg-poster-fb { grid-area: 1 / 1; }
+      .cg-poster > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .cg-poster > .cg-poster-fb { color: var(--muted-2); display: inline-flex; }
+      @media (max-width: 600px) { .cg-poster { width: 38px; height: 55px; } }
+
       /* ══ Spokes — единственият индикатор за зареждане в приложението ══
          Използва се навсякъде: fetch, запис, преход между екрани, бутон в
          изчакване, зареждане на модал или таблица. Друг spinner, точки или
@@ -3248,6 +3273,36 @@
       }
 
       /* Парсва HTML-а на next-clean таблото → списък прожекции. */
+      /* Постерът се взима от самия ред на таблото — независимо дали е <img>,
+         lazy-load атрибут или CSS фон. Относителните адреси се разрешават
+         спрямо таблото, а не спрямо нашия сайт. Пропускат се всички схеми
+         извън http/https. */
+      const NEXTCLEAN_BOARD_ORIGIN = "https://cinegrand.arenacrp.com/";
+      function _posterFromRow(tr) {
+        let u = "";
+        const img = tr.querySelector("img");
+        if (img) {
+          u = img.getAttribute("src") || img.getAttribute("data-src")
+            || img.getAttribute("data-original") || img.getAttribute("data-lazy") || "";
+          if (!u) {
+            const ss = img.getAttribute("srcset") || "";
+            if (ss) u = ss.split(",")[0].trim().split(/\s+/)[0] || "";
+          }
+        }
+        if (!u) {
+          const nodes = [tr].concat(Array.prototype.slice.call(tr.querySelectorAll("*")));
+          for (const el of nodes) {
+            const m = /url\((['"]?)(.*?)\1\)/i.exec(el.getAttribute("style") || "");
+            if (m && m[2]) { u = m[2]; break; }
+          }
+        }
+        if (!u) return "";
+        try {
+          const abs = new URL(u, NEXTCLEAN_BOARD_ORIGIN);
+          return (abs.protocol === "https:" || abs.protocol === "http:") ? abs.href : "";
+        } catch (e) { return ""; }
+      }
+
       function parseNextCleanHtml(html) {
         const out = [];
         try {
@@ -3272,7 +3327,8 @@
               else if (circle.className.indexOf("circle-green") !== -1) status = "green";
               else if (circle.className.indexOf("circle-yellow") !== -1) status = "yellow";
             }
-            if (hallNum) out.push({ hall: "Зала " + hallNum, hallNum, movie, start, end, endsInMin, status });
+            const poster = _posterFromRow(tr);
+            if (hallNum) out.push({ hall: "Зала " + hallNum, hallNum, movie, start, end, endsInMin, status, poster });
           });
         } catch (err) { console.warn("[nextclean] parse error:", err); }
         return out;
@@ -3294,10 +3350,10 @@
             const prev = _endedHallsSeen[s.hallNum];
             // Нов запис или различна прожекция → рестартирай таймера
             if (!prev || prev.end !== s.end) {
-              _endedHallsSeen[s.hallNum] = { hall: s.hall, hallNum: s.hallNum, movie: s.movie, end: s.end, ts: now };
+              _endedHallsSeen[s.hallNum] = { hall: s.hall, hallNum: s.hallNum, movie: s.movie, end: s.end, poster: s.poster || "", ts: now };
             } else {
               // Същата прожекция — обнови данните, запази оригиналното време
-              prev.movie = s.movie; prev.hall = s.hall;
+              prev.movie = s.movie; prev.hall = s.hall; prev.poster = s.poster || prev.poster || "";
             }
           });
           // Изчисти изтеклите (>5 мин)
@@ -3322,6 +3378,11 @@
       function renderNextCleanSection() {
         if (!NEXTCLEAN_PROXY_URL) return "";
         const hasData = _nextCleanShows.length > 0;
+
+        /* Постерът е с фиксиран размер навсякъде — виж .cg-poster. */
+        const poster = (src, hc) => `<div class="cg-poster" style="--pc:rgba(${hc.g},.45);">`
+          + (src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove();">` : "")
+          + `<span class="cg-poster-fb">${cgIcon("screening", 20)}</span></div>`;
 
         const hallBadge = (hc, num, forDark) => `<div style="width:54px;height:54px;border-radius:var(--r-md);background:${forDark ? hc.t : `rgba(${hc.g},.16)`};border:1px solid rgba(${hc.g},.45);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
             <span style="font-size:var(--fs-micro);font-weight:700;letter-spacing:.1em;color:${forDark ? 'var(--on-fill)' : hc.t};font-family:'Oswald',sans-serif;line-height:1;">ЗАЛА</span>
@@ -3351,11 +3412,12 @@
             </div>`;
         };
 
-        const endedCard = (hallNum, movie, end, agoMin) => {
+        const endedCard = (hallNum, movie, end, agoMin, posterSrc) => {
           const hc = hallColor(hallNum);
-          return `<div class="cg-ended-card" style="--hall-glow:rgba(${hc.g},.5);display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:var(--r-md);background:rgba(${hc.g},.14);border:1px solid rgba(${hc.g},.45);">
+          return `<div class="cg-ended-card cg-show-row" style="--hall-glow:rgba(${hc.g},.5);display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:var(--r-md);background:rgba(${hc.g},.14);border:1px solid rgba(${hc.g},.45);">
             ${hallBadge(hc, hallNum, true)}
-            <div style="flex:1;min-width:0;">
+            ${poster(posterSrc, hc)}
+            <div class="cg-show-main">
               <div style="font-size:var(--fs-body);font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(movie)}</div>
               <div style="font-size:var(--fs-meta);color:var(--text);opacity:.9;margin-top:3px;display:flex;align-items:center;gap:5px;">${cgIcon("screening", 14)} Свърши в <b>${escapeHtml(end)}</b>${agoMin > 0 ? ` · преди ${agoMin} мин` : " · току-що"}</div>
             </div>
@@ -3389,7 +3451,7 @@
             boardGreens[s.hallNum] = true;
             const seen = _endedHallsSeen[s.hallNum];
             const agoMin = seen ? Math.floor((now - seen.ts) / 60000) : 0;
-            return endedCard(s.hallNum, s.movie, s.end, agoMin);
+            return endedCard(s.hallNum, s.movie, s.end, agoMin, s.poster);
           }
           if (s.status === "red") {
             const soon = s.endsInMin != null && s.endsInMin <= 15;
@@ -3397,9 +3459,10 @@
             const p = _showProgress(s);
             const rExtra = _matchBoardShow(s);
             const rOcc = rExtra ? _occupancy(s.hallNum, rExtra.seats) : null;
-            return `<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:var(--r-md);background:var(--panel-2);border:1px solid var(--border);border-left:3px solid ${hc.c};">
+            return `<div class="cg-show-row" style="display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:var(--r-md);background:var(--panel-2);border:1px solid var(--border);border-left:3px solid ${hc.c};">
               ${hallBadge(hc, s.hallNum, false)}
-              <div style="flex:1;min-width:0;">
+              ${poster(s.poster, hc)}
+              <div class="cg-show-main">
                 <div style="display:flex;align-items:baseline;gap:8px;min-width:0;">
                   <span style="font-size:var(--fs-body);font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</span>
                   ${p ? `<span style="flex-shrink:0;font-size:var(--fs-micro);font-weight:700;color:${p.color};font-family:'Oswald',sans-serif;letter-spacing:.04em;">${p.pct}%</span>` : ""}
@@ -3437,10 +3500,11 @@
           const mins = _minsUntil(s.start);
           const isNext = nextMin != null && mins != null && mins === nextMin;
           const cntTxt = mins == null ? "" : (mins <= 0 ? "всеки момент" : "след " + mins + " мин");
-          return `<div class="${isNext ? "cg-next-card" : ""}" style="${isNext ? `--n-glow:rgba(${hc.g},.5);` : ""}position:relative;display:flex;align-items:center;gap:14px;padding:${isNext ? "15px 16px" : "12px 14px"};border-radius:var(--r-md);background:${isNext ? `rgba(${hc.g},.14)` : "var(--panel-2)"};border:${isNext ? `1px solid ${hc.c}` : `1px dashed var(--border)`};${isNext ? "" : "opacity:.72;"}">
+          return `<div class="cg-show-row ${isNext ? "cg-next-card" : ""}" style="${isNext ? `--n-glow:rgba(${hc.g},.5);` : ""}position:relative;display:flex;align-items:center;gap:14px;padding:${isNext ? "15px 16px" : "12px 14px"};border-radius:var(--r-md);background:${isNext ? `rgba(${hc.g},.14)` : "var(--panel-2)"};border:${isNext ? `1px solid ${hc.c}` : `1px dashed var(--border)`};${isNext ? "" : "opacity:.72;"}">
             ${isNext ? `<span class="cg-next-pill" style="position:absolute;top:-9px;left:14px;font-size:var(--fs-micro);font-weight:700;letter-spacing:.1em;color:var(--on-fill);background:${hc.t};padding:3px 10px;border-radius:var(--r-pill);white-space:nowrap;">▶ СЛЕДВАЩА</span>` : ""}
             ${hallBadge(hc, s.hallNum, isNext)}
-            <div style="flex:1;min-width:0;">
+            ${poster(s.poster, hc)}
+            <div class="cg-show-main">
               <div style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;">
                 <span style="font-size:${isNext ? "16px" : "14px"};font-weight:${isNext ? "800" : "600"};color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</span>
                 ${extra && extra.format ? `<span style="flex-shrink:0;font-size:var(--fs-micro);font-weight:700;color:var(--on-fill);background:var(--gold-2);padding:2px 8px;border-radius:var(--r-pill);letter-spacing:.06em;">${escapeHtml(extra.format)}</span>` : ""}
@@ -3456,7 +3520,7 @@
            добавят се в края, за да не изчезне сигналът „провери залата". */
         const stickyRows = _recentlyEndedHalls()
           .filter((e) => !boardGreens[e.hallNum])
-          .map((e) => endedCard(e.hallNum, e.movie, e.end, e.agoMin))
+          .map((e) => endedCard(e.hallNum, e.movie, e.end, e.agoMin, e.poster))
           .join("");
 
         return `<div class="panel" style="margin-bottom:var(--s4);">
