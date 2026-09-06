@@ -98,6 +98,7 @@
         /* Линията на иконите: златна в тъмната тема, както е зададена в
            иконния пакет; в светлите остава неутрална. */
         --icon-nav: #e1a53f;
+        --face-bg: #2f80ed;   /* синьото на асистента — еднакво във всички теми */
 
         /* RGB тройки за прозрачните варианти на semantic цветовете.
            Досега тези rgba() бяха изписани с фиксирани числа от старата
@@ -222,6 +223,7 @@
         --hall-6: #55911c;  --hall-6-rgb: 85,145,28;  --hall-6-t: #3c6a10;   /* маслина */
         --hall-0: #5c6b7f;  --hall-0-rgb: 92,107,127;   --hall-0-t: #48566a;   /* без номер */
         --icon-nav: #536071;
+        --face-bg: #2f80ed;   /* синьото на асистента — еднакво във всички теми */
 
         --gold-rgb: 168,79,7;
         --green-rgb: 15,122,69;
@@ -308,6 +310,7 @@
         --hall-6: #55911c;  --hall-6-rgb: 85,145,28;  --hall-6-t: #3c6a10;   /* маслина */
         --hall-0: #5c6b7f;  --hall-0-rgb: 92,107,127;   --hall-0-t: #48566a;   /* без номер */
         --icon-nav: #536071;
+        --face-bg: #2f80ed;   /* синьото на асистента — еднакво във всички теми */
 
         --gold-rgb: 187,64,10;
         --green-rgb: 15,122,69;
@@ -1253,6 +1256,96 @@
       .cg-reviews-link { display: inline-block; margin-top: var(--s3); color: var(--gold-2); font-size: var(--fs-meta); text-decoration: none; border-bottom: 1px solid var(--gold-line); padding-bottom: 1px; }
       .cg-reviews-link:hover { border-color: var(--gold-2); }
       .cg-reviews-loading { display: flex; align-items: center; gap: var(--s3); color: var(--muted); font-size: var(--fs-body); padding: var(--s4) 0; }
+      /* ══ Асистентът ══
+         Кръгло emoji-лице на ярко синьо, което следи проверките и говори.
+         Цветът на кръга е един и същ във всички състояния — състоянието се
+         чете от чертите и от акцента на панела. */
+      .cg-face { width: 92px; height: 92px; flex-shrink: 0; display: block; }
+      .cg-face-circle { fill: var(--face-bg); }
+      .cg-face-ink { fill: none; stroke: #ffffff; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+      .cg-face-eye { fill: #ffffff; }
+
+      .cg-face-panel {
+        display: flex; align-items: center; flex-wrap: wrap; gap: var(--s4);
+        margin-bottom: 14px; padding: 14px 16px;
+        background: var(--panel-2); border: 1px solid var(--border);
+        border-left: 3px solid var(--face-accent, var(--border-strong));
+        border-radius: var(--r-md);
+      }
+      .cg-face-wrap { position: relative; display: inline-flex; flex-shrink: 0; }
+      .cg-face-say { min-width: 0; flex: 1 1 260px; }
+      .cg-face-title {
+        font-family: var(--font-display); font-size: var(--fs-card); font-weight: 700;
+        color: var(--face-accent, var(--text)); margin: 0 0 4px; letter-spacing: .01em;
+      }
+      .cg-face-msg { font-size: var(--fs-body); color: var(--text); margin: 0; }
+      .cg-face-hint { font-size: var(--fs-meta); color: var(--muted-2); margin-top: 6px; }
+
+      /* Лицето е живо: мига, поглежда леко настрани и се усмихва.
+         Двете движения са в отделни групи, защото и двете са transform. */
+      .cg-face-look, .cg-face-eyes, .cg-face-mouth { transform-box: fill-box; }
+      .cg-face-look  { transform-origin: center; animation: cgLook 9s ease-in-out infinite; }
+      .cg-face-eyes  { transform-origin: center; animation: cgBlink 6.5s ease-in-out infinite; }
+      @keyframes cgBlink {
+        0%, 90%, 100% { transform: scaleY(1); }
+        93%           { transform: scaleY(.08); }
+        96%           { transform: scaleY(1); }
+      }
+      @keyframes cgLook {
+        0%, 35%, 100% { transform: translateX(0); }
+        45%, 57%      { transform: translateX(3.5px); }
+        70%, 82%      { transform: translateX(-3.5px); }
+      }
+      /* Усмивката леко „диша" — само когато лицето е доволно. */
+      .cg-face--happy .cg-face-mouth {
+        transform-origin: center top;
+        animation: cgSmile 4.5s ease-in-out infinite;
+      }
+      @keyframes cgSmile { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06, 1.14); } }
+      /* Заспалото лице не мига и не се оглежда. */
+      .cg-face--sleep .cg-face-look,
+      .cg-face--sleep .cg-face-eyes { animation: none; }
+
+      /* Бърза проверка на конкретната локация */
+      .cg-face-cta { flex-shrink: 0; white-space: nowrap; align-self: center; }
+
+      /* Сънят: „Zzz" се носи нагоре и лицето диша бавно. */
+      .cg-face-zzz {
+        position: absolute; top: -6px; right: -10px;
+        font-family: var(--font-display); font-weight: 700; font-size: 15px;
+        color: var(--face-bg); letter-spacing: .06em; pointer-events: none;
+        animation: cgZzz 3.2s ease-in-out infinite;
+      }
+      @keyframes cgZzz {
+        0%, 100% { opacity: .25; transform: translateY(2px); }
+        50%      { opacity: 1;   transform: translateY(-5px); }
+      }
+      .cg-face--sleep .cg-face { animation: cgBreathe 4.5s ease-in-out infinite; }
+      @keyframes cgBreathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.035); } }
+      .cg-face--happy .cg-face { animation: cgBob 5s ease-in-out infinite; }
+      @keyframes cgBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+      .cg-face--angry .cg-face-wrap::after {
+        content: ""; position: absolute; inset: -5px; border-radius: 50%;
+        border: 2px solid var(--face-accent); opacity: .55;
+        animation: cgFacePulse 2s ease-in-out infinite; pointer-events: none;
+      }
+      @keyframes cgFacePulse { 0%, 100% { transform: scale(1); opacity: .5; } 50% { transform: scale(1.07); opacity: .12; } }
+
+      body.low-perf .cg-face,
+      body.low-perf .cg-face-zzz,
+      body.low-perf .cg-face-look,
+      body.low-perf .cg-face-eyes,
+      body.low-perf .cg-face-mouth,
+      body.low-perf .cg-face-wrap::after { animation: none; }
+      @media (prefers-reduced-motion: reduce) {
+        .cg-face, .cg-face-zzz, .cg-face-look, .cg-face-eyes,
+        .cg-face-mouth, .cg-face-wrap::after { animation: none !important; }
+      }
+      @media (max-width: 600px) {
+        .cg-face { width: 68px; height: 68px; }
+        .cg-face-panel { gap: var(--s3); }
+      }
+
       /* Редовете на таблото се пренасят, когато не стигат по ширина —
          иначе бутонът „ПРОВЕРИ ЗАЛАТА" и блокът със зрителите изтласкваха
          реда извън екрана на телефон. На широк екран нищо не се променя. */
@@ -4579,6 +4672,7 @@
             </h3>
             ${summary}
           </div>
+          ${renderAssistantFace()}
           ${groups.map(g => `
             <div style="margin-bottom:14px;">
               <div style="font-size:var(--fs-micro);font-weight:700;letter-spacing:.1em;color:var(--muted-2);margin-bottom:8px;text-transform:uppercase;display:flex;align-items:center;gap:6px;">${cgIcon(g.icon, 14)} ${g.title}</div>
@@ -5813,6 +5907,153 @@
 
       /* Връща авторска икона от вградената система.
          size е в px и повтаря размера на емоджито, което заменя. */
+      /* ══ Асистентът: лице + преценка ══
+         Нощем в киното няма никого, затова лицето спи и не се сърди.
+         Границите се сменят само тук. */
+      const FACE_SLEEP_FROM = 2;   // спи от 02:00
+      const FACE_SLEEP_TO   = 8;   // буди се в 08:00
+      const FACE_STATE_KEY  = "cg_face_state";
+      const FACE_PRAISE_MS  = 10 * 60 * 1000;  // колко дълго се радва на решен проблем
+
+      /* Кръгло emoji-лице. state: happy | neutral | angry | sleep */
+      function cgFace(state) {
+        const eye = (cx) => `<circle class="cg-face-eye" cx="${cx}" cy="41" r="6.5"/>`;
+        const closed = (cx) => `<path class="cg-face-ink" d="M${cx - 9} 39 Q${cx} 48 ${cx + 9} 39"/>`;
+        let eyes, mouth, extra = "";
+        if (state === "sleep") {
+          eyes = closed(34) + closed(66);
+          mouth = `<path class="cg-face-ink" d="M43 66 Q50 72 57 66"/>`;
+        } else if (state === "angry") {
+          eyes = eye(34) + eye(66);
+          /* Вежди надолу към носа — оттам идва намръщеното. */
+          extra = `<path class="cg-face-ink" style="stroke-width:6" d="M23 27 L42 34"/>`
+                + `<path class="cg-face-ink" style="stroke-width:6" d="M77 27 L58 34"/>`;
+          mouth = `<path class="cg-face-ink" d="M31 72 Q50 57 69 72"/>`;
+        } else if (state === "neutral") {
+          eyes = eye(34) + eye(66);
+          mouth = `<path class="cg-face-ink" d="M34 66 H66"/>`;
+        } else {
+          eyes = eye(34) + eye(66);
+          mouth = `<path class="cg-face-ink" d="M28 58 Q50 80 72 58"/>`;
+        }
+        return `<svg class="cg-face" viewBox="0 0 100 100" role="img" aria-label="Асистент" focusable="false">`
+          + `<circle class="cg-face-circle" cx="50" cy="50" r="50"/>${extra}`
+          + `<g class="cg-face-look"><g class="cg-face-eyes">${eyes}</g></g>`
+          + `<g class="cg-face-mouth">${mouth}</g></svg>`;
+      }
+
+      /* Помни кои локации са с проблем, за да може да похвали, когато отпадне. */
+      function _faceMemory(currentProblems) {
+        let mem = { problems: [], praiseAt: 0, praiseLoc: "" };
+        try { mem = Object.assign(mem, JSON.parse(localStorage.getItem(FACE_STATE_KEY) || "{}")); } catch (e) {}
+        const prev = Array.isArray(mem.problems) ? mem.problems : [];
+        const fixed = prev.filter((p) => currentProblems.indexOf(p) === -1);
+        const changed = fixed.length > 0 || prev.length !== currentProblems.length
+          || currentProblems.some((p) => prev.indexOf(p) === -1);
+        if (fixed.length) { mem.praiseAt = Date.now(); mem.praiseLoc = fixed[0]; }
+        if (changed) {
+          mem.problems = currentProblems;
+          try { localStorage.setItem(FACE_STATE_KEY, JSON.stringify(mem)); } catch (e) {}
+        }
+        return mem;
+      }
+
+      /* Преценка по реалните данни. Връща състояние + какво да каже. */
+      function faceVerdict() {
+        const now = new Date();
+        const h = now.getHours();
+        const sleeping = FACE_SLEEP_FROM < FACE_SLEEP_TO
+          ? (h >= FACE_SLEEP_FROM && h < FACE_SLEEP_TO)
+          : (h >= FACE_SLEEP_FROM || h < FACE_SLEEP_TO);
+        if (sleeping) {
+          return { state: "sleep", accent: "var(--muted-2)",
+            title: "Спя",
+            msg: "Нощем в киното няма никого — няма кой да проверява зали и тоалетни. Будя се в 0" + FACE_SLEEP_TO + ":00.",
+            hint: "Нощем не броя просрочени проверки." };
+        }
+
+        const lastBy = getLastCheckedByLocation();
+        const locs = [...HALLS, ...BATHROOMS];
+        if (!Object.keys(lastBy).length) {
+          return { state: "neutral", accent: "var(--muted)",
+            title: "Изчаквам данните", msg: "Още не съм получил проверките от таблицата.", hint: "" };
+        }
+
+        const t = Date.now();
+        const problems = [], overdue = [], warn = [];
+        locs.forEach((loc) => {
+          const m = _locStatusMeta(lastBy[loc], t);
+          if (m.wasProblem) problems.push(loc);
+          if (m.state === "stale" || m.state === "none") overdue.push({ loc, ageMs: m.ageMs || 0 });
+          else if (m.state === "warn") warn.push(loc);
+        });
+        const mem = _faceMemory(problems);
+
+        if (problems.length) {
+          const loc = problems[0];
+          return { state: "angry", accent: "var(--red-2)", loc,
+            title: "Не съм доволен",
+            msg: problems.length === 1
+              ? `Проблемът в ${loc} все още не е отстранен. Решен ли е вече?`
+              : `Има ${problems.length} нерешени проблема — единият е в ${loc}. Кога ще ги оправим?`,
+            hint: "Проверката ще стане зелена, щом запишете чиста проверка." };
+        }
+
+        if (overdue.length) {
+          overdue.sort((a, b) => b.ageMs - a.ageMs);
+          const o = overdue[0];
+          const ago = o.ageMs ? _formatAgo(o.ageMs) : null;
+          return { state: "angry", accent: "var(--red-2)", loc: o.loc,
+            title: "Не се чувствам добре",
+            msg: ago
+              ? `${o.loc} не е проверявана от над ${ago}. Моля, проверете я!`
+              : `${o.loc} още не е проверявана днес. Моля, погрижете се!`,
+            hint: overdue.length > 1 ? `Още ${overdue.length - 1} чакат ред.` : "" };
+        }
+
+        if (mem.praiseAt && (Date.now() - mem.praiseAt) < FACE_PRAISE_MS) {
+          return { state: "happy", accent: "var(--green-2)",
+            title: "Браво!",
+            msg: `Проблемът в ${mem.praiseLoc || "залата"} е оправен. Благодаря ви!`, hint: "" };
+        }
+
+        if (warn.length) {
+          return { state: "neutral", accent: "var(--amber-2)", loc: warn[0],
+            title: "Наглеждам",
+            msg: warn.length === 1
+              ? `${warn[0]} наближава 4 часа без проверка. Да я хванем навреме.`
+              : `${warn.length} локации наближават 4 часа без проверка.`,
+            hint: "" };
+        }
+
+        return { state: "happy", accent: "var(--green-2)",
+          title: "Супер работа, екип!",
+          msg: "Всички проверки са направени навреме. Продължавайте така!", hint: "" };
+      }
+
+      function renderAssistantFace() {
+        const v = faceVerdict();
+        /* Бърз път до проверката на точно тази локация — без да се минава
+           през избор на тип и списък. */
+        const quick = v.loc
+          ? `<button class="btn btn-gold cg-face-cta" data-action="face-check"
+               data-type="${HALLS.indexOf(v.loc) !== -1 ? "hall" : "bathroom"}"
+               data-location="${escapeHtml(v.loc)}">Провери сега</button>`
+          : "";
+        return `<div class="cg-face-panel cg-face--${v.state}" style="--face-accent:${v.accent};">
+          <div class="cg-face-wrap">
+            ${cgFace(v.state)}
+            ${v.state === "sleep" ? '<span class="cg-face-zzz">Zzz</span>' : ""}
+          </div>
+          <div class="cg-face-say">
+            <h3 class="cg-face-title">${v.title}</h3>
+            <p class="cg-face-msg">${escapeHtml(v.msg)}</p>
+            ${v.hint ? `<div class="cg-face-hint">${escapeHtml(v.hint)}</div>` : ""}
+          </div>
+          ${quick}
+        </div>`;
+      }
+
       /* Spokes — единственият индикатор за зареждане. size: "sm" (16px, в
          бутон), без стойност (24px, в карта или секция) или "lg" (40px,
          централно зареждане). extraStyle приема и --duration за по-бавна
@@ -6681,7 +6922,7 @@
         if (state.screen === "locking") return;
 
         /* Navigation — blocked for QR-only sessions */
-        if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection")) return;
+        if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection" || action === "face-check")) return;
         /* ── Announcement actions ── */
         if (action === "announce-add")    { cgAnnShow('add-pass');    return; }
         if (action === "announce-edit")   { cgAnnShow('edit-pass');   return; }
@@ -6901,6 +7142,13 @@
         }
         if (action === "select-hall-location") {
           lockAndStart(state.inspectionType, btn.dataset.location);
+          return;
+        }
+        /* Бърза проверка направо от асистента — прескача избора на тип. */
+        if (action === "face-check") {
+          state.inspectionType = btn.dataset.type;
+          warmUpBackend();
+          lockAndStart(btn.dataset.type, btn.dataset.location);
           return;
         }
 
