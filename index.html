@@ -1311,6 +1311,19 @@
       /* Бърза проверка на конкретната локация */
       .cg-face-cta { flex-shrink: 0; white-space: nowrap; align-self: center; }
 
+      /* Сълзи — вървят със sad и angry, за да личи, че е и тъжен, и ядосан. */
+      .cg-face-tear {
+        fill: #d8ecff;
+        animation: cgTear 3.8s ease-in infinite;
+        transform-box: view-box; transform-origin: 50px 55px;
+      }
+      @keyframes cgTear {
+        0%   { opacity: 0;   transform: translateY(-2px) scale(.5); }
+        10%  { opacity: .95; transform: translateY(0) scale(1); }
+        75%  { opacity: .9;  transform: translateY(18px) scale(1); }
+        100% { opacity: 0;   transform: translateY(27px) scale(.85); }
+      }
+
       /* Сънят: „Zzz" се носи нагоре и лицето диша бавно. */
       .cg-face-zzz {
         position: absolute; top: -6px; right: -10px;
@@ -1326,6 +1339,7 @@
       @keyframes cgBreathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.035); } }
       .cg-face--happy .cg-face { animation: cgBob 5s ease-in-out infinite; }
       @keyframes cgBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+      .cg-face--sad .cg-face-wrap::after,
       .cg-face--angry .cg-face-wrap::after {
         content: ""; position: absolute; inset: -5px; border-radius: 50%;
         border: 2px solid var(--face-accent); opacity: .55;
@@ -1334,6 +1348,7 @@
       @keyframes cgFacePulse { 0%, 100% { transform: scale(1); opacity: .5; } 50% { transform: scale(1.07); opacity: .12; } }
 
       body.low-perf .cg-face,
+      body.low-perf .cg-face-tear,
       body.low-perf .cg-face-zzz,
       body.low-perf .cg-face-look,
       body.low-perf .cg-face-eyes,
@@ -1341,7 +1356,7 @@
       body.low-perf .cg-face-wrap::after { animation: none; }
       @media (prefers-reduced-motion: reduce) {
         .cg-face, .cg-face-zzz, .cg-face-look, .cg-face-eyes,
-        .cg-face-mouth, .cg-face-wrap::after { animation: none !important; }
+        .cg-face-tear, .cg-face-mouth, .cg-face-wrap::after { animation: none !important; }
       }
       @media (max-width: 600px) {
         .cg-face { width: 68px; height: 68px; }
@@ -5909,28 +5924,40 @@
 
       /* Връща авторска икона от вградената система.
          size е в px и повтаря размера на емоджито, което заменя. */
-      /* ══ Асистентът: лице + преценка ══
-         Нощем в киното няма никого, затова лицето спи и не се сърди.
-         Границите се сменят само тук. */
-      const FACE_SLEEP_FROM = 2;   // спи от 02:00
-      const FACE_SLEEP_TO   = 8;   // буди се в 08:00
-      const FACE_STATE_KEY  = "cg_face_state";
-      const FACE_PRAISE_MS  = 10 * 60 * 1000;  // колко дълго се радва на решен проблем
+      /* ══ Асистентът ══
+         Работно време на киното — извън него никой не проверява нищо,
+         затова лицето спи и не брои просрочени проверки. */
+      const SHIFT_OPEN_H  = 12;   // киното отваря на обяд
+      const SHIFT_CLOSE_H = 23;   // и затваря вечерта
+      const FACE_STATE_KEY = "cg_face_state";
+      const FACE_PRAISE_MS = 10 * 60 * 1000;
+      const FACE_FIRST_ROUND_MS = 60 * 60 * 1000;  // гратис за първата обиколка
+      const FACE_HISTORY_DAYS = 7;
 
-      /* Кръгло emoji-лице. state: happy | neutral | angry | sleep */
+      /* Кръгло emoji-лице. state: happy | neutral | sad | angry | sleep
+         Сълзите вървят със sad и angry — тъжен и ядосан едновременно. */
       function cgFace(state) {
         const eye = (cx) => `<circle class="cg-face-eye" cx="${cx}" cy="41" r="6.5"/>`;
         const closed = (cx) => `<path class="cg-face-ink" d="M${cx - 9} 39 Q${cx} 48 ${cx + 9} 39"/>`;
-        let eyes, mouth, extra = "";
+        const tear = (cx, delay) => `<path class="cg-face-tear" style="animation-delay:${delay}s"`
+          + ` d="M${cx} 49 C${cx - 5.5} 57 ${cx - 7} 63 ${cx} 63 C${cx + 7} 63 ${cx + 5.5} 57 ${cx} 49 Z"/>`;
+        let eyes, mouth, brows = "", tears = "";
         if (state === "sleep") {
           eyes = closed(34) + closed(66);
           mouth = `<path class="cg-face-ink cg-face-mouth" d="M43 66 Q50 72 57 66"/>`;
         } else if (state === "angry") {
           eyes = eye(34) + eye(66);
-          /* Вежди надолу към носа — оттам идва намръщеното. */
-          extra = `<path class="cg-face-ink" style="stroke-width:6" d="M23 27 L42 34"/>`
+          brows = `<path class="cg-face-ink" style="stroke-width:6" d="M23 27 L42 34"/>`
                 + `<path class="cg-face-ink" style="stroke-width:6" d="M77 27 L58 34"/>`;
           mouth = `<path class="cg-face-ink cg-face-mouth" d="M31 72 Q50 57 69 72"/>`;
+          tears = tear(31, 0) + tear(69, 1.3);
+        } else if (state === "sad") {
+          eyes = eye(34) + eye(66);
+          /* Вежди нагоре към средата — тъга, не гняв. */
+          brows = `<path class="cg-face-ink" style="stroke-width:5.5" d="M24 32 L41 27"/>`
+                + `<path class="cg-face-ink" style="stroke-width:5.5" d="M76 32 L59 27"/>`;
+          mouth = `<path class="cg-face-ink cg-face-mouth" d="M33 71 Q50 60 67 71"/>`;
+          tears = tear(69, 0);
         } else if (state === "neutral") {
           eyes = eye(34) + eye(66);
           mouth = `<path class="cg-face-ink cg-face-mouth" d="M34 66 H66"/>`;
@@ -5939,12 +5966,12 @@
           mouth = `<path class="cg-face-ink cg-face-mouth" d="M28 58 Q50 80 72 58"/>`;
         }
         return `<svg class="cg-face" viewBox="0 0 100 100" role="img" aria-label="Асистент" focusable="false">`
-          + `<circle class="cg-face-circle" cx="50" cy="50" r="50"/>${extra}`
+          + `<circle class="cg-face-circle" cx="50" cy="50" r="50"/>${brows}`
           + `<g class="cg-face-look"><g class="cg-face-eyes">${eyes}</g></g>`
-          + `${mouth}</svg>`;
+          + `${tears}${mouth}</svg>`;
       }
 
-      /* Помни кои локации са с проблем, за да може да похвали, когато отпадне. */
+      /* Помни кои локации са с проблем, за да може да похвали при решаване. */
       function _faceMemory(currentProblems) {
         let mem = { problems: [], praiseAt: 0, praiseLoc: "" };
         try { mem = Object.assign(mem, JSON.parse(localStorage.getItem(FACE_STATE_KEY) || "{}")); } catch (e) {}
@@ -5960,83 +5987,173 @@
         return mem;
       }
 
-      /* Преценка по реалните данни. Връща състояние + какво да каже. */
-      function faceVerdict() {
-        const now = new Date();
-        const h = now.getHours();
-        const sleeping = FACE_SLEEP_FROM < FACE_SLEEP_TO
-          ? (h >= FACE_SLEEP_FROM && h < FACE_SLEEP_TO)
-          : (h >= FACE_SLEEP_FROM || h < FACE_SLEEP_TO);
-        if (sleeping) {
-          return { state: "sleep", accent: "var(--muted-2)",
-            title: "Спя",
-            msg: "Нощем в киното няма никого — няма кой да проверява зали и тоалетни. Будя се в 0" + FACE_SLEEP_TO + ":00.",
-            hint: "Нощем не броя просрочени проверки." };
+      /* Разчита историята: колко проверки има днес, кои локации се повтарят
+         с проблем през последните дни и коя нередност излиза най-често. */
+      function _faceHistory(openTs) {
+        const out = { today: 0, repeat: null, repeatCount: 0, topIssue: null, topIssueCount: 0 };
+        const rows = _cachedChartRows;
+        if (!rows || !rows.length) return out;
+        const keys = Object.keys(rows[0]);
+        const dateKey = keys.find(k => /дата|час/i.test(k)) || keys[1];
+        const typeKey = keys.find(k => /тип/i.test(k)) || keys[2];
+        const statusKey = keys.find(k => /статус/i.test(k)) || keys[4];
+        const issueKey = keys.find(k => /проблем/i.test(k) && k !== statusKey) || keys[5];
+        const since = Date.now() - FACE_HISTORY_DAYS * 86400000;
+        const byLoc = {}, byIssue = {};
+        for (const row of rows) {
+          const d = parseChartDate(row[dateKey]);
+          if (!d) continue;
+          const ts = d.getTime();
+          if (ts >= openTs) out.today++;
+          if (ts < since) continue;
+          if (String(row[statusKey] || "").indexOf("Проблем") === -1) continue;
+          const loc = _normalizeLocFromTypeField(row[typeKey]);
+          if (loc) byLoc[loc] = (byLoc[loc] || 0) + 1;
+          String(row[issueKey] || "").split(/[,;]/).forEach((p) => {
+            const s = p.trim();
+            if (s && s !== "—") byIssue[s] = (byIssue[s] || 0) + 1;
+          });
         }
+        Object.keys(byLoc).forEach((l) => { if (byLoc[l] > out.repeatCount) { out.repeat = l; out.repeatCount = byLoc[l]; } });
+        Object.keys(byIssue).forEach((i) => { if (byIssue[i] > out.topIssueCount) { out.topIssue = i; out.topIssueCount = byIssue[i]; } });
+        return out;
+      }
 
+      /* Пълен анализ: за всяка локация се смята спешност, а времето се брои
+         от отварянето — нощните часове не тежат на никого. */
+      function faceAnalysis() {
+        const now = Date.now();
+        const d = new Date();
+        const open = new Date(d); open.setHours(SHIFT_OPEN_H, 0, 0, 0);
+        const openTs = open.getTime();
+        const sinceOpen = now - openTs;
         const lastBy = getLastCheckedByLocation();
-        const locs = [...HALLS, ...BATHROOMS];
-        if (!Object.keys(lastBy).length) {
-          return { state: "neutral", accent: "var(--muted)",
-            title: "Изчаквам данните", msg: "Още не съм получил проверките от таблицата.", hint: "" };
-        }
+        const ended = {};
+        try { _recentlyEndedHalls().forEach((e) => { ended[e.hallNum] = true; }); } catch (e) {}
 
-        const t = Date.now();
-        const problems = [], overdue = [], warn = [];
-        locs.forEach((loc) => {
-          const m = _locStatusMeta(lastBy[loc], t);
-          if (m.wasProblem) problems.push(loc);
-          if (m.state === "stale" || m.state === "none") overdue.push({ loc, ageMs: m.ageMs || 0 });
-          else if (m.state === "warn") warn.push(loc);
+        const items = [...HALLS, ...BATHROOMS].map((loc) => {
+          const last = lastBy[loc];
+          const lastTs = last ? last.date.getTime() : 0;
+          const age = now - Math.max(lastTs, openTs);   // ефективна възраст в смяната
+          const checkedToday = lastTs >= openTs;
+          const problem = !!(last && String(last.status).indexOf("Проблем") !== -1);
+          const hallNum = parseInt(String(loc).replace(/\D+/g, ""), 10);
+          const justEnded = !!(HALLS.indexOf(loc) !== -1 && ended[hallNum] && lastTs < now - 60000);
+          let urgency = Math.min(40, (age / (4 * 3600000)) * 40);
+          if (problem) urgency += 60;
+          if (!checkedToday && sinceOpen > FACE_FIRST_ROUND_MS) urgency += 30;
+          if (justEnded) urgency += 45;
+          return { loc, lastTs, age, checkedToday, problem, justEnded, urgency };
         });
-        const mem = _faceMemory(problems);
+        items.sort((a, b) => b.urgency - a.urgency);
+        return {
+          items, openTs, sinceOpen,
+          top: items[0],
+          problems: items.filter((i) => i.problem),
+          overdue: items.filter((i) => i.age > 4 * 3600000),
+          warn: items.filter((i) => i.age > 2 * 3600000 && i.age <= 4 * 3600000),
+          unchecked: items.filter((i) => !i.checkedToday),
+          justEnded: items.filter((i) => i.justEnded),
+          history: _faceHistory(openTs),
+        };
+      }
 
-        if (problems.length) {
-          const loc = problems[0];
-          return { state: "angry", accent: "var(--red-2)", loc,
-            title: "Не съм доволен",
-            msg: problems.length === 1
-              ? `Проблемът в ${loc} все още не е отстранен. Решен ли е вече?`
-              : `Има ${problems.length} нерешени проблема — единият е в ${loc}. Кога ще ги оправим?`,
-            hint: "Проверката ще стане зелена, щом запишете чиста проверка." };
+      /* Преценка: настроение + какво точно да се направи. */
+      function faceVerdict() {
+        const h = new Date().getHours();
+        const awake = SHIFT_OPEN_H < SHIFT_CLOSE_H
+          ? (h >= SHIFT_OPEN_H && h < SHIFT_CLOSE_H)
+          : (h >= SHIFT_OPEN_H || h < SHIFT_CLOSE_H);
+        if (!awake) {
+          return { state: "sleep", accent: "var(--muted-2)", title: "Спя",
+            msg: `Киното е затворено — работим от ${SHIFT_OPEN_H}:00 до ${SHIFT_CLOSE_H}:00. Нощем няма кой да проверява, затова не броя просрочени.`,
+            hint: `Будя се в ${SHIFT_OPEN_H}:00.` };
         }
 
-        if (overdue.length) {
-          overdue.sort((a, b) => b.ageMs - a.ageMs);
-          const o = overdue[0];
-          const ago = o.ageMs ? _formatAgo(o.ageMs) : null;
-          return { state: "angry", accent: "var(--red-2)", loc: o.loc,
-            title: "Не се чувствам добре",
-            msg: ago
-              ? `${o.loc} не е проверявана от над ${ago}. Моля, проверете я!`
-              : `${o.loc} още не е проверявана днес. Моля, погрижете се!`,
-            hint: overdue.length > 1 ? `Още ${overdue.length - 1} чакат ред.` : "" };
+        if (!_cachedChartRows || !_cachedChartRows.length) {
+          return { state: "neutral", accent: "var(--muted)", title: "Изчаквам данните",
+            msg: "Още не съм получил проверките от таблицата.", hint: "" };
+        }
+
+        const a = faceAnalysis();
+        const mem = _faceMemory(a.problems.map((i) => i.loc));
+        const hrs = (ms) => _formatAgo(ms);
+        /* Втора мисъл — това, което сме пропуснали да забележим. */
+        const extra = [];
+        if (a.history.repeatCount >= 3 && a.history.repeat) {
+          extra.push(`${a.history.repeat} е с проблем ${a.history.repeatCount} пъти за ${FACE_HISTORY_DAYS} дни — има нещо системно.`);
+        }
+        if (a.history.topIssueCount >= 3 && a.history.topIssue) {
+          extra.push(`Най-често се повтаря: ${a.history.topIssue} (${a.history.topIssueCount} пъти).`);
+        }
+        if (a.history.today) extra.push(`Днес: ${a.history.today} проверки.`);
+        const hint = extra.join(" ");
+
+        /* Зала, която току-що е свършила прожекция — това е най-спешното. */
+        if (a.justEnded.length) {
+          const j = a.justEnded[0];
+          return { state: "sad", accent: "var(--amber-2)", loc: j.loc, title: "Има свободна зала",
+            msg: `${j.loc} току-що свърши прожекция и още не е проверена. Сега е моментът.`, hint };
+        }
+
+        /* Нерешен проблем — най-тежкото за настроението. */
+        if (a.problems.length) {
+          const p = a.problems[0];
+          return { state: "angry", accent: "var(--red-2)", loc: p.loc, title: "Не съм добре",
+            msg: a.problems.length === 1
+              ? `Проблемът в ${p.loc} все още стои — последната проверка го отчете, а нова няма. Оправете го и запишете чиста проверка.`
+              : `${a.problems.length} локации са с нерешен проблем. Започнете от ${p.loc}.`,
+            hint };
+        }
+
+        /* Просрочени — колкото повече и по-дълго, толкова по-зле. */
+        if (a.overdue.length) {
+          const o = a.overdue[0];
+          const bad = a.overdue.length >= 3 || o.age > 6 * 3600000;
+          return { state: bad ? "angry" : "sad", accent: "var(--red-2)", loc: o.loc,
+            title: bad ? "Изоставаме сериозно" : "Не се чувствам добре",
+            msg: a.overdue.length === 1
+              ? `${o.loc} не е проверявана от ${hrs(o.age)}. Моля, проверете я.`
+              : `${a.overdue.length} локации чакат над 4 часа. Най-дълго чака ${o.loc} — ${hrs(o.age)}.`,
+            hint };
+        }
+
+        /* Наближава краят на смяната, а нещо не е пипано скоро. */
+        if (h >= SHIFT_CLOSE_H - 1 && a.top && a.top.age > 2 * 3600000) {
+          return { state: "neutral", accent: "var(--amber-2)", loc: a.top.loc, title: "Последна обиколка",
+            msg: `Скоро затваряме. ${a.top.loc} чака от ${hrs(a.top.age)} — да я хванем преди края.`, hint };
+        }
+
+        /* Първият час след отваряне — подсещане, не упрек. */
+        if (a.sinceOpen < FACE_FIRST_ROUND_MS && a.unchecked.length) {
+          return { state: "neutral", accent: "var(--gold-2)", loc: a.unchecked[0].loc, title: "Смяната започна",
+            msg: `Добър ден! Още ${a.unchecked.length} локации чакат първата проверка за деня. Да започнем от ${a.unchecked[0].loc}.`,
+            hint };
         }
 
         if (mem.praiseAt && (Date.now() - mem.praiseAt) < FACE_PRAISE_MS) {
-          return { state: "happy", accent: "var(--green-2)",
-            title: "Браво!",
-            msg: `Проблемът в ${mem.praiseLoc || "залата"} е оправен. Благодаря ви!`, hint: "" };
+          return { state: "happy", accent: "var(--green-2)", title: "Браво!",
+            msg: `Проблемът в ${mem.praiseLoc || "залата"} е оправен. Благодаря ви!`, hint };
         }
 
-        if (warn.length) {
-          return { state: "neutral", accent: "var(--amber-2)", loc: warn[0],
-            title: "Наглеждам",
-            msg: warn.length === 1
-              ? `${warn[0]} наближава 4 часа без проверка. Да я хванем навреме.`
-              : `${warn.length} локации наближават 4 часа без проверка.`,
-            hint: "" };
+        if (a.warn.length) {
+          const w = a.warn[0];
+          return { state: "neutral", accent: "var(--amber-2)", loc: w.loc, title: "Наглеждам",
+            msg: a.warn.length === 1
+              ? `${w.loc} е на ${hrs(w.age)} без проверка. Да я хванем, преди да просрочи.`
+              : `${a.warn.length} локации минаха 2 часа. Първа е ${w.loc}.`,
+            hint };
         }
 
-        return { state: "happy", accent: "var(--green-2)",
-          title: "Супер работа, екип!",
-          msg: "Всички проверки са направени навреме. Продължавайте така!", hint: "" };
+        return { state: "happy", accent: "var(--green-2)", title: "Супер работа, екип!",
+          msg: a.history.today
+            ? `Всичко е в срок — ${a.history.today} проверки днес и нула отворени проблема. Продължавайте така!`
+            : "Всички проверки са направени навреме. Продължавайте така!",
+          hint };
       }
 
       function renderAssistantFace() {
         const v = faceVerdict();
-        /* Бърз път до проверката на точно тази локация — без да се минава
-           през избор на тип и списък. */
         const quick = v.loc
           ? `<button class="btn btn-gold cg-face-cta" data-action="face-check"
                data-type="${HALLS.indexOf(v.loc) !== -1 ? "hall" : "bathroom"}"
