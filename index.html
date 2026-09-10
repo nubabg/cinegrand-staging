@@ -168,7 +168,7 @@
          повърхност, върху която се използва; плътните бутони носят бяло
          мастило с ≥4.5:1. Превключва се от Настройки.
          ══════════════════════════════════════════════════════════════ */
-      :root[data-theme="light"] {
+      :root[data-theme="light"], :root[data-theme="special-light"] {
         --bg: #f4f6f8;
         --bg-2: #e9edf2;
         --panel: #ffffff;
@@ -348,9 +348,11 @@
       /* Атмосферният слой е ефект за тъмната тема — на светъл фон
          петната изглеждат като зацапване, затова се неутрализират. */
       :root[data-theme="light"] .bloom-layer,
+      :root[data-theme="special-light"] .bloom-layer,
       :root[data-theme="orange"] .bloom-layer { display: none; }
       /* Полетата за дата ползват системна палитра */
       :root[data-theme="light"] .day-date-input,
+      :root[data-theme="special-light"] .day-date-input,
       :root[data-theme="orange"] .day-date-input { color-scheme: light; }
       * { box-sizing: border-box; }
       html, body { min-height: 100%; }
@@ -1860,6 +1862,157 @@
         .product-strip { justify-content: flex-start; margin-bottom: var(--s3); }
       }
 
+      /* Optional special themes. Refreshed rules are scoped to these two
+         themes; the three original palettes retain their original design. */
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) {
+        --bg: #0c151b;
+        --bg-2: #081117;
+        --panel: #14232b;
+        --panel-2: #1a2d36;
+        --panel-3: #102029;
+        --panel-2-hover: #243c46;
+        --bg-depth: linear-gradient(145deg, rgba(0,168,125,.045), transparent 55%);
+        --text: #f4fafb;
+        --muted: #bdcdd3;
+        --muted-2: #a2b7c0;
+        --border: #2a3e47;
+        --border-subtle: #22343e;
+        --border-strong: #3b5661;
+        --gold: #34d3a5;
+        --gold-2: #69e6bf;
+        --gold-ink: #06291f;
+        --gold-rgb: 52,211,165;
+        --gold-soft: rgba(52,211,165,.12);
+        --gold-line: rgba(52,211,165,.32);
+        --c-brand: #00ad83;
+        --icon-nav: #69e6bf;
+        --shadow-1: 0 2px 5px rgba(0,0,0,.14);
+        --shadow-2: 0 5px 20px -8px rgba(0,0,0,.3);
+        --shadow-3: 0 24px 64px -16px rgba(0,0,0,.48);
+        --font-display: var(--font-ui);
+        --fs-body: 1rem;
+        --fs-card: 1rem;
+        --fs-meta: .875rem;
+        --fs-micro: .75rem;
+        --fs-page: 1.875rem;
+        --fs-section: 1.1875rem;
+        --r-sm: 8px;
+        --r-md: 12px;
+        --r-lg: 16px;
+      }
+      :root[data-theme="special-light"] {
+        --bg: #edf3f8;
+        --bg-2: #e4ecf3;
+        --bg-depth: linear-gradient(145deg, #f5f8fc, #edf3f8);
+        --panel: #ffffff;
+        --panel-2: #f1f6fa;
+        --panel-3: #f7f9fc;
+        --panel-2-hover: #e6eef4;
+        --text: #142630;
+        --muted: #526777;
+        --muted-2: #5c7180;
+        --border: #dfe8f0;
+        --border-subtle: #eaf0f5;
+        --border-strong: #b9cbd7;
+        --border-control: #7a909e;
+        --gold: #007f60;
+        --gold-2: #00694e;
+        --gold-ink: #ffffff;
+        --gold-rgb: 0,127,96;
+        --gold-soft: #e0f5ed;
+        --gold-line: #9fdac7;
+        --green: #087e56; --green-2: #006342;
+        --green-rgb: 8,126,86;
+        --green-soft: #e0f5eb;
+        --red: #cf2946; --red-2: #b11c38;
+        --red-rgb: 207,41,70;
+        --red-soft: #fff0f3;
+        --blue: #096ccd; --blue-2: #0757a6;
+        --blue-rgb: 9,108,205;
+        --blue-soft: #e7f2ff;
+        --purple: #7044d3; --purple-2: #5d32bb;
+        --purple-rgb: 112,68,211;
+        --purple-soft: #f0eaff;
+        --c-green: #009b72; --c-red: #e63250;
+        --c-blue: #0089e8; --c-purple: #7954df;
+        --c-amber: #b87b00;
+        --icon-nav: #456777;
+        --selection-bg: #b9eddb;
+        --selection-fg: #102c25;
+        --shadow-1: 0 2px 5px rgba(28,58,78,.035);
+        --shadow-2: 0 4px 20px -8px rgba(28,58,78,.13);
+        --shadow-3: 0 24px 64px -16px rgba(28,58,78,.24);
+      }
+            /* The dark navigation owns its tokens, including its search popup. */
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .sidebar {
+        --text: #f5fbfc;
+        --muted: #c5d4db;
+        --muted-2: #acc1ca;
+        --panel: #10232c;
+        --panel-2: #18313b;
+        --panel-3: #0d1d25;
+        --panel-2-hover: #23434d;
+        --border: #2b424c;
+        --border-subtle: #263c46;
+        --border-strong: #4c6874;
+        --gold: #34d3a5;
+        --gold-2: #69e6bf;
+        --gold-rgb: 52,211,165;
+        --gold-soft: rgba(0,173,131,.2);
+        --gold-line: #23876e;
+        --icon-nav: #c5d4db;
+        --logo-ink: #e5bf69;
+        --focus-ring: 0 0 0 2px #0d1d25, 0 0 0 4px #69e6bf;
+        color-scheme: dark;
+        color: var(--text);
+        background: linear-gradient(165deg, #11252d 0%, #0a1921 70%, #10362f 100%);
+        border-color: #1e3740;
+        box-shadow: 0 12px 28px -16px rgba(8,25,33,.45);
+      }
+            :root:is([data-theme="special-light"], [data-theme="special-dark"]) .topbar-nav { gap: 6px; }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .nav-btn { font-size: .875rem; font-weight: 500; }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .nav-btn.state {
+        color: var(--text);
+        background: linear-gradient(110deg, var(--gold-soft), rgba(var(--gold-rgb),.07));
+        border-color: rgba(var(--gold-rgb),.18);
+      }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .nav-btn:hover { background: var(--panel-2); }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .brand-meta strong { letter-spacing: .015em; text-transform: none; }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .brand-meta span { letter-spacing: .04em; font-size: .75rem; }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .hero-title { font-weight: 700; letter-spacing: -.025em; }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .section-title { font-weight: 700; letter-spacing: -.015em; }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .metric-value,
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .stat strong {
+        font-family: var(--font-ui); font-weight: 700;
+        font-variant-numeric: tabular-nums; letter-spacing: -.025em;
+      }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .metric-label { font-size: .75rem; letter-spacing: .04em; }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .grid { gap: var(--s4); }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .panel,
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .cg-review-card { box-shadow: var(--shadow-2); }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .card-head { padding: var(--s5) var(--s5) var(--s4); }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .card-body { padding: var(--s5); }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .card-text-icon { font-size: .75rem; letter-spacing: .06em; }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .card-pick:hover {
+        border-color: var(--gold-line);
+        box-shadow: var(--shadow-2), 0 0 0 1px var(--gold-line);
+      }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .btn-gold { box-shadow: 0 3px 10px -5px rgba(var(--gold-rgb),.4); }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .btn-gold:active { background: var(--gold-2); border-color: var(--gold-2); }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .field label { font-size: .875rem; text-transform: none; letter-spacing: 0; }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .field input:focus,
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .field select:focus,
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .field textarea:focus,
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .day-date-input:focus { box-shadow: 0 0 0 3px rgba(var(--gold-rgb),.18); }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .modal,
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .cg-ann-modal-box { box-shadow: var(--shadow-3); }
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .cg-review-stars,
+      :root:is([data-theme="special-light"], [data-theme="special-dark"]) .cg-overall-stars { color: var(--amber); }
+      @media (max-width: 560px) {
+        :root:is([data-theme="special-light"], [data-theme="special-dark"]) .card-head,
+        :root:is([data-theme="special-light"], [data-theme="special-dark"]) .card-body { padding: var(--s4); }
+        :root:is([data-theme="special-light"], [data-theme="special-dark"]) .hero-title { font-size: 1.625rem; }
+      }
     </style>
   </head>
   <body>
@@ -2171,7 +2324,7 @@
       /* ── Тема на интерфейса (тъмна / светла) ── */
       const THEME_KEY = "cg_theme";
       /* Наличните палитри. Първата е по подразбиране. */
-      const THEMES = ["dark", "light", "orange"];
+      const THEMES = ["dark", "light", "orange", "special-light", "special-dark"];
       function currentTheme() {
         try {
           const t = localStorage.getItem(THEME_KEY);
@@ -3063,6 +3216,9 @@
         "Изключи за по-плавна работа на слаби устройства": "Turn off for smoother performance on slower devices",
         "Вкл": "On", "Изкл": "Off", "Търси функция": "Search",
         "Тъмна": "Dark", "Светла": "Light", "Оранжева": "Orange", "Затвори": "Close",
+        "Специални теми": "Special themes",
+        "Специална светла": "Special light", "Специална тъмна": "Special dark",
+        "Обновена палитра, карти и типография": "Refined palette, cards and typography",
         "Контрол на хигиена": "Hygiene Control", "Парк Център София": "Park Center Sofia",
         /* Home */
         "Контрол на Хигиената": "Hygiene Control",
@@ -6238,6 +6394,17 @@
                 ${seg("set-theme", "theme", "dark", "Тъмна", theme === "dark")}
                 ${seg("set-theme", "theme", "light", "Светла", theme === "light")}
                 ${seg("set-theme", "theme", "orange", "Оранжева", theme === "orange")}
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-text">
+                <div class="settings-label">Специални теми</div>
+                <div class="settings-hint">Обновена палитра, карти и типография</div>
+              </div>
+              <div class="seg" role="group" aria-label="Специални теми" style="flex-wrap:wrap;min-width:0;flex-shrink:1;">
+                ${seg("set-theme", "theme", "special-light", "Специална светла", theme === "special-light")}
+                ${seg("set-theme", "theme", "special-dark", "Специална тъмна", theme === "special-dark")}
               </div>
             </div>
 
