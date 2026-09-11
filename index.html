@@ -1098,7 +1098,9 @@
       .leaderboard-item:hover { background: var(--panel-2); }
       .leaderboard-rank { width: 26px; height: 26px; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: var(--fs-meta); flex-shrink: 0; }
       .leaderboard-rank.top1 { background: var(--c-brand); color: var(--on-fill); }
-      .leaderboard-rank.top2 { background: var(--border-control); color: var(--text); }
+      /* Плътна основа под текст иска 4.5:1 — --border-control е контурен
+         токен с праг 3:1 и падаше под нужното във всички теми. */
+      .leaderboard-rank.top2 { background: var(--muted-2); color: var(--on-fill); }
       .leaderboard-rank.top3 { background: var(--border-strong); color: var(--text); }
       .leaderboard-rank.other { background: var(--panel-3); color: var(--muted); }
       .leaderboard-avatar { width: 32px; height: 32px; border-radius: var(--r-sm); background: var(--gold-soft); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: var(--fs-body); color: var(--gold-2); flex-shrink: 0; }
@@ -1936,6 +1938,10 @@
         --c-green: #009b72; --c-red: #e63250;
         --c-blue: #0089e8; --c-purple: #7954df;
         --c-amber: #b87b00;
+        /* Общият блок за двете специални теми задава --c-brand за тъмен фон.
+           Върху светла повърхност той пада до 2.87:1, а токенът служи и за
+           плътна основа под бял текст (значка №1), и за лента за прогрес. */
+        --c-brand: #007f60;
         --icon-nav: #456777;
         --selection-bg: #b9eddb;
         --selection-fg: #102c25;
