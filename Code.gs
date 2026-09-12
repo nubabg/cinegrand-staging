@@ -47,9 +47,26 @@ function doGet(e) {
 
     if (action === "getInfo") {
       var sheet = ss.getSheetByName("ИНФО") || ss.getSheetByName("Sheet1") || ss.getSheets()[0];
-      var data  = sheet.getDataRange().getDisplayValues();
+      // limit=N връща само заглавния ред плюс последните N записа.
+      // Началният екран има нужда единствено от скорошното, а листът расте
+      // без край — без ограничение всяко зареждане на сайта четеше и
+      // сериализираше цялата история.
+      var limit = parseInt(params.limit || "0", 10);
+      var lastRow = sheet.getLastRow();
+      var lastCol = sheet.getLastColumn();
+      var data, limited = false;
+      if (limit > 0 && lastCol > 0 && lastRow > limit + 1) {
+        var header = sheet.getRange(1, 1, 1, lastCol).getDisplayValues();
+        var body   = sheet.getRange(lastRow - limit + 1, 1, limit, lastCol).getDisplayValues();
+        data = header.concat(body);
+        limited = true;
+      } else {
+        data = sheet.getDataRange().getDisplayValues();
+      }
+      // limited казва на клиента, че липсва история — само тогава той си
+      // дърпа пълния лист, когато потребителят отвори „Данни".
       return ContentService
-        .createTextOutput(JSON.stringify({ success: true, data: data }))
+        .createTextOutput(JSON.stringify({ success: true, data: data, limited: limited }))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
