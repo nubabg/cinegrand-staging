@@ -5292,20 +5292,95 @@
         return '';
       }
 
-      async function fetchSheetsData() {
-        const url = SHEETS_WEB_APP_URL + '?action=getInfo&_token=' + encodeURIComponent(SHEETS_SECRET_TOKEN) + '&_cb=' + Date.now();
+      /* Колко реда стигат на началния екран. „Последна проверка" гледа само
+         най-скорошния запис за локация, а асистентът — последните 7 дни.
+         Цялата история трябва само на екрана „Данни". */
+      const SHEETS_RECENT_LIMIT = 600;
+      /* Кешираните ИНФО редове, които ползват началният екран, асистентът,
+         графиките и историята на залата. */
+      let _cachedChartRows = null;
+      /* Върнатият набор е частичен (сървърът е приложил limit). Пази се до
+         редовете, за да знае екранът „Данни" дали да си дои пълната история. */
+      let _rowsArePartial = false;
+
+      async function fetchSheetsData(limit) {
+        let url = SHEETS_WEB_APP_URL + '?action=getInfo&_token=' + encodeURIComponent(SHEETS_SECRET_TOKEN);
+        /* Разгърнатите по-стари версии на Apps Script не познават limit и
+           просто го игнорират — връщат всичко, както досега. */
+        if (limit > 0) url += '&limit=' + limit;
+        url += '&_cb=' + Date.now();
         const res = await fetchWithTimeout(url, {}, 15000);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const json = await res.json();
         if (!json.success) throw new Error(json.error || 'Error');
+        /* Само нова версия на бекенда маркира отговора като отрязан. Липсва
+           ли маркерът, значи сме получили целия лист. */
+        const limited = json.limited === true;
         const data = json.data; // 2D array: row 0 = headers, rest = data
-        if (!data || data.length < 2) return [];
+        if (!data || data.length < 2) { fetchSheetsData.lastWasPartial = limited; return []; }
         const headers = data[0].map(h => String(h || '').trim());
-        return data.slice(1).map(row => {
+        const rows = data.slice(1).map(row => {
           const obj = {};
           headers.forEach((h, i) => { obj[h] = String(row[i] != null ? row[i] : ''); });
           return obj;
         }).filter(r => Object.values(r).some(v => v !== ''));
+        fetchSheetsData.lastWasPartial = limited;
+        return rows;
+      }
+
+      /* ── Една заявка наведнъж ──
+         Досега стартовият код и self-healing-ът на началния екран пускаха
+         две еднакви заявки в рамките на милисекунди. Apps Script сериализира
+         изпълненията на един потребител, така че втората не само дърпаше
+         същите стотици килобайти пак, а и чакаше първата да свърши — тоест
+         удвояваше времето до данни. Тук всички желаещи споделят една заявка. */
+      let _sheetsInflight = null;
+      function fetchSheetsRows(full) {
+        /* Текуща заявка върши работа, ако е поне толкова пълна, колкото искаме. */
+        if (_sheetsInflight && (_sheetsInflight.full || !full)) return _sheetsInflight.p;
+        const entry = { full: !!full };
+        entry.p = fetchSheetsData(full ? 0 : SHEETS_RECENT_LIMIT)
+          .then((rows) => {
+            const partial = fetchSheetsData.lastWasPartial === true;
+            /* Частичен набор не бива да измества вече наличната пълна история. */
+            if (!(partial && _cachedChartRows && !_rowsArePartial)) {
+              _cachedChartRows = rows;
+              _rowsArePartial = partial;
+            }
+            /* Кешът служи само на началния екран и се пази отрязан, така че
+               се пълни и когато бекендът още не поддържа limit. */
+            writeRecentRowsCache(rows);
+            return rows;
+          })
+          .finally(() => { if (_sheetsInflight === entry) _sheetsInflight = null; });
+        _sheetsInflight = entry;
+        return entry.p;
+      }
+
+      /* ── Кеш между зареждания ──
+         Само скорошните редове и само за да се нарисува началният екран
+         веднага, вместо да стои празен, докато мрежата отговори. Възрастите
+         се смятат от самите времена на записите, така че стар кеш показва
+         по-голяма давност — ако греши, греши в безопасната посока. */
+      const RECENT_CACHE_KEY = "cg_info_recent_v1";
+      const RECENT_CACHE_TTL_MS = 30 * 60 * 1000;
+      function writeRecentRowsCache(rows) {
+        try {
+          if (!Array.isArray(rows) || !rows.length) return;
+          localStorage.setItem(RECENT_CACHE_KEY, JSON.stringify({
+            at: Date.now(), rows: rows.slice(-SHEETS_RECENT_LIMIT)
+          }));
+        } catch (_) { /* пълна квота или блокиран storage — кешът е по избор */ }
+      }
+      function readRecentRowsCache() {
+        try {
+          const raw = localStorage.getItem(RECENT_CACHE_KEY);
+          if (!raw) return null;
+          const o = JSON.parse(raw);
+          if (!o || !Array.isArray(o.rows) || !o.rows.length) return null;
+          if (Date.now() - (o.at || 0) > RECENT_CACHE_TTL_MS) return null;
+          return o.rows;
+        } catch (_) { return null; }
       }
 
       /* Парсва дата от различни формати (включително bg-BG: "21.03.2026, 14:35") */
@@ -5481,9 +5556,7 @@
 
 
       let _chartsLoading = false;
-      let _cachedChartRows = null;
       let _chartsFetchVersion = 0;
-      let _sheetsFetchInFlight = false;
 
       /* Self-healing зареждане на ИНФО данните — извиква се от badge-овете на
          home когато няма кеширани данни. Прави най-много едно паралелно
@@ -5497,15 +5570,13 @@
       const SHEETS_SELF_HEAL_MS = 60000;
       function ensureSheetsDataLoaded() {
         if (_cachedChartRows && _cachedChartRows.length > 0) return;
-        if (_sheetsFetchInFlight) return;
+        if (_sheetsInflight) return;
         if (!isSheetsConfigured()) return;
         if (Date.now() - _sheetsSelfHealAt < SHEETS_SELF_HEAL_MS) return;
         _sheetsSelfHealAt = Date.now();
-        _sheetsFetchInFlight = true;
-        fetchSheetsData().then(r => {
-          _cachedChartRows = r;
-        }).catch(() => {}).finally(() => {
-          _sheetsFetchInFlight = false;
+        /* Началният екран иска само скорошното. fetchSheetsRows слага
+           резултата в кеша сам. */
+        fetchSheetsRows(false).catch(() => {}).finally(() => {
           /* Пре-рендер само когато наистина е пристигнало нещо за показване. */
           if (state.screen === "home" && _cachedChartRows && _cachedChartRows.length > 0) render();
         });
@@ -5539,8 +5610,10 @@
           return;
         }
 
-        /* Ако има кеширани данни — рисувай директно (само при page load) */
-        if (_cachedChartRows) {
+        /* Ако има пълни кеширани данни — рисувай директно (само при page load).
+           Частичен кеш (само скорошните редове от началния екран) не става за
+           графики — тогава се минава през заявката по-долу. */
+        if (_cachedChartRows && !_rowsArePartial) {
           buildChartsFromData(container, _cachedChartRows);
           return;
         }
@@ -5556,7 +5629,7 @@
 
         let rows;
         try {
-          rows = await fetchSheetsData();
+          rows = await fetchSheetsRows(true);
           console.log('[Charts] Fetched', rows ? rows.length : 0, 'raw rows (v' + thisVersion + ')');
         } catch(e) {
           console.warn('[Charts] Fetch failed (v' + thisVersion + '):', e.message);
@@ -7022,10 +7095,17 @@
         updateModals();
         bindInputs();
         decorateHallSelectionIcons();
-        /* Charts: HTML визуализации (без Chart.js) — синхронно от кеш */
-        if (state.screen === "charts" && _cachedChartRows && _cachedChartRows.length > 0) {
-          const c = document.getElementById('charts-container');
-          if (c) buildChartsFromData(c, _cachedChartRows);
+        /* Charts: HTML визуализации (без Chart.js) — синхронно от кеш.
+           Кешът от началния екран е отрязан до последните записи; графиките
+           искат цялата история, затова при частичен кеш се минава през
+           initChartsScreen, който си я дърпа. */
+        if (state.screen === "charts") {
+          if (_cachedChartRows && _cachedChartRows.length > 0 && !_rowsArePartial) {
+            const c = document.getElementById('charts-container');
+            if (c) buildChartsFromData(c, _cachedChartRows);
+          } else {
+            initChartsScreen(false);
+          }
         }
         applyPerfMode();
         if (state.screen === "home" && typeof cgUpdateReviews === 'function') cgUpdateReviews();
@@ -7518,8 +7598,8 @@
           state.hallDetail = btn.dataset.loc || null;
           updateModals();
           // Ако данните още не са заредени — дръпни ги и опресни
-          if (!_cachedChartRows || !_cachedChartRows.length) {
-            fetchSheetsData().then(r => { _cachedChartRows = r; if (state.hallDetail) updateModals(); }).catch(() => {});
+          if (!_cachedChartRows || !_cachedChartRows.length || _rowsArePartial) {
+            fetchSheetsRows(true).then(() => { if (state.hallDetail) updateModals(); }).catch(() => {});
           }
           return;
         }
@@ -7651,13 +7731,28 @@
       cleanupOldRecords();
       if (getAccessBlock()) { showAccessBlocked(); } else {
       showAccessLoading();
+      /* Apps Script заспива и първата заявка плаща cold start. Събуждаме го
+         успоредно с проверката за достъп, за да не се чака последователно:
+         ping не чете листове и не връща данни. */
+      warmUpBackend();
       checkAccess().then(async (allowed) => {
         if (allowed === "outside") { recordFailedAttempt(); showOutsideCinema(); return; }
         if (!allowed) { const blocked = recordFailedAttempt(); if (blocked) { showAccessBlocked(); return; } showAccessDenied(); return; }
-        /* Preload charts data — единствено при зареждане на страницата (F5). Бутонът Данни само показва кеша. */
-        fetchSheetsData().then(r => {
-          _cachedChartRows = r;
-          if (state.screen === "charts") {
+        /* Кешът от миналото зареждане рисува началния екран веднага, вместо
+           да стои „зареждам…", докато мрежата отговори. Веднага след това
+           заявката по-долу го заменя с прясното. */
+        if (!_cachedChartRows) {
+          const cached = readRecentRowsCache();
+          if (cached) {
+            _cachedChartRows = cached;
+            _rowsArePartial = true;
+            if (state.screen === "home") render();
+          }
+        }
+        /* Preload при зареждане на страницата (F5). Началният екран иска само
+           скорошните редове — цялата история се дърпа чак при „Данни". */
+        fetchSheetsRows(false).then(r => {
+          if (state.screen === "charts" && !_rowsArePartial) {
             const c = document.getElementById('charts-container');
             if (c && r && r.length) buildChartsFromData(c, r);
           }
@@ -7669,10 +7764,9 @@
            badges stay current as other inspectors submit. Every 3 minutes. */
         setInterval(() => {
           if (state.screen !== "home") return;
-          fetchSheetsData().then(r => {
-            _cachedChartRows = r;
-            render();
-          }).catch(() => {});
+          /* Периодичното опресняване също иска само скорошното — иначе на
+             всеки три минути се дърпаше целият лист. */
+          fetchSheetsRows(false).then(() => { render(); }).catch(() => {});
         }, 3 * 60 * 1000);
         /* Lighter every-minute re-render so the "преди X" ages tick over
            without an extra Sheets request. */
