@@ -2028,7 +2028,31 @@
       .cg-hall-show-time { font-size:14px; color:var(--muted); font-variant-numeric:tabular-nums; }
       .cg-hall-show-time strong { color:var(--text); }
       .cg-hall-show-empty { font-size:12px; color:var(--muted-2); }
-      .cg-hall-show-ended { font-size:12px; color:var(--green-2); margin-top:3px; }
+      /* Компактно напомняне за проверка вътре в картата на залата.
+         Стои на реда под часа на края и не променя ширината на картата. */
+      .cg-hall-check-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        max-width: 100%;
+        box-sizing: border-box;
+        margin-top: 7px;
+        padding: 4px 7px;
+        border: 1px solid var(--amber);
+        border-radius: var(--r-sm);
+        background: var(--amber-soft);
+        color: var(--amber-2);
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+      }
+      .cg-hall-check-badge .cg-icon { flex-shrink: 0; }
+      .cg-hall-check-badge--ready {
+        border-color: var(--green);
+        background: var(--green-soft);
+        color: var(--green-2);
+      }
       .cg-hall-last-check { margin-top:8px; text-align:right; font-size:var(--fs-micro); color:var(--muted-2); }
     </style>
   </head>
@@ -4835,6 +4859,15 @@
         if (!show) return empty(label("Няма данни за текуща прожекция", "No current screening data"));
         const time = /^([01]?\d|2[0-3]):[0-5]\d$/.test(show.end || "") ? show.end : "";
         const elapsed = running && remaining !== null && remaining <= 0;
+        /* Жълтият етикет се показва само докато прожекцията още върви и
+           има истинско оставащо време. Без данни за край (remaining е null)
+           няма отброяване, а при нула или по-малко изчакваме обновени
+           данни, вместо сами да обявяваме край. */
+        const endingSoon =
+          running &&
+          remaining !== null &&
+          remaining > 0 &&
+          remaining <= 10;
         const stateLabel = !running ? label("Приключила прожекция", "Screening ended")
           : elapsed ? label("Очаква се обновяване", "Awaiting update") : label("В момента", "Now showing");
         const endLabel = !running ? label("Свърши в", "Ended at") : label("Край", "Ends");
@@ -4852,7 +4885,22 @@
             <div class="cg-hall-show-label">${stateLabel}</div>
             <div class="cg-hall-show-title">${escapeHtml(show.movie || label("Неизвестен филм", "Unknown movie"))}</div>
             <div class="cg-hall-show-time">${endLabel} <strong>${escapeHtml(time || "—")}</strong>${remaining !== null && remaining > 0 ? ` · ${Math.ceil(remaining)} ${label("мин", "min")}` : ""}</div>
-            ${!running ? `<div class="cg-hall-show-ended">${label("Провери залата", "Inspect the hall")}</div>` : ""}
+            ${endingSoon ? `
+              <div class="cg-hall-check-badge">
+                ${cgIcon("screening", 14)}
+                <span>
+                  ${label("Проверка след", "Inspection in")}
+                  ${Math.ceil(remaining)}
+                  ${label("мин", "min")}
+                </span>
+              </div>
+            ` : ""}
+            ${!running ? `
+              <div class="cg-hall-check-badge cg-hall-check-badge--ready">
+                ${cgIcon("inspection", 14)}
+                <span>${label("Провери залата", "Inspect the hall")}</span>
+              </div>
+            ` : ""}
           </div>
         </div>`;
       }
