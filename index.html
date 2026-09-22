@@ -1752,6 +1752,125 @@
       }
       body.low-perf .cg-prog-head { animation: none; }
 
+      /* ── Екран „Зали" — компактни редове, групирани по действие ──
+         Ред: чип на залата, малък постер, заглавие и един ред детайли, зрители
+         вдясно; прогресът е тънка линия по дъното. На широк екран групите
+         вървят в две колони. */
+      .cg-hstrip {
+        display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: var(--s2); margin-bottom: var(--s4);
+      }
+      .cg-htile {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 2px; min-width: 0; padding: 8px 4px;
+        border-radius: var(--r-md); border: 1px solid var(--border);
+        border-top: 3px solid var(--hc); background: var(--panel-2);
+      }
+      .cg-htile-n { font-family: 'Oswald', sans-serif; font-size: 20px; font-weight: 700; line-height: 1; color: var(--text); }
+      .cg-htile-s {
+        font-size: var(--fs-micro); font-weight: 700; color: var(--muted);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+        font-variant-numeric: tabular-nums;
+      }
+      .cg-htile--check { background: var(--green-soft); border-color: var(--green); border-top-color: var(--hc); }
+      .cg-htile--check .cg-htile-s { color: var(--green-2); }
+      .cg-htile--soon  { background: var(--amber-soft); border-color: var(--amber); border-top-color: var(--hc); }
+      .cg-htile--soon .cg-htile-s  { color: var(--amber-2); }
+      .cg-htile--run .cg-htile-s   { color: var(--blue-2); }
+      .cg-htile--idle { opacity: .6; }
+
+      .cg-hgrp + .cg-hgrp { margin-top: var(--s4); }
+      .cg-hgrp-h {
+        display: flex; align-items: center; gap: 6px; margin: 0 0 var(--s2);
+        font-size: var(--fs-micro); font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      }
+      .cg-hgrp-n {
+        min-width: 20px; padding: 1px 7px; border-radius: var(--r-pill);
+        background: var(--panel-3); color: var(--text); text-align: center;
+        letter-spacing: 0; font-variant-numeric: tabular-nums;
+      }
+      .cg-hgrid { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr)); }
+
+      .cg-hrow {
+        position: relative; display: flex; align-items: center; gap: 10px;
+        min-width: 0; padding: 8px 12px 10px 10px; overflow: hidden;
+        border-radius: var(--r-md); background: var(--panel-2);
+        border: 1px solid var(--border); border-left: 3px solid var(--hc);
+      }
+      .cg-hrow--check { background: var(--green-soft); border-color: var(--green); border-left-color: var(--hc); }
+      .cg-hrow--soon  { border-color: var(--amber); border-left-color: var(--hc); }
+      .cg-hrow--next  { background: var(--n-bg, var(--panel-2)); border-color: var(--n-bd, var(--gold-line)); }
+      .cg-hrow--later { border-style: dashed; border-left-style: solid; }
+      .cg-hchip {
+        width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--r-sm); border: 1px solid;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        font-family: 'Oswald', sans-serif; font-weight: 700; line-height: 1;
+      }
+      .cg-hchip-l { font-size: 9px; letter-spacing: .1em; }
+      .cg-hchip-n { font-size: 18px; margin-top: 1px; }
+      .cg-poster.cg-poster--sm { width: 28px; height: 40px; }
+      .cg-hrow-main { flex: 1 1 auto; min-width: 0; }
+      .cg-hrow-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
+      .cg-hrow-movie {
+        min-width: 0; font-size: var(--fs-body); font-weight: 700; color: var(--text);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .cg-hrow-pct { flex-shrink: 0; font-size: var(--fs-micro); font-weight: 700; font-family: 'Oswald', sans-serif; letter-spacing: .04em; }
+      .cg-hrow-fmt {
+        flex-shrink: 0; font-size: 10.5px; font-weight: 700; color: var(--on-fill);
+        background: var(--gold-2); padding: 1px 6px; border-radius: var(--r-pill); letter-spacing: .06em;
+      }
+      .cg-hrow-nextpill {
+        flex-shrink: 0; font-size: 10.5px; font-weight: 700; color: var(--on-fill);
+        padding: 1px 7px; border-radius: var(--r-pill); letter-spacing: .08em; white-space: nowrap;
+      }
+      .cg-hrow-meta {
+        display: flex; align-items: center; gap: 4px; margin-top: 2px; min-width: 0;
+        font-size: var(--fs-meta); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        font-variant-numeric: tabular-nums;
+      }
+      .cg-hrow-meta b { color: var(--text); }
+      .cg-hrow--soon .cg-hrow-meta { color: var(--amber-2); font-weight: 600; }
+      .cg-hrow--check .cg-hrow-meta { color: var(--text); }
+      .cg-hrow-cta {
+        flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px;
+        font-size: var(--fs-micro); font-weight: 700; letter-spacing: .03em; white-space: nowrap;
+        color: var(--on-fill); background: var(--green); padding: 6px 10px; border-radius: var(--r-pill);
+      }
+      .cg-hocc {
+        flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+        min-width: 58px; font-variant-numeric: tabular-nums; line-height: 1.1;
+      }
+      .cg-hocc-n { display: inline-flex; align-items: baseline; gap: 3px; font-family: 'Oswald', sans-serif; }
+      .cg-hocc-n b { font-size: 17px; }
+      .cg-hocc-n small { font-size: 11px; color: var(--muted); }
+      .cg-hocc-n .cg-icon { align-self: center; }
+      .cg-hocc-l { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+      .cg-hocc--none { color: var(--muted-2); }
+      .cg-hrow-prog { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--panel-3); }
+      .cg-hrow-prog > i { display: block; height: 100%; background: var(--p-to, var(--blue)); transition: width .9s cubic-bezier(.4,0,.2,1); }
+      body.low-perf .cg-hrow-prog > i { transition: none; }
+      @media (max-width: 600px) {
+        .cg-hstrip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .cg-hrow { gap: 8px; padding: 7px 10px 9px 8px; }
+        /* На тесен екран оставащото време е най-важното — не се реже.
+           Заглавието стига до два реда, а значките слизат под него. */
+        .cg-hrow-title { flex-wrap: wrap; row-gap: 3px; }
+        .cg-hrow-movie {
+          white-space: normal; line-height: 1.25;
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        }
+        .cg-hrow-meta { white-space: normal; flex-wrap: wrap; column-gap: 4px; row-gap: 0; }
+        .cg-hocc { min-width: 0; }
+        /* Процентът е излишен — лентата по дъното на реда го показва. */
+        .cg-hrow-pct { display: none; }
+        .cg-halls-panel { padding: var(--s4); }
+        .cg-hrow-cta > span { display: none; }   /* на тесен екран остава иконата */
+        .cg-hrow-cta { padding: 7px; }
+      }
+      /* На телефон чипът на залата стига за разпознаване; мястото отива за часа. */
+      @media (max-width: 430px) { .cg-poster.cg-poster--sm { display: none; } }
+
       /* ── СЛЕДВАЩА прожекция — открояване по контур ── */
       .cg-next-card { border-color: var(--gold-line) !important; }
       .cg-next-pill { /* статичен; открояването е в цвета на бàджа */ }
@@ -3329,6 +3448,7 @@
         "начало": "just started", "в ход": "in progress", "втора половина": "second half", "към края": "near the end",
         "пълна": "full", "почти пълна": "filling up", "средно": "moderate", "празна": "empty",
         "▶ СЛЕДВАЩА": "▶ UP NEXT", "всеки момент": "any moment now",
+        "Провери сега": "Check now", "Свършва скоро": "Ending soon", "Тече": "Running", "Предстои": "Upcoming", "Провери": "Check",
         "няма данни": "no data",
         "В момента няма текущи прожекции.": "No screenings are running right now.",
         "В момента няма прожекции на таблото.": "No screenings on the board right now.",
@@ -3736,59 +3856,58 @@
       function renderNextCleanSection() {
         if (!NEXTCLEAN_PROXY_URL) return "";
         const hasData = _nextCleanShows.length > 0;
-
-        /* Постерът е с фиксиран размер навсякъде — виж .cg-poster. */
-        const poster = (src, hc) => `<div class="cg-poster" style="--pc:rgba(${hc.g},.45);">`
-          + (src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove();">` : "")
-          + `<span class="cg-poster-fb">${cgIcon("screening", 20)}</span></div>`;
-
-        const hallBadge = (hc, num, forDark) => `<div style="width:54px;height:54px;border-radius:var(--r-md);background:${forDark ? hc.t : `rgba(${hc.g},.16)`};border:1px solid rgba(${hc.g},.45);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
-            <span style="font-size:var(--fs-micro);font-weight:700;letter-spacing:.1em;color:${forDark ? 'var(--on-fill)' : hc.t};font-family:'Oswald',sans-serif;line-height:1;">ЗАЛА</span>
-            <span style="font-size:22px;font-weight:700;color:${forDark ? 'var(--on-fill)' : hc.t};font-family:'Oswald',sans-serif;line-height:1;margin-top:1px;">${num}</span>
-          </div>`;
-
-        /* Блок със зрителите. При липсващи данни показва „—", за да е ясно, че
-           няма информация, вместо блокът да изчезне и редът да изглежда различно. */
-        const occBlockFor = (o) => {
-          if (!o) {
-            return `<div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:96px;padding:9px 12px;border-radius:var(--r-lg);background:var(--panel-2);border:1.5px dashed var(--border);" title="Няма данни за свободните места на тази прожекция">
-                <div style="display:flex;align-items:baseline;gap:3px;line-height:1;">
-                  <span style="margin-right:2px;opacity:.5;display:inline-flex;">${cgIcon("no-data", 14)}</span>
-                  <span style="font-size:26px;font-weight:700;color:var(--muted-2);font-family:'Oswald',sans-serif;">—</span>
-                </div>
-                <div style="font-size:var(--fs-micro);font-weight:700;color:var(--muted-2);letter-spacing:.09em;text-transform:uppercase;margin-top:4px;white-space:nowrap;">няма данни</div>
-              </div>`;
-          }
-          return `<div style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:96px;padding:9px 12px;border-radius:var(--r-lg);background:linear-gradient(135deg,${o.color}2e,${o.color}12);border:1.5px solid ${o.color}77;box-shadow:0 0 16px ${o.color}33;" title="${o.taken} заети от ${o.cap} места · ${o.free} свободни">
-              <div style="display:flex;align-items:baseline;gap:3px;line-height:1;">
-                <span style="margin-right:2px;display:inline-flex;">${cgIcon("occupancy", 14)}</span>
-                <span style="font-size:26px;font-weight:700;color:${o.color};font-family:'Oswald',sans-serif;">${o.taken}</span>
-                <span style="font-size:var(--fs-body);font-weight:700;color:var(--muted-2);font-family:'Oswald',sans-serif;">/${o.cap}</span>
-              </div>
-              <div style="font-size:var(--fs-micro);font-weight:700;color:${o.color};letter-spacing:.09em;text-transform:uppercase;margin-top:4px;white-space:nowrap;">${o.label}</div>
-              <div style="font-size:var(--fs-micro);color:var(--muted-2);margin-top:2px;white-space:nowrap;">${o.free} свободни</div>
-            </div>`;
-        };
-
-        const endedCard = (hallNum, movie, end, agoMin, posterSrc) => {
-          const hc = hallColor(hallNum);
-          return `<div class="cg-ended-card cg-show-row" style="--hall-glow:rgba(${hc.g},.5);display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:var(--r-md);background:rgba(${hc.g},.14);border:1px solid rgba(${hc.g},.45);">
-            ${hallBadge(hc, hallNum, true)}
-            ${poster(posterSrc, hc)}
-            <div class="cg-show-main">
-              <div style="font-size:var(--fs-body);font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(movie)}</div>
-              <div style="font-size:var(--fs-meta);color:var(--text);opacity:.9;margin-top:3px;display:flex;align-items:center;gap:5px;">${cgIcon("screening", 14)} Свърши в <b>${escapeHtml(end)}</b>${agoMin > 0 ? ` · преди ${agoMin} мин` : " · току-що"}</div>
-            </div>
-            <div class="cg-clean-badge" style="flex-shrink:0;font-size:var(--fs-meta);font-weight:700;color:var(--on-fill);background:var(--green);padding:9px 15px;border-radius:var(--r-pill);letter-spacing:.03em;box-shadow:none;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;">${cgIcon("inspection", 15)} ПРОВЕРИ ЗАЛАТА</div>
-          </div>`;
-        };
-
-        /* 1:1 огледало на таблото — всеки ред от HTML-а, в същия ред. */
         const now = Date.now();
-        const boardGreens = {};
 
-        /* Кои предстоящи прожекции тръгват най-скоро — за да ги откроим.
-           Минути до старта (с пренос през полунощ). */
+        /* Екранът е подреден по това какво трябва да се направи, а не по реда
+           на таблото в киното: първо залите за проверка, после свършващите,
+           после течащите и накрая предстоящите. Редовете са ниски и на широк
+           екран вървят в две колони, така че цялото табло се вижда без скрол. */
+
+        /* Умален постер — същият .cg-poster, но с по-малка височина на реда. */
+        const poster = (src, hc) => `<div class="cg-poster cg-poster--sm" style="--pc:rgba(${hc.g},.45);">`
+          + (src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove();">` : "")
+          + `<span class="cg-poster-fb">${cgIcon("screening", 14)}</span></div>`;
+
+        const hallChip = (hc, num, solid) => `<div class="cg-hchip" style="background:${solid ? hc.t : `rgba(${hc.g},.16)`};border-color:rgba(${hc.g},.45);color:${solid ? "var(--on-fill)" : hc.t};">
+            <span class="cg-hchip-l">ЗАЛА</span><span class="cg-hchip-n">${num}</span></div>`;
+
+        /* Помощните функции връщат наситени цветове за графика (праг 3:1).
+           Когато същият цвят оцветява текст, минаваме към текстовия му
+           вариант (-2), който държи 4.5:1 във всяка тема. */
+        const textTone = (c) => ({
+          "var(--blue)": "var(--blue-2)", "var(--purple)": "var(--purple-2)",
+          "var(--amber)": "var(--amber-2)", "var(--muted-2)": "var(--muted)",
+        })[c] || c;
+
+        /* Зрители — компактно. При липса остава „—", за да не изглежда редът различно. */
+        const occBlock = (o) => o
+          ? `<div class="cg-hocc" style="color:${textTone(o.color)};" title="${o.taken} заети от ${o.cap} места · ${o.free} свободни">
+              <span class="cg-hocc-n">${cgIcon("occupancy", 12)}<b>${o.taken}</b><small>/${o.cap}</small></span>
+              <span class="cg-hocc-l">${o.label}</span>
+            </div>`
+          : `<div class="cg-hocc cg-hocc--none" title="Няма данни за свободните места на тази прожекция">
+              <span class="cg-hocc-n">${cgIcon("no-data", 12)}<b>—</b></span>
+            </div>`;
+
+        const row = (o) => `<div class="cg-hrow ${o.cls || ""}" style="--hc:${o.hc.c};${o.style || ""}">
+            ${hallChip(o.hc, o.num, o.solid)}
+            ${poster(o.posterSrc, o.hc)}
+            <div class="cg-hrow-main">
+              <div class="cg-hrow-title"><span class="cg-hrow-movie">${o.title}</span>${o.titleExtra || ""}</div>
+              <div class="cg-hrow-meta">${o.meta}</div>
+            </div>
+            ${o.right || ""}
+            ${o.prog ? `<div class="cg-hrow-prog" style="--p-to:${o.prog.color};"><i style="width:${o.prog.pct}%;"></i></div>` : ""}
+          </div>`;
+
+        const endedRow = (num, movie, end, agoMin, posterSrc) => row({
+          hc: hallColor(num), num, solid: true, cls: "cg-hrow--check", posterSrc,
+          title: escapeHtml(movie),
+          meta: `${cgIcon("screening", 12)} <span>Свърши в</span> <b>${escapeHtml(end)}</b>${agoMin > 0 ? ` · преди ${agoMin} мин` : " · току-що"}`,
+          right: `<span class="cg-hrow-cta">${cgIcon("inspection", 13)}<span>ПРОВЕРИ ЗАЛАТА</span></span>`,
+        });
+
+        /* Минути до старта (с пренос през полунощ). */
         const _minsUntil = (hhmm) => {
           const m = /^(\d{1,2}):(\d{2})$/.exec((hhmm || "").trim());
           if (!m) return null;
@@ -3798,96 +3917,129 @@
           return diff;
         };
         const upcomingMins = _nextCleanShows
-          .filter((x) => x.status === "gray")
+          .filter((x) => x.status !== "green" && x.status !== "red")
           .map((x) => _minsUntil(x.start))
           .filter((v) => v != null && v >= 0)
           .sort((a, b) => a - b);
         const nextMin = upcomingMins.length ? upcomingMins[0] : null;   // най-скорошният старт
-        const boardRows = _nextCleanShows.map((s) => {
+
+        /* Групи по действие. sort е ключът за подредба вътре в групата;
+           при равенство остава редът от таблото (сортирането е стабилно). */
+        const groups = { check: [], soon: [], run: [], next: [] };
+        /* Най-спешното състояние за всяка зала — за лентата с шестте зали. */
+        const RANK = { check: 0, soon: 1, run: 2, next: 3 };
+        const hallState = {};
+        /* При еднакво състояние печели по-скорошното (по-малкият ключ). */
+        const noteHall = (num, kind, text, key) => {
+          const cur = hallState[num];
+          const k = key == null ? 9999 : key;
+          if (!cur || RANK[kind] < RANK[cur.kind] || (RANK[kind] === RANK[cur.kind] && k < cur.key)) {
+            hallState[num] = { kind, text, key: k };
+          }
+        };
+        const boardGreens = {};
+
+        _nextCleanShows.forEach((s) => {
           const hc = hallColor(s.hallNum);
           if (s.status === "green") {
             boardGreens[s.hallNum] = true;
             const seen = _endedHallsSeen[s.hallNum];
             const agoMin = seen ? Math.floor((now - seen.ts) / 60000) : 0;
-            return endedCard(s.hallNum, s.movie, s.end, agoMin, s.poster);
+            groups.check.push({ sort: -agoMin, html: endedRow(s.hallNum, s.movie, s.end, agoMin, s.poster) });
+            noteHall(s.hallNum, "check", "");
+            return;
           }
           if (s.status === "red") {
             const soon = s.endsInMin != null && s.endsInMin <= 15;
-            const subColor = soon ? "var(--amber-2)" : "var(--muted)";
             const p = _showProgress(s);
             const rExtra = _matchBoardShow(s);
             const rOcc = rExtra ? _occupancy(s.hallNum, rExtra.seats) : null;
-            return `<div class="cg-show-row" style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:var(--r-md);background:var(--panel-2);border:1px solid var(--border);border-left:3px solid ${hc.c};">
-              ${hallBadge(hc, s.hallNum, false)}
-              ${poster(s.poster, hc)}
-              <div class="cg-show-main">
-                <div style="display:flex;align-items:baseline;gap:8px;min-width:0;">
-                  <span style="font-size:var(--fs-body);font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</span>
-                  ${p ? `<span style="flex-shrink:0;font-size:var(--fs-micro);font-weight:700;color:${p.color};font-family:'Oswald',sans-serif;letter-spacing:.04em;">${p.pct}%</span>` : ""}
-                </div>
-                <div style="font-size:var(--fs-meta);color:${subColor};font-weight:600;margin-top:3px;">Свършва <b>${escapeHtml(s.end)}</b>${s.endsInMin != null ? ` · след ${s.endsInMin} мин` : ""}${soon ? " — скоро!" : ""}</div>
-                ${p ? `
-                <div style="margin-top:7px;">
-                  <div class="cg-prog-track" style="--p-from:${p.from};--p-to:${p.color};--p-glow:${p.glow};">
-                    <div class="cg-prog-fill" style="width:${p.pct}%;"></div>
-                    <div class="cg-prog-head" style="left:${p.pct}%;"></div>
-                  </div>
-                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:var(--fs-micro);color:var(--muted-2);letter-spacing:.03em;">
-                    <span>${escapeHtml(s.start || "")}</span>
-                    <span style="color:${p.color};font-weight:700;">${escapeHtml(p.phase)}</span>
-                    <span>${escapeHtml(s.end || "")}</span>
-                  </div>
-                </div>` : ""}
-              </div>
-              ${occBlockFor(rOcc)}
-            </div>`;
+            const html = row({
+              hc, num: s.hallNum, solid: false, cls: soon ? "cg-hrow--soon" : "cg-hrow--run", posterSrc: s.poster,
+              title: escapeHtml(s.movie),
+              titleExtra: p ? `<span class="cg-hrow-pct" style="color:${textTone(p.color)};">${p.pct}%</span>` : "",
+              meta: `<span>Свършва</span> <b>${escapeHtml(s.end)}</b>${s.endsInMin != null ? ` · след ${s.endsInMin} мин` : ""}`,
+              right: occBlock(rOcc),
+              prog: p,
+            });
+            (soon ? groups.soon : groups.run).push({ sort: s.endsInMin == null ? 9999 : s.endsInMin, html });
+            noteHall(s.hallNum, soon ? "soon" : "run", s.end || "", s.endsInMin);
+            return;
           }
-          /* gray = предстояща — обогатена с формат/места от втория борд */
+          /* Предстояща — обогатена с формат/места от втория борд. */
           const extra = _matchBoardShow(s);
           const bits = [];
-          if (s.start) bits.push(`Започва <b>${escapeHtml(s.start)}</b>`);
+          if (s.start) bits.push(`<span>Започва</span> <b>${escapeHtml(s.start)}</b>`);
           if (extra && extra.runtimeMin != null) bits.push(`${extra.runtimeMin} мин`);
-          const occ = extra ? _occupancy(s.hallNum, extra.seats) : null;
-          if (!occ && extra && extra.seats != null) {
+          const o = extra ? _occupancy(s.hallNum, extra.seats) : null;
+          if (!o && extra && extra.seats != null) {
             bits.push(`<span style="color:var(--amber-2);font-weight:700;">${extra.seats} свободни места</span>`);
           }
-          /* Заетост — ЕДЪР блок вдясно (без лента, за да не се бърка с
-             прогрес бара на течащите прожекции). */
-          const occBlock = occBlockFor(occ);
-          /* Тази ли тръгва следваща? (може да са няколко в един и същ час) */
           const mins = _minsUntil(s.start);
           const isNext = nextMin != null && mins != null && mins === nextMin;
           const cntTxt = mins == null ? "" : (mins <= 0 ? "всеки момент" : "след " + mins + " мин");
-          return `<div class="cg-show-row ${isNext ? "cg-next-card" : ""}" style="${isNext ? `--n-glow:rgba(${hc.g},.5);` : ""}position:relative;display:flex;align-items:center;gap:14px;padding:${isNext ? "15px 16px" : "12px 14px"};border-radius:var(--r-md);background:${isNext ? `rgba(${hc.g},.14)` : "var(--panel-2)"};border:${isNext ? `1px solid ${hc.c}` : `1px dashed var(--border)`};${isNext ? "" : "opacity:.72;"}">
-            ${isNext ? `<span class="cg-next-pill" style="position:absolute;top:-9px;left:14px;font-size:var(--fs-micro);font-weight:700;letter-spacing:.1em;color:var(--on-fill);background:${hc.t};padding:3px 10px;border-radius:var(--r-pill);white-space:nowrap;">▶ СЛЕДВАЩА</span>` : ""}
-            ${hallBadge(hc, s.hallNum, isNext)}
-            ${poster(s.poster, hc)}
-            <div class="cg-show-main">
-              <div style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;">
-                <span style="font-size:${isNext ? "16px" : "14px"};font-weight:${isNext ? "800" : "600"};color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.movie)}</span>
-                ${extra && extra.format ? `<span style="flex-shrink:0;font-size:var(--fs-micro);font-weight:700;color:var(--on-fill);background:var(--gold-2);padding:2px 8px;border-radius:var(--r-pill);letter-spacing:.06em;">${escapeHtml(extra.format)}</span>` : ""}
-                ${isNext ? "" : `<span style="flex-shrink:0;color:var(--muted-2);display:inline-flex;">${cgIcon("play-next", 14)}</span>`}
-              </div>
-              <div style="font-size:${isNext ? "12.5px" : "11.5px"};color:${isNext ? hc.t : "var(--muted)"};font-weight:${isNext ? "700" : "600"};margin-top:3px;">${bits.join(" · ")}${cntTxt ? ` · <b>${cntTxt}</b>` : ""}</div>
-            </div>
-            ${occBlock}
-          </div>`;
-        }).join("");
+          const html = row({
+            hc, num: s.hallNum, solid: isNext, cls: isNext ? "cg-hrow--next" : "cg-hrow--later", posterSrc: s.poster,
+            style: isNext ? `--n-bd:${hc.c};--n-bg:rgba(${hc.g},.12);` : "",
+            title: escapeHtml(s.movie),
+            titleExtra: (extra && extra.format ? `<span class="cg-hrow-fmt">${escapeHtml(extra.format)}</span>` : "")
+              + (isNext ? `<span class="cg-hrow-nextpill" style="background:${hc.t};">▶ СЛЕДВАЩА</span>` : ""),
+            meta: `${bits.join(" · ")}${cntTxt ? ` · <b>${cntTxt}</b>` : ""}`,
+            right: occBlock(o),
+          });
+          groups.next.push({ sort: mins == null ? 9999 : mins, html });
+          noteHall(s.hallNum, "next", s.start || "", mins);
+        });
 
         /* Свършили зали, паднали от таблото, но още в 5-мин прозореца —
-           добавят се в края, за да не изчезне сигналът „провери залата". */
-        const stickyRows = _recentlyEndedHalls()
+           за да не изчезне сигналът „провери залата". */
+        _recentlyEndedHalls()
           .filter((e) => !boardGreens[e.hallNum])
-          .map((e) => endedCard(e.hallNum, e.movie, e.end, e.agoMin, e.poster))
-          .join("");
+          .forEach((e) => {
+            groups.check.push({ sort: -e.agoMin, html: endedRow(e.hallNum, e.movie, e.end, e.agoMin, e.poster) });
+            noteHall(e.hallNum, "check", "");
+          });
 
-        return `<div class="panel" style="margin-bottom:var(--s6);">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+        const GROUPS = [
+          { key: "check", label: "Провери сега",  icon: "inspection", tone: "var(--green-2)" },
+          { key: "soon",  label: "Свършва скоро", icon: "screening",  tone: "var(--amber-2)" },
+          { key: "run",   label: "Тече",          icon: "screening",  tone: "var(--blue-2)" },
+          { key: "next",  label: "Предстои",      icon: "play-next",  tone: "var(--muted)" },
+        ];
+        const groupsHtml = GROUPS.filter((g) => groups[g.key].length).map((g) => {
+          const items = groups[g.key].slice().sort((a, b) => a.sort - b.sort).map((x) => x.html).join("");
+          return `<section class="cg-hgrp cg-hgrp--${g.key}">
+              <h4 class="cg-hgrp-h" style="color:${g.tone};">${cgIcon(g.icon, 14)}<span>${g.label}</span><span class="cg-hgrp-n">${groups[g.key].length}</span></h4>
+              <div class="cg-hgrid">${items}</div>
+            </section>`;
+        }).join("");
+
+        /* Лента с шестте зали — с един поглед коя трябва да се провери,
+           коя свършва и коя предстои. */
+        const TILE = {
+          check: (st) => `<span class="cg-htile-s">Провери</span>`,
+          soon:  (st) => `<span class="cg-htile-s">до ${escapeHtml(st.text)}</span>`,
+          run:   (st) => `<span class="cg-htile-s">до ${escapeHtml(st.text)}</span>`,
+          next:  (st) => `<span class="cg-htile-s">от ${escapeHtml(st.text)}</span>`,
+        };
+        const stripHtml = hasData || Object.keys(hallState).length ? `<div class="cg-hstrip">${HALLS.map((h) => {
+            const num = parseInt((h.match(/(\d+)/) || [])[1], 10);
+            const hc = hallColor(num);
+            const st = hallState[num];
+            const kind = st ? st.kind : "idle";
+            return `<div class="cg-htile cg-htile--${kind}" style="--hc:${hc.c};">
+                <span class="cg-htile-n">${num}</span>
+                ${st ? TILE[kind](st) : `<span class="cg-htile-s">—</span>`}
+              </div>`;
+          }).join("")}</div>` : "";
+
+        return `<div class="panel cg-halls-panel" style="margin-bottom:var(--s6);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
             <h3 style="font-size:var(--fs-card);font-weight:700;color:var(--text);margin:0;letter-spacing:.04em;display:flex;align-items:center;gap:8px;">${cgIcon("hall", 17)} Кога се освобождават залите</h3>
             <span style="font-size:var(--fs-micro);color:var(--green-2);display:inline-flex;align-items:center;gap:5px;">${hasData ? '<span class="live-dot"></span> на живо от киното' : "зареждам…"}</span>
           </div>
-          ${(boardRows || stickyRows) ? `<div style="display:grid;gap:10px;">${boardRows}${stickyRows}</div>`
-            : `<div style="font-size:var(--fs-body);color:var(--muted-2);padding:6px 2px;">В момента няма прожекции на таблото.</div>`}
+          ${stripHtml}
+          ${groupsHtml || `<div style="font-size:var(--fs-body);color:var(--muted-2);padding:6px 2px;">В момента няма прожекции на таблото.</div>`}
           ${_nextBoardSupported === false ? `<div style="font-size:var(--fs-micro);color:var(--amber-2);margin-top:10px;">ℹ️ За места и 2D/3D формат обнови Cloudflare Worker-а с новия код от cloudflare-worker-nextclean.js в repo-то.</div>` : ""}
           ${(_nextBoardSupported === true && _nextBoardVersion && _nextBoardVersion !== "v3") ? `<div style="font-size:var(--fs-micro);color:var(--amber-2);margin-top:10px;">ℹ️ Част от прожекциите са без брой зрители, защото Worker-ът (${escapeHtml(_nextBoardVersion)}) чете само първите 10. Обнови го с новия код (v3) от cloudflare-worker-nextclean.js.</div>` : ""}
           <div style="font-size:var(--fs-micro);color:var(--muted-2);margin-top:12px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;">${cgIcon("inspection", 13)} свършила = провери залата дали е почистена (стои 5 мин) · ${cgIcon("screening", 13)} тече = скоро се освобождава · ${cgIcon("play-next", 13)} предстои</div>
