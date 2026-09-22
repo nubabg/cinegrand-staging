@@ -5546,10 +5546,18 @@
            просто го игнорират — връщат всичко, както досега. */
         if (limit > 0) url += '&limit=' + limit;
         url += '&_cb=' + Date.now();
-        const res = await fetchWithTimeout(url, {}, 15000);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        if (!json.success) throw new Error(json.error || 'Error');
+        /* Целият лист вече не се събира в 15 секунди, особено когато
+           Apps Script е студен или обслужва друга заявка преди тази (той ги
+           изпълнява една по една). Затова: повторен опит с нарастващо време —
+           по-щедро за пълната история, по-кратко за скорошните редове. */
+        const json = await fetchJsonRetry(url, { cache: "no-store" }, limit > 0
+          ? { timeouts: [15000, 25000], backoffs: [800] }
+          : { timeouts: [30000, 50000], backoffs: [1500] });
+        if (!json || !json.success) {
+          const e = new Error((json && json.error) || 'Error');
+          e.reason = (json && json.error) ? 'таблицата върна грешка: ' + json.error : 'невалиден отговор от таблицата';
+          throw e;
+        }
         /* Само нова версия на бекенда маркира отговора като отрязан. Липсва
            ли маркерът, значи сме получили целия лист. */
         const partial = json.limited === true;
@@ -5829,13 +5837,39 @@
       async function refreshChartsData() {
         const btn = document.getElementById('charts-refresh-btn');
         if (btn) { btn.disabled = true; btn.innerHTML = spokes("sm", "margin-right:6px;") + 'Зарежда…'; }
-        _cachedChartRows = null;
+        /* Кешът не се трие предварително: ако опресняването не успее, остават
+           данните от последното зареждане вместо празен екран с грешка. */
         _chartsLoading = false;
-        await initChartsScreen(false);
+        await initChartsScreen(false, true);
         if (btn) { btn.disabled = false; btn.textContent = '⟳ Обнови'; }
       }
 
-      async function initChartsScreen(skipFetch) {
+      /* Когато пълната история не дойде: показва наличните данни с бележка
+         или, ако няма никакви, разбираема грешка. Никога не оставя вечен
+         spinner. */
+      function showChartsFallback(container, err) {
+        const why = (err && err.reason) || 'таблицата не отговори';
+        const rows = _cachedChartRows;
+        if (rows && rows.length) {
+          buildChartsFromData(container, rows);
+          const note = _rowsArePartial
+            ? `Пълната история не се зареди (${escapeHtml(why)}). Показани са последните ${rows.length} проверки.`
+            : `Не успях да обновя данните (${escapeHtml(why)}). Показани са данните от последното зареждане.`;
+          container.insertAdjacentHTML('afterbegin', `<div class="panel" role="status" style="margin-bottom:var(--s4);padding:var(--s3) var(--s4);border-color:var(--amber);background:var(--amber-soft);color:var(--text);font-size:var(--fs-body);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="color:var(--amber-2);font-weight:700;">⚠</span><span>${note}</span><span style="color:var(--muted);">Натисни „Обнови", за да опиташ пак.</span>
+            </div>`);
+          return;
+        }
+        container.innerHTML = `
+          <div class="panel" style="text-align:center;padding:60px 20px;">
+            <div style="font-size:28px;margin-bottom:16px;">&#9888;</div>
+            <div style="color:var(--red-2);font-weight:700;margin-bottom:8px;">Грешка при зареждане</div>
+            <div style="color:var(--muted);font-size:var(--fs-body);">Таблицата не отговори: ${escapeHtml(why)}.</div>
+            <div style="color:var(--muted);font-size:var(--fs-body);margin-top:4px;">Натисни „Обнови", за да опиташ пак.</div>
+          </div>`;
+      }
+
+      async function initChartsScreen(skipFetch, force) {
         if (_chartsLoading && !skipFetch) return;
         const container = document.getElementById('charts-container');
         if (!container) return;
@@ -5857,7 +5891,7 @@
         /* Ако има пълни кеширани данни — рисувай директно (само при page load).
            Частичен кеш (само скорошните редове от началния екран) не става за
            графики — тогава се минава през заявката по-долу. */
-        if (_cachedChartRows && !_rowsArePartial) {
+        if (!force && _cachedChartRows && !_rowsArePartial) {
           buildChartsFromData(container, _cachedChartRows);
           return;
         }
@@ -5879,14 +5913,10 @@
           console.warn('[Charts] Fetch failed (v' + thisVersion + '):', e.message);
           _chartsLoading = false;
           if (thisVersion !== _chartsFetchVersion) return;
-          if (_cachedChartRows) return; /* Keep showing cached data */
+          /* Досега тук при наличен кеш имаше само return — с частичен кеш
+             екранът оставаше на „Зарежда от Sheets…" завинаги. */
           const c2 = document.getElementById('charts-container');
-          if (c2) c2.innerHTML = `
-            <div class="panel" style="text-align:center;padding:60px 20px;">
-              <div style="font-size:28px;margin-bottom:16px;">&#9888;</div>
-              <div style="color:var(--red);font-weight:700;margin-bottom:8px;">Грешка при зареждане</div>
-              <div style="color:var(--muted);font-size:var(--fs-body);">${escapeHtml(e.message)}</div>
-            </div>`;
+          if (c2 && state.screen === "charts") showChartsFallback(c2, e);
           return;
         }
 
@@ -5894,7 +5924,11 @@
         if (thisVersion !== _chartsFetchVersion) return;
 
         if (!rows || rows.length === 0) {
-          if (_cachedChartRows) return; /* Keep showing cached data */
+          if (_cachedChartRows && _cachedChartRows.length) {
+            const c3 = document.getElementById('charts-container');
+            if (c3 && state.screen === "charts") buildChartsFromData(c3, _cachedChartRows);
+            return;
+          }
           const c2 = document.getElementById('charts-container');
           if (c2) c2.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--muted);">Няма данни в таблицата.</div>`;
           return;
@@ -6010,10 +6044,10 @@
         container.innerHTML = `
           <!-- Ред 1: KPI cards -->
           <div class="kpi-row" style="margin-bottom:16px;">
-            <div class="kpi-card"><div class="kpi-value" style="color:var(--gold);">${total}</div><div class="kpi-label">Общо проверки</div><div class="kpi-badge" style="background:var(--gold-soft);color:var(--gold);">активност</div></div>
-            <div class="kpi-card"><div class="kpi-value" style="color:var(--green);">${cleanPct}%</div><div class="kpi-label">Чисто</div><div class="kpi-badge" style="background:var(--green-soft);color:var(--green);">${cleanCount} проверки</div></div>
-            <div class="kpi-card"><div class="kpi-value" style="color:var(--red);">${problemCount}</div><div class="kpi-label">Проблеми</div><div class="kpi-badge" style="background:var(--red-soft);color:var(--red);">${totalIssues} общо</div></div>
-            <div class="kpi-card"><div class="kpi-value" style="color:var(--blue);">${inspEntries.length}</div><div class="kpi-label">Служители</div><div class="kpi-badge" style="background:var(--blue-soft);color:var(--blue);">активни</div></div>
+            <div class="kpi-card"><div class="kpi-value" style="color:var(--gold);">${total}</div><div class="kpi-label">Общо проверки</div><div class="kpi-badge" style="background:var(--gold-soft);color:var(--gold-2);">активност</div></div>
+            <div class="kpi-card"><div class="kpi-value" style="color:var(--green);">${cleanPct}%</div><div class="kpi-label">Чисто</div><div class="kpi-badge" style="background:var(--green-soft);color:var(--green-2);">${cleanCount} проверки</div></div>
+            <div class="kpi-card"><div class="kpi-value" style="color:var(--red);">${problemCount}</div><div class="kpi-label">Проблеми</div><div class="kpi-badge" style="background:var(--red-soft);color:var(--red-2);">${totalIssues} общо</div></div>
+            <div class="kpi-card"><div class="kpi-value" style="color:var(--blue);">${inspEntries.length}</div><div class="kpi-label">Служители</div><div class="kpi-badge" style="background:var(--blue-soft);color:var(--blue-2);">активни</div></div>
             <div class="kpi-card"><div class="kpi-value" style="color:var(--purple-2);">${lastDay}</div><div class="kpi-label">Последна активност</div><div class="kpi-badge" style="background:var(--purple-soft);color:var(--purple-2);">${lastDayCount} проверки</div></div>
           </div>
 
