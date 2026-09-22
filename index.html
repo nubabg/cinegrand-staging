@@ -5398,17 +5398,16 @@
         if (!json.success) throw new Error(json.error || 'Error');
         /* Само нова версия на бекенда маркира отговора като отрязан. Липсва
            ли маркерът, значи сме получили целия лист. */
-        const limited = json.limited === true;
+        const partial = json.limited === true;
         const data = json.data; // 2D array: row 0 = headers, rest = data
-        if (!data || data.length < 2) { fetchSheetsData.lastWasPartial = limited; return []; }
+        if (!data || data.length < 2) return { rows: [], partial };
         const headers = data[0].map(h => String(h || '').trim());
         const rows = data.slice(1).map(row => {
           const obj = {};
           headers.forEach((h, i) => { obj[h] = String(row[i] != null ? row[i] : ''); });
           return obj;
         }).filter(r => Object.values(r).some(v => v !== ''));
-        fetchSheetsData.lastWasPartial = limited;
-        return rows;
+        return { rows, partial };
       }
 
       /* ── Една заявка наведнъж ──
@@ -5418,15 +5417,23 @@
          същите стотици килобайти пак, а и чакаше първата да свърши — тоест
          удвояваше времето до данни. Тук всички желаещи споделят една заявка. */
       let _sheetsInflight = null;
+      /* Поредни номера на заявките: приема се само отговор, поискан не
+         по-рано от вече приетия. Досега правилото беше „частичен набор не
+         измества пълната история" — след отваряне на „Данни" това спираше
+         всяко следващо опресняване на началния екран, и нови проверки не се
+         появяваха до презареждане. Пресните данни трябва да печелят; пълната
+         история се дърпа наново, когато „Данни" види частичен кеш. */
+      let _sheetsSeq = 0;
+      let _sheetsAdoptedSeq = 0;
       function fetchSheetsRows(full) {
         /* Текуща заявка върши работа, ако е поне толкова пълна, колкото искаме. */
         if (_sheetsInflight && (_sheetsInflight.full || !full)) return _sheetsInflight.p;
-        const entry = { full: !!full };
+        const entry = { full: !!full, seq: ++_sheetsSeq };
         entry.p = fetchSheetsData(full ? 0 : SHEETS_RECENT_LIMIT)
-          .then((rows) => {
-            const partial = fetchSheetsData.lastWasPartial === true;
-            /* Частичен набор не бива да измества вече наличната пълна история. */
-            if (!(partial && _cachedChartRows && !_rowsArePartial)) {
+          .then(({ rows, partial }) => {
+            /* Отговор, изпреварен от по-късно поискан, не връща екрана назад. */
+            if (entry.seq >= _sheetsAdoptedSeq) {
+              _sheetsAdoptedSeq = entry.seq;
               _cachedChartRows = rows;
               _rowsArePartial = partial;
             }
@@ -5739,7 +5746,7 @@
           return;
         }
 
-        _cachedChartRows = rows;
+        /* Кешът вече е обновен от fetchSheetsRows според реда на заявките. */
         const c2 = document.getElementById('charts-container');
         if (c2 && state.screen === "charts") buildChartsFromData(c2, rows);
       }
@@ -7834,10 +7841,13 @@
         }
         /* Preload при зареждане на страницата (F5). Началният екран иска само
            скорошните редове — цялата история се дърпа чак при „Данни". */
-        fetchSheetsRows(false).then(r => {
-          if (state.screen === "charts" && !_rowsArePartial) {
+        fetchSheetsRows(false).then(() => {
+          /* Рисуваме приетия кеш, не отговора на тази заявка: ако междувременно
+             „Данни" е заредил пълната история, закъснелият отрязан отговор не
+             бива да подменя графиките. */
+          if (state.screen === "charts" && !_rowsArePartial && _cachedChartRows && _cachedChartRows.length) {
             const c = document.getElementById('charts-container');
-            if (c && r && r.length) buildChartsFromData(c, r);
+            if (c) buildChartsFromData(c, _cachedChartRows);
           }
           // Re-render home if it's currently visible so the "last checked"
           // badges populate with real timestamps instead of "няма данни".
