@@ -1871,6 +1871,107 @@
       /* На телефон чипът на залата стига за разпознаване; мястото отива за часа. */
       @media (max-width: 430px) { .cg-poster.cg-poster--sm { display: none; } }
 
+      /* ── Lost & Found — регистър на изгубени и намерени вещи ──
+         Статусът се чете по ляв кант на картата + етикет с текст:
+         „Търси се" (кехлибар), „Намерена" (синьо), „Върната" (зелено). */
+      .lf-toolbar-btns { display: flex; gap: var(--s2); flex-wrap: wrap; }
+      .lf-form { margin-bottom: var(--s4); border-color: var(--gold-line); }
+      .lf-form-title { display: flex; align-items: center; gap: 8px; margin: 0 0 var(--s4); }
+      .lf-grid { display: grid; gap: 0 var(--s4); grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .lf-grid.lf-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .lf-hint { font-size: var(--fs-meta); color: var(--muted); display: flex; align-items: center; gap: 6px; }
+      .lf-photo-prev { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+      .lf-photo-prev img { width: 96px; height: 96px; object-fit: cover; border-radius: var(--r-md); border: 1px solid var(--border); }
+      .lf-form-err {
+        flex-basis: 100%; margin-bottom: var(--s3); padding: var(--s2) var(--s3);
+        color: var(--red-2); background: var(--red-soft); border: 1px solid rgba(var(--red-rgb),.4);
+        border-radius: var(--r-md); font-size: var(--fs-body);
+      }
+      .lf-form-actions { display: flex; gap: var(--s2); flex-wrap: wrap; }
+      .lf-search { margin-bottom: var(--s4); }
+      .lf-q, .lf-filters .field { margin-bottom: var(--s3); }
+      .lf-filters { display: grid; gap: 0 var(--s3); grid-template-columns: repeat(6, minmax(0, 1fr)); }
+      .lf-search-foot { display: flex; gap: var(--s2); flex-wrap: wrap; align-items: center; }
+      .lf-adminbar { margin-left: auto; display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; font-size: var(--fs-body); }
+      .lf-adminbar--on { color: var(--green-2); font-weight: 600; }
+      .lf-adminbar--form label { font-size: var(--fs-meta); color: var(--muted); font-weight: 700; }
+      .lf-adminbar--form input {
+        width: 220px; max-width: 100%; min-height: var(--control-h); padding: 0 var(--s3);
+        background: var(--panel-3); color: var(--text); font-size: var(--fs-body);
+        border: 1px solid var(--border-control); border-radius: var(--r-md);
+      }
+      .lf-adminbar--form input:focus { outline: none; border-color: var(--gold-2); box-shadow: var(--focus-ring); }
+      .lf-sums { display: flex; gap: var(--s2); flex-wrap: wrap; margin-bottom: var(--s3); }
+      .lf-sum {
+        display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 var(--s3);
+        border-radius: var(--r-pill); border: 1px solid var(--border-strong);
+        background: var(--panel-2); color: var(--text); font: inherit; font-weight: 600; cursor: pointer;
+      }
+      .lf-sum:hover { background: var(--panel-2-hover); }
+      .lf-sum:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+      .lf-sum b { font-variant-numeric: tabular-nums; }
+      .lf-sum.active { border-color: var(--gold-2); box-shadow: inset 0 0 0 1px var(--gold-2); }
+      .lf-sum--search b { color: var(--amber-2); }
+      .lf-sum--found b { color: var(--blue-2); }
+      .lf-sum--returned b { color: var(--green-2); }
+      .lf-count { display: flex; align-items: center; gap: 6px; margin-bottom: var(--s2); font-size: var(--fs-meta); color: var(--muted); }
+      .lf-note {
+        margin-bottom: var(--s3); padding: var(--s2) var(--s3); border-radius: var(--r-md);
+        background: var(--amber-soft); border: 1px solid var(--amber); color: var(--text); font-size: var(--fs-body);
+      }
+      .lf-list { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); }
+      .lf-card {
+        display: flex; gap: var(--s3); min-width: 0; padding: var(--s3);
+        border-radius: var(--r-lg); background: var(--panel);
+        border: 1px solid var(--border); border-left: 3px solid var(--amber);
+      }
+      .lf-card--found { border-left-color: var(--blue); }
+      .lf-card--returned { border-left-color: var(--green); }
+      .lf-card-photo {
+        position: relative; width: 84px; height: 84px; flex-shrink: 0; overflow: hidden;
+        display: grid; place-items: center; border-radius: var(--r-md);
+        background: var(--panel-3); border: 1px solid var(--border); color: var(--muted);
+      }
+      .lf-card-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      a.lf-card-photo:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+      .lf-card-main { flex: 1; min-width: 0; }
+      .lf-card-top { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 4px; }
+      .lf-status { padding: 2px 8px; border-radius: var(--r-pill); font-size: var(--fs-micro); font-weight: 700; letter-spacing: .03em; }
+      .lf-status--search   { color: var(--amber-2); background: var(--amber-soft); }
+      .lf-status--found    { color: var(--blue-2);  background: var(--blue-soft); }
+      .lf-status--returned { color: var(--green-2); background: var(--green-soft); }
+      .lf-chip { padding: 2px 8px; border-radius: var(--r-pill); font-size: var(--fs-micro); font-weight: 600; color: var(--muted); border: 1px solid var(--border-strong); }
+      .lf-chip--cat { color: var(--text); background: var(--panel-3); }
+      .lf-card-title { margin-bottom: 4px; font-size: var(--fs-body); font-weight: 700; line-height: 1.4; color: var(--text); overflow-wrap: anywhere; }
+      .lf-meta { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; margin: 0; font-size: var(--fs-meta); }
+      .lf-meta > div { display: contents; }
+      .lf-meta dt { color: var(--muted); }
+      .lf-meta dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
+      .lf-card-foot { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; font-size: var(--fs-micro); color: var(--muted); }
+      .lf-id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .lf-admin-row { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; margin-top: var(--s2); padding-top: var(--s2); border-top: 1px solid var(--border); }
+      .lf-admin-label { font-size: var(--fs-meta); font-weight: 700; color: var(--muted); }
+      .lf-status-select {
+        min-height: 40px; padding: 0 var(--s2); font: inherit; font-size: var(--fs-body);
+        background: var(--panel-3); color: var(--text); border: 1px solid var(--border-control); border-radius: var(--r-md);
+      }
+      .lf-status-select:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+      .lf-del { min-height: 40px; }
+      .lf-empty { display: flex; align-items: center; gap: 10px; color: var(--muted); }
+      .lf-error-title { margin-bottom: 4px; color: var(--red-2); font-weight: 700; }
+      @media (max-width: 1100px) {
+        .lf-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .lf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      @media (max-width: 600px) {
+        .lf-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .lf-grid, .lf-grid.lf-grid--2 { grid-template-columns: minmax(0, 1fr); }
+        .lf-card-photo { width: 64px; height: 64px; }
+        .lf-adminbar { margin-left: 0; }
+        .lf-toolbar-btns { width: 100%; }
+        .lf-toolbar-btns .btn { flex: 1; }
+      }
+
       /* ── СЛЕДВАЩА прожекция — открояване по контур ── */
       .cg-next-card { border-color: var(--gold-line) !important; }
       .cg-next-pill { /* статичен; открояването е в цвета на бàджа */ }
@@ -2326,6 +2427,10 @@
         <path d="M4.25 11.25h15.5v2.5a5.5 5.5 0 0 1-5.5 5.5h-4.5a5.5 5.5 0 0 1-5.5-5.5v-2.5Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
         <path d="M8.25 11.25V7a3.75 3.75 0 0 1 7.5 0v.75h-4M9 19.25v1.5M15 19.25v1.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M13.75 7.75v1.5" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="cg-lost-found" viewBox="0 0 24 24">
+        <path d="M3.75 8 12 3.75 20.25 8v8.75L12 21l-8.25-4.25V8Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+        <path d="M3.75 8 12 12.25 20.25 8M12 12.25V21M7.75 5.9l8.25 4.25" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
       </symbol>
       <symbol id="cg-logo-mark" viewBox="0 0 256 256" fill="currentColor">
         <path
@@ -3448,6 +3553,31 @@
         "начало": "just started", "в ход": "in progress", "втора половина": "second half", "към края": "near the end",
         "пълна": "full", "почти пълна": "filling up", "средно": "moderate", "празна": "empty",
         "▶ СЛЕДВАЩА": "▶ UP NEXT", "всеки момент": "any moment now",
+        /* Lost & Found */
+        "Регистър на изгубени и намерени вещи в киното": "Register of items lost and found in the cinema",
+        "＋ Регистрирай вещ": "＋ Register item", "Регистрация на вещ": "Register an item",
+        "Тип": "Type", "Намерена": "Found", "Изгубена": "Lost", "Търси се": "Searching", "Върната": "Returned",
+        "Категория": "Category", "Служител": "Employee", "Дата": "Date", "Час": "Time",
+        "Вещ, белези, цвят и марка": "Item, features, colour and brand", "Локация подробно": "Location (detailed)",
+        "Прожекция: заглавие, зала и час": "Screening: title, hall and time", "Контакти клиент": "Customer contact",
+        "Снимка на вещта": "Photo of the item", "Махни снимката": "Remove photo", "Откажи": "Cancel",
+        "— избери —": "— choose —", "Търсене": "Search", "Всички": "All", "Статус": "Status", "Зала": "Hall",
+        "От дата": "From", "До дата": "To", "Изчисти": "Clear", "⟳ Обнови": "⟳ Refresh", "⟳ Опитай пак": "⟳ Try again",
+        "Вход за администратор": "Administrator sign-in", "Администраторска парола": "Administrator password",
+        "Вход": "Sign in", "Изход": "Sign out", "Изтрий": "Delete", "Потвърди изтриване": "Confirm delete",
+        "Администратор — може да сменяш статус и да триеш.": "Administrator — you can change status and delete.",
+        "Локация": "Location", "Прожекция": "Screening", "Регистрирана": "Registered", "Контакт": "Contact",
+        "Телефон": "Phone", "Портфейл / документи": "Wallet / documents", "Ключове": "Keys", "Дрехи": "Clothing",
+        "Чанта / раница": "Bag / backpack", "Очила": "Glasses", "Слушалки / електроника": "Headphones / electronics",
+        "Бижута / часовник": "Jewellery / watch", "Детски вещи": "Children's items", "Чадър": "Umbrella", "Друго": "Other",
+        "Зареждам регистъра…": "Loading the register…", "Записвам…": "Saving…",
+        "Пълният контакт се вижда само от администратор.": "The full contact is visible to administrators only.",
+        "Служител е намерил вещ в киното.": "An employee found an item in the cinema.",
+        "Клиент търси вещ — запиши контакт, за да се свържем при намиране.": "A customer is looking for an item — note a contact so we can reach them.",
+        "Регистърът не се зареди": "The register did not load",
+        "Lost & Found още не е включен в таблицата": "Lost & Found is not enabled in the spreadsheet yet",
+        "Регистърът е празен. Регистрирай първата вещ с бутона горе.": "The register is empty. Register the first item with the button above.",
+        "Нищо не отговаря на търсенето. Пробвай с по-малко думи или изчисти филтрите.": "Nothing matches. Try fewer words or clear the filters.",
         "Провери сега": "Check now", "Свършва скоро": "Ending soon", "Тече": "Running", "Предстои": "Upcoming", "Провери": "Check",
         "няма данни": "no data",
         "В момента няма текущи прожекции.": "No screenings are running right now.",
@@ -4207,6 +4337,470 @@
         return out.join("");
       }
 
+      /* ══════════════════════════════════════════════════════════════
+         LOST & FOUND — регистър на изгубени и намерени вещи.
+         Данните са в листа „LOST AND FOUND" на същата таблица. Всеки
+         служител регистрира и търси; смяна на статус и изтриване са само за
+         администратор. Паролата се проверява в Apps Script — тук няма нито
+         парола, нито хеш, защото кодът на страницата е публичен.
+         ══════════════════════════════════════════════════════════════ */
+      const LF_KINDS = ["Намерена", "Изгубена"];
+      const LF_STATUSES = ["Търси се", "Намерена", "Върната"];
+      const LF_CATEGORIES = ["Телефон", "Портфейл / документи", "Ключове", "Дрехи", "Чанта / раница",
+        "Очила", "Слушалки / електроника", "Бижута / часовник", "Детски вещи", "Чадър", "Друго"];
+      const LF_LOCATIONS = [...HALLS, "Дамска тоалетна", "Мъжка тоалетна", "Фоайе", "Бар", "Каса", "Вход", "Паркинг"];
+      const LF_STATUS_KEY = { "Търси се": "search", "Намерена": "found", "Върната": "returned" };
+      const LF_ADMIN_KEY = "cg_lf_admin";
+      const lf = {
+        items: null, loading: false, error: "", needsDeploy: false,
+        admin: false, adminPass: "", adminOpen: false, adminErr: "", adminBusy: false,
+        formOpen: false, saving: false, formErr: "", form: null, photo: null, photoBusy: false,
+        filters: { q: "", kind: "", category: "", status: "", hall: "", from: "", to: "" },
+        busyId: "", confirmDelete: "", confirmTimer: null,
+      };
+      /* Админ режимът оцелява презареждане само в рамките на раздела. Сървърът
+         проверява паролата при всяко действие, така че това е само удобство. */
+      try { const p = sessionStorage.getItem(LF_ADMIN_KEY); if (p) { lf.adminPass = p; lf.admin = true; } } catch (_) {}
+
+      const lfPad = (n) => String(n).padStart(2, "0");
+      function lfBlankForm() {
+        const d = new Date();
+        return { kind: "Намерена", category: "", item: "", location: "", screening: "", contact: "",
+          employee: state.inspector || "",
+          date: d.getFullYear() + "-" + lfPad(d.getMonth() + 1) + "-" + lfPad(d.getDate()),
+          time: lfPad(d.getHours()) + ":" + lfPad(d.getMinutes()) };
+      }
+      /* Идентификаторът се прави тук и се пази във формата: повторно
+         изпращане след изтекла връзка не създава втори запис. */
+      function lfNewId() {
+        return "LF-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+      }
+
+      /* Заявка към Apps Script. По-стара разгъната версия не познава тези
+         действия и третира заявката като запис на проверка, който гърми
+         преди да пише — разпознаваме го и казваме какво липсва. */
+      async function lfCall(action, body, opts) {
+        if (!isSheetsConfigured()) { const e = new Error("not configured"); e.reason = "таблицата не е настроена"; throw e; }
+        const json = await fetchJsonRetry(SHEETS_WEB_APP_URL, {
+          method: "POST", redirect: "follow",
+          headers: { "Content-Type": "text/plain;charset=UTF-8" },
+          body: JSON.stringify(Object.assign({ action, _token: SHEETS_SECRET_TOKEN }, body || {})),
+        }, opts || { timeouts: [20000, 30000], backoffs: [1000] });
+        if (json && json.success === false && /Unknown action|TypeError|of undefined/i.test(String(json.error || ""))) {
+          const e = new Error(json.error); e.needsDeploy = true;
+          e.reason = "Apps Script още не поддържа Lost & Found";
+          throw e;
+        }
+        return json || {};
+      }
+
+      function lfRefreshResults() {
+        if (state.screen !== "lost-found") return;
+        const el = document.getElementById("lf-results");
+        if (!el) { render(); return; }
+        el.innerHTML = lfResultsHtml();
+        applyTranslation(el);
+      }
+
+      function lfLogout(msg) {
+        lf.admin = false; lf.adminPass = ""; lf.adminOpen = false; lf.confirmDelete = "";
+        try { sessionStorage.removeItem(LF_ADMIN_KEY); } catch (_) {}
+        if (msg) showToast(msg, "error");
+      }
+
+      async function lfLoad() {
+        if (lf.loading) return;
+        lf.loading = true; lf.error = "";
+        lfRefreshResults();
+        let retryAsEmployee = false;
+        try {
+          const res = await lfCall("lfList", lf.admin && lf.adminPass ? { adminPass: lf.adminPass } : {});
+          if (!res.success) {
+            /* Запомнената админ парола вече не важи — продължаваме като служител. */
+            if (lf.adminPass && /BAD_PASS|LOCKED|NO_ADMIN_PASS/.test(res.code || "")) {
+              lfLogout(res.error); retryAsEmployee = true;
+            } else {
+              const e = new Error(res.error || "Error"); e.reason = res.error || "непознат отговор"; throw e;
+            }
+          } else {
+            lf.items = Array.isArray(res.items) ? res.items : [];
+            lf.admin = !!res.admin;
+            lf.needsDeploy = false;
+          }
+        } catch (e) {
+          lf.needsDeploy = !!e.needsDeploy;
+          lf.error = e.reason || e.message || "грешка";
+        } finally {
+          lf.loading = false;
+        }
+        if (retryAsEmployee) return lfLoad();
+        if (state.screen === "lost-found") render();
+      }
+
+      function lfNormText(s) {
+        return String(s || "").toLowerCase().replace(/ё/g, "е").replace(/[^\p{L}\p{N}@.+]+/gu, " ").trim();
+      }
+      /* Окончанията се менят („черен", „черна", „черно", „черни"), затова
+         дума от 4+ букви съвпада и по корена си — в началото на дума от записа. */
+      const LF_ENDINGS_LONG = /(ият|ата|ото|ите|ия|ен|на|но|ни|ът|та|то|те)$/;
+      const LF_ENDINGS_SHORT = /[аоияеь]$/;
+      function lfTermMatcher(t) {
+        /* Една дума може да се раздели по два начина („черве|на" / „червен|а"),
+           затова се пробват и двата корена; всеки трябва да е поне 3 букви. */
+        const stems = t.length < 4 ? [] : [t.replace(LF_ENDINGS_LONG, ""), t.replace(LF_ENDINGS_SHORT, "")]
+          .filter((st, i, a) => st !== t && st.length >= 3 && a.indexOf(st) === i);
+        if (!stems.length) return (hay) => hay.includes(t);
+        /* Цяла дума: корен + познато окончание. Така „черен" хваща „черно",
+           но не и „червен". */
+        const res = stems.map((st) => new RegExp("(^|\\s)" + st.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+          + "(ият|ата|ото|ите|ьото|ьо|ия|ен|на|но|ни|ът|та|то|те|а|о|и|я|е|ь)?(?=\\s|$)"));
+        return (hay) => hay.includes(t) || res.some((re) => re.test(hay));
+      }
+      function lfParseDate(s) {
+        const m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})/.exec(String(s || "").trim());
+        return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null;
+      }
+      function lfSortKey(it) {
+        const d = lfParseDate(it.date);
+        const t = /^(\d{1,2}):(\d{2})/.exec(it.time || "");
+        return d ? d.getTime() + (t ? (+t[1] * 60 + +t[2]) * 60000 : 0) : 0;
+      }
+      /* Подробно търсене: всяка дума трябва да се среща някъде в записа
+         (описание, категория, локация, прожекция, служител, контакт, ID,
+         дата), а филтрите стесняват по тип, категория, статус, зала и период. */
+      function lfFiltered() {
+        const f = lf.filters;
+        const matchers = lfNormText(f.q).split(" ").filter(Boolean).map(lfTermMatcher);
+        const from = f.from ? new Date(f.from + "T00:00:00") : null;
+        const to = f.to ? new Date(f.to + "T23:59:59") : null;
+        const hallRe = f.hall ? new RegExp("зала\\s*" + f.hall + "(?!\\d)", "i") : null;
+        return (lf.items || []).filter((it) => {
+          if (f.kind && it.kind !== f.kind) return false;
+          if (f.category && it.category !== f.category) return false;
+          if (f.status && it.status !== f.status) return false;
+          if (hallRe && !hallRe.test((it.location || "") + " " + (it.screening || ""))) return false;
+          if (from || to) {
+            const d = lfParseDate(it.date);
+            if (!d || (from && d < from) || (to && d > to)) return false;
+          }
+          if (matchers.length) {
+            const hay = lfNormText([it.item, it.category, it.location, it.screening, it.employee,
+              it.contact, it.id, it.kind, it.status, it.date].join(" "));
+            if (!matchers.every((m) => m(hay))) return false;
+          }
+          return true;
+        }).sort((a, b) => lfSortKey(b) - lfSortKey(a));
+      }
+
+      /* Снимка от Drive → миниатюра. Друго не се вгражда като изображение. */
+      function lfPhotoThumb(url) {
+        const m = /^https:\/\/drive\.google\.com\/file\/d\/([\w-]{10,})/.exec(String(url || ""));
+        return m ? { href: url, img: "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w320" } : null;
+      }
+
+      function lfCardHtml(it) {
+        const key = LF_STATUS_KEY[it.status] || "search";
+        const ph = lfPhotoThumb(it.photo);
+        const busy = lf.busyId === it.id;
+        const meta = [
+          ["Локация", it.location],
+          ["Прожекция", it.screening],
+          ["Регистрирана", [it.date, it.time].filter(Boolean).join(" ") + (it.employee ? " · " + it.employee : "")],
+          ["Контакт", it.contact],
+        ].filter((x) => x[1] && String(x[1]).trim() && x[1] !== "—");
+        const admin = lf.admin ? `<div class="lf-admin-row">
+            <label class="lf-admin-label" for="lf-st-${escapeHtml(it.id)}">Статус</label>
+            <select id="lf-st-${escapeHtml(it.id)}" class="lf-status-select" data-lf-status="${escapeHtml(it.id)}" ${busy ? "disabled" : ""}>
+              ${LF_STATUSES.map((s) => `<option value="${s}"${s === it.status ? " selected" : ""}>${s}</option>`).join("")}
+            </select>
+            <button type="button" class="btn ${lf.confirmDelete === it.id ? "btn-red lf-del-confirm" : "btn-outline"} lf-del" data-action="lf-delete" data-id="${escapeHtml(it.id)}" ${busy ? "disabled" : ""}>
+              ${lf.confirmDelete === it.id ? "Потвърди изтриване" : "Изтрий"}
+            </button>
+            ${busy ? spokes("sm") : ""}
+          </div>` : "";
+        return `<article class="lf-card lf-card--${key}">
+            ${ph ? `<a class="lf-card-photo" href="${escapeHtml(ph.href)}" target="_blank" rel="noopener noreferrer" aria-label="Отвори снимката"><img src="${escapeHtml(ph.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove();">${cgIcon("lost-found", 22)}</a>`
+              : `<div class="lf-card-photo" aria-hidden="true">${cgIcon("lost-found", 22)}</div>`}
+            <div class="lf-card-main">
+              <div class="lf-card-top">
+                <span class="lf-status lf-status--${key}">${escapeHtml(it.status || "Търси се")}</span>
+                ${it.kind ? `<span class="lf-chip">${escapeHtml(it.kind)}</span>` : ""}
+                ${it.category ? `<span class="lf-chip lf-chip--cat">${escapeHtml(it.category)}</span>` : ""}
+              </div>
+              <div class="lf-card-title">${escapeHtml(it.item || "—")}</div>
+              <dl class="lf-meta">${meta.map(([k, v]) => `<div><dt>${k}</dt><dd>${escapeHtml(v)}</dd></div>`).join("")}</dl>
+              <div class="lf-card-foot"><span class="lf-id">${escapeHtml(it.id || "")}</span>${it.updated ? `<span>${escapeHtml(it.updated)}</span>` : ""}</div>
+              ${admin}
+            </div>
+          </article>`;
+      }
+
+      function lfResultsHtml() {
+        if (lf.items === null) {
+          if (lf.error) return lfErrorHtml();
+          return `<div class="panel lf-empty">${spokes("")} <span>Зареждам регистъра…</span></div>`;
+        }
+        const all = lf.items;
+        const counts = { "": all.length };
+        LF_STATUSES.forEach((s) => { counts[s] = all.filter((x) => x.status === s).length; });
+        const chips = [["", "Всички"], ...LF_STATUSES.map((s) => [s, s])].map(([v, label]) =>
+          `<button type="button" class="lf-sum ${v ? "lf-sum--" + LF_STATUS_KEY[v] : ""}${lf.filters.status === v ? " active" : ""}" data-action="lf-status-chip" data-status="${v}" aria-pressed="${lf.filters.status === v}">
+            <span>${label}</span><b>${counts[v]}</b></button>`).join("");
+        const list = lfFiltered();
+        const LIMIT = 200;
+        const shown = list.slice(0, LIMIT);
+        return `<div class="lf-sums" role="group" aria-label="Статус">${chips}</div>
+          ${lf.error ? `<div class="lf-note">Последното опресняване не успя (${escapeHtml(lf.error)}). Показани са данните от предишното зареждане.</div>` : ""}
+          <div class="lf-count">${lf.loading ? spokes("sm") + " " : ""}<span>Намерени: ${list.length}</span>${list.length > LIMIT ? ` <span>· показани първите ${LIMIT}</span>` : ""}</div>
+          ${shown.length ? `<div class="lf-list">${shown.map(lfCardHtml).join("")}</div>`
+            : `<div class="panel lf-empty">${all.length ? "Нищо не отговаря на търсенето. Пробвай с по-малко думи или изчисти филтрите." : "Регистърът е празен. Регистрирай първата вещ с бутона горе."}</div>`}`;
+      }
+
+      function lfErrorHtml() {
+        if (lf.needsDeploy) {
+          return `<div class="panel lf-error">
+              <div class="lf-error-title">Lost & Found още не е включен в таблицата</div>
+              <div>Apps Script трябва да се обнови с новия Code.gs от repo-то: <b>Deploy → Manage deployments → Edit → New version</b>.</div>
+            </div>`;
+        }
+        return `<div class="panel lf-error">
+            <div class="lf-error-title">Регистърът не се зареди</div>
+            <div>Таблицата не отговори: ${escapeHtml(lf.error)}.</div>
+            <button type="button" class="btn btn-outline" data-action="lf-reload" style="margin-top:var(--s3);">⟳ Опитай пак</button>
+          </div>`;
+      }
+
+      function lfFormHtml() {
+        const f = lf.form || (lf.form = lfBlankForm());
+        const shows = [...new Set((_nextCleanShows || []).filter((s) => s.movie && s.hallNum)
+          .map((s) => `${s.movie} — Зала ${s.hallNum}${s.start ? " — " + s.start : ""}`))];
+        const opt = (list, cur) => list.map((v) => `<option value="${escapeHtml(v)}"${v === cur ? " selected" : ""}>${escapeHtml(v)}</option>`).join("");
+        return `<form class="panel lf-form" id="lf-form" onsubmit="return false" novalidate>
+            <h2 class="section-title lf-form-title">${cgIcon("lost-found", 20)} <span>Регистрация на вещ</span></h2>
+            <div class="field">
+              <label><span>Тип</span> <span aria-hidden="true">*</span></label>
+              <div class="seg" role="group" aria-label="Тип">
+                ${LF_KINDS.map((k) => `<button type="button" class="seg-btn${f.kind === k ? " active" : ""}" data-action="lf-set-kind" data-kind="${k}" aria-pressed="${f.kind === k}">${k}</button>`).join("")}
+              </div>
+              <div class="lf-hint">${f.kind === "Изгубена" ? "Клиент търси вещ — запиши контакт, за да се свържем при намиране." : "Служител е намерил вещ в киното."}</div>
+            </div>
+            <div class="lf-grid">
+              <div class="field"><label for="lf-f-category"><span>Категория</span> <span aria-hidden="true">*</span></label>
+                <select id="lf-f-category"><option value="">— избери —</option>${opt(LF_CATEGORIES, f.category)}</select></div>
+              <div class="field"><label for="lf-f-employee"><span>Служител</span> <span aria-hidden="true">*</span></label>
+                <input id="lf-f-employee" list="lf-names" value="${escapeHtml(f.employee)}" placeholder="Започни да пишеш име…" autocomplete="off">
+                <datalist id="lf-names">${ALLOWED_NAMES.map((n) => `<option value="${escapeHtml(n)}">`).join("")}</datalist></div>
+              <div class="field"><label for="lf-f-date">Дата</label><input id="lf-f-date" type="date" value="${escapeHtml(f.date)}"></div>
+              <div class="field"><label for="lf-f-time">Час</label><input id="lf-f-time" type="time" value="${escapeHtml(f.time)}"></div>
+            </div>
+            <div class="field"><label for="lf-f-item"><span>Вещ, белези, цвят и марка</span> <span aria-hidden="true">*</span></label>
+              <textarea id="lf-f-item" rows="3" maxlength="1000" placeholder="напр. iPhone 13, черен калъф, напукан екран">${escapeHtml(f.item)}</textarea></div>
+            <div class="lf-grid lf-grid--2">
+              <div class="field"><label for="lf-f-location"><span>Локация подробно</span> <span aria-hidden="true">*</span></label>
+                <input id="lf-f-location" list="lf-locs" value="${escapeHtml(f.location)}" maxlength="300" placeholder="напр. Зала 3, ред 5, място 12" autocomplete="off">
+                <datalist id="lf-locs">${LF_LOCATIONS.map((l) => `<option value="${escapeHtml(l)}">`).join("")}</datalist></div>
+              <div class="field"><label for="lf-f-screening">Прожекция: заглавие, зала и час</label>
+                <input id="lf-f-screening" list="lf-shows" value="${escapeHtml(f.screening)}" maxlength="300" placeholder="избери от днешните или напиши" autocomplete="off">
+                <datalist id="lf-shows">${shows.map((s) => `<option value="${escapeHtml(s)}">`).join("")}</datalist></div>
+            </div>
+            <div class="field"><label for="lf-f-contact">Контакти клиент</label>
+              <input id="lf-f-contact" value="${escapeHtml(f.contact)}" maxlength="200" placeholder="телефон или имейл" autocomplete="off">
+              <div class="lf-hint">Пълният контакт се вижда само от администратор.</div></div>
+            <div class="field"><label for="lf-f-photo">Снимка на вещта</label>
+              ${lf.photo ? `<div class="lf-photo-prev"><img src="${lf.photo}" alt="Преглед на снимката"><button type="button" class="btn btn-outline" data-action="lf-photo-remove">Махни снимката</button></div>`
+                : `<input id="lf-f-photo" type="file" accept="image/*">${lf.photoBusy ? `<div class="lf-hint">${spokes("sm")} Обработвам снимката…</div>` : ""}`}
+            </div>
+            ${lf.formErr ? `<div class="lf-form-err" role="alert">${escapeHtml(lf.formErr)}</div>` : ""}
+            <div class="lf-form-actions">
+              <button type="button" class="btn btn-gold" data-action="lf-save" ${lf.saving ? "disabled" : ""}>${lf.saving ? spokes("sm") + " Записвам…" : "Запази"}</button>
+              <button type="button" class="btn btn-outline" data-action="lf-cancel" ${lf.saving ? "disabled" : ""}>Откажи</button>
+            </div>
+          </form>`;
+      }
+
+      function lfAdminHtml() {
+        if (lf.admin) {
+          return `<div class="lf-adminbar lf-adminbar--on">${cgIcon("settings", 16)} <span>Администратор — може да сменяш статус и да триеш.</span>
+            <button type="button" class="btn btn-outline" data-action="lf-admin-logout">Изход</button></div>`;
+        }
+        if (!lf.adminOpen) {
+          return `<div class="lf-adminbar"><button type="button" class="btn btn-outline" data-action="lf-admin-open">${cgIcon("settings", 16)} <span>Вход за администратор</span></button></div>`;
+        }
+        return `<div class="lf-adminbar lf-adminbar--form">
+            <label for="lf-admin-pass">Администраторска парола</label>
+            <input id="lf-admin-pass" type="password" autocomplete="current-password" ${lf.adminBusy ? "disabled" : ""}>
+            <button type="button" class="btn btn-gold" data-action="lf-admin-login" ${lf.adminBusy ? "disabled" : ""}>${lf.adminBusy ? spokes("sm") : "Вход"}</button>
+            <button type="button" class="btn btn-outline" data-action="lf-admin-cancel">Откажи</button>
+            ${lf.adminErr ? `<div class="lf-form-err" role="alert">${escapeHtml(lf.adminErr)}</div>` : ""}
+          </div>`;
+      }
+
+      function renderLostFoundScreen() {
+        const f = lf.filters;
+        const sel = (id, label, list, cur, all) => `<div class="field"><label for="lf-filter-${id}">${label}</label>
+            <select id="lf-filter-${id}"><option value="">${all}</option>${list.map((v) =>
+              `<option value="${escapeHtml(v)}"${v === cur ? " selected" : ""}>${escapeHtml(v)}</option>`).join("")}</select></div>`;
+        const hallOpts = HALLS.map((h) => (h.match(/(\d+)/) || [])[1]);
+        return `<div class="page lf-page">
+          <div class="toolbar">
+            <div>
+              <h1 class="hero-title" style="display:flex;align-items:center;gap:12px;">${cgIcon("lost-found", 28)} <span>Lost & Found</span></h1>
+              <div class="muted">Регистър на изгубени и намерени вещи в киното</div>
+            </div>
+            <div class="lf-toolbar-btns">
+              ${lf.formOpen ? "" : `<button type="button" class="btn btn-gold" data-action="lf-toggle-form">＋ Регистрирай вещ</button>`}
+              <button type="button" class="btn btn-outline" data-action="go-home">← Начало</button>
+            </div>
+          </div>
+          ${lf.formOpen ? lfFormHtml() : ""}
+          <div class="panel lf-search" role="search">
+            <div class="field lf-q">
+              <label for="lf-q">Търсене</label>
+              <input id="lf-q" type="search" value="${escapeHtml(f.q)}" placeholder="думи от описанието, цвят, марка, място, филм, служител, телефон, ID…" autocomplete="off">
+            </div>
+            <div class="lf-filters">
+              ${sel("kind", "Тип", LF_KINDS, f.kind, "Всички")}
+              ${sel("category", "Категория", LF_CATEGORIES, f.category, "Всички")}
+              ${sel("status", "Статус", LF_STATUSES, f.status, "Всички")}
+              <div class="field"><label for="lf-filter-hall">Зала</label>
+                <select id="lf-filter-hall"><option value="">Всички</option>${hallOpts.map((n) => `<option value="${n}"${n === f.hall ? " selected" : ""}>Зала ${n}</option>`).join("")}</select></div>
+              <div class="field"><label for="lf-filter-from">От дата</label><input id="lf-filter-from" type="date" value="${escapeHtml(f.from)}"></div>
+              <div class="field"><label for="lf-filter-to">До дата</label><input id="lf-filter-to" type="date" value="${escapeHtml(f.to)}"></div>
+            </div>
+            <div class="lf-search-foot">
+              <button type="button" class="btn btn-outline" data-action="lf-clear-filters">Изчисти</button>
+              <button type="button" class="btn btn-outline" data-action="lf-reload" ${lf.loading ? "disabled" : ""}>⟳ Обнови</button>
+              ${lfAdminHtml()}
+            </div>
+          </div>
+          <div id="lf-results" aria-live="polite">${lfResultsHtml()}</div>
+        </div>`;
+      }
+
+      async function lfPickPhoto(input) {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        if (!/^image\//.test(file.type)) { showToast("Избери снимка (изображение).", "error"); return; }
+        lf.photoBusy = true; render();
+        try {
+          const raw = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); });
+          lf.photo = await compressImageDataUrl(raw, 1280, 0.8);
+        } catch (_) {
+          showToast("Снимката не можа да се прочете.", "error");
+        }
+        lf.photoBusy = false; render();
+      }
+
+      async function lfSave() {
+        const f = lf.form;
+        if (!f || lf.saving) return;
+        const errs = [];
+        if (!f.category) errs.push("категория");
+        if (!f.employee.trim()) errs.push("служител");
+        else if (ALLOWED_NAMES.length && !ALLOWED_NAMES.includes(f.employee.trim())) errs.push("служител от списъка");
+        if (!f.item.trim()) errs.push("описание на вещта");
+        if (!f.location.trim()) errs.push("локация");
+        if (errs.length) { lf.formErr = "Попълни: " + errs.join(", ") + "."; render(); return; }
+        if (!f._id) f._id = lfNewId();
+        const [y, m, d] = String(f.date || "").split("-");
+        const item = {
+          kind: f.kind, category: f.category, item: f.item.trim(), location: f.location.trim(),
+          screening: f.screening.trim(), contact: f.contact.trim(), employee: f.employee.trim(),
+          date: y && m && d ? d + "." + m + "." + y : "", time: f.time || "",
+        };
+        lf.saving = true; lf.formErr = ""; render();
+        try {
+          const res = await lfCall("lfAdd", { id: f._id, item, photoData: lf.photo ? String(lf.photo).split(",")[1] : "" },
+            { timeouts: [30000, 45000], backoffs: [1500] });
+          if (!res.success) { const e = new Error(res.error || "Error"); e.reason = res.error || "непознат отговор"; throw e; }
+          lf.saving = false; lf.formOpen = false; lf.form = null; lf.photo = null;
+          showToast("Вещта е регистрирана ✓");
+          render();
+          lfLoad();
+        } catch (e) {
+          lf.saving = false;
+          lf.formErr = e.needsDeploy
+            ? "Apps Script още не поддържа Lost & Found — нужно е обновяване (Deploy → New version)."
+            : "Не успях да запиша: " + (e.reason || e.message) + ". Данните във формата са запазени — опитай пак.";
+          render();
+        }
+      }
+
+      async function lfAdminLogin() {
+        const inp = document.getElementById("lf-admin-pass");
+        const pass = inp ? inp.value : "";
+        if (!pass) { lf.adminErr = "Въведи паролата."; render(); return; }
+        lf.adminBusy = true; lf.adminErr = ""; render();
+        try {
+          /* Един опит: всеки неуспешен се брои към заключването на сървъра. */
+          const res = await lfCall("lfAdminCheck", { adminPass: pass }, { timeouts: [25000], attempts: 1 });
+          if (res.success) {
+            lf.admin = true; lf.adminPass = pass; lf.adminOpen = false; lf.adminBusy = false;
+            try { sessionStorage.setItem(LF_ADMIN_KEY, pass); } catch (_) {}
+            showToast("Администраторски режим");
+            render();
+            lfLoad();
+            return;
+          }
+          lf.adminErr = res.error || "Грешна парола.";
+        } catch (e) {
+          lf.adminErr = e.needsDeploy ? "Apps Script още не поддържа Lost & Found." : "Няма връзка с таблицата: " + (e.reason || e.message);
+        }
+        lf.adminBusy = false; render();
+      }
+
+      async function lfAdminAction(action, body, okMsg) {
+        lf.busyId = body.id; lf.confirmDelete = ""; lfRefreshResults();
+        let res = null;
+        try {
+          res = await lfCall(action, Object.assign({ adminPass: lf.adminPass }, body), { timeouts: [20000, 30000], backoffs: [1000] });
+        } catch (e) {
+          showToast("Не успях: " + (e.reason || e.message), "error");
+        }
+        lf.busyId = "";
+        if (res && !res.success && /BAD_PASS|LOCKED|NO_ADMIN_PASS/.test(res.code || "")) { lfLogout(res.error); render(); return null; }
+        if (res && !res.success && !(action === "lfDelete" && res.code === "NOT_FOUND")) showToast(res.error || "Грешка", "error");
+        if (res && (res.success || (action === "lfDelete" && res.code === "NOT_FOUND"))) showToast(okMsg(res));
+        lfRefreshResults();
+        return res;
+      }
+
+      async function lfSetStatus(id, status) {
+        const res = await lfAdminAction("lfSetStatus", { id, status }, (r) => "Статусът е сменен: " + r.status);
+        const it = (lf.items || []).find((x) => x.id === id);
+        if (it && res && res.success) { it.status = res.status; it.updated = res.updated || it.updated; }
+        lfRefreshResults();
+      }
+
+      async function lfDelete(id) {
+        const res = await lfAdminAction("lfDelete", { id }, () => "Вещта е премахната от регистъра");
+        /* NOT_FOUND = вече е изтрита (напр. повторен опит след изтекла връзка). */
+        if (res && (res.success || res.code === "NOT_FOUND")) lf.items = (lf.items || []).filter((x) => x.id !== id);
+        lfRefreshResults();
+      }
+
+      /* Полетата на формата и търсенето пишат в състоянието без пълно
+         пре-рисуване, за да не губят фокуса докато се пише. */
+      document.addEventListener("input", (e) => {
+        const t = e.target;
+        if (!t || !t.id || state.screen !== "lost-found") return;
+        if (t.id === "lf-q") { lf.filters.q = t.value; lfRefreshResults(); return; }
+        const m = /^lf-f-(\w+)$/.exec(t.id);
+        if (m && lf.form && m[1] !== "photo" && m[1] in lf.form) lf.form[m[1]] = t.value;
+      });
+      document.addEventListener("change", (e) => {
+        const t = e.target;
+        if (!t || state.screen !== "lost-found") return;
+        if (t.id && t.id.indexOf("lf-filter-") === 0) { lf.filters[t.id.slice(10)] = t.value; lfRefreshResults(); return; }
+        if (t.id === "lf-f-photo") { lfPickPhoto(t); return; }
+        const m = t.id ? /^lf-f-(\w+)$/.exec(t.id) : null;
+        if (m && lf.form && m[1] in lf.form) { lf.form[m[1]] = t.value; return; }
+        if (t.dataset && t.dataset.lfStatus) lfSetStatus(t.dataset.lfStatus, t.value);
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && e.target && e.target.id === "lf-admin-pass") { e.preventDefault(); lfAdminLogin(); }
+      });
+
       function renderRulesScreen() {
         const loading = RULES_MD === null;
         const failed = RULES_MD === "";
@@ -4845,6 +5439,7 @@
           NEXTCLEAN_PROXY_URL ? `<button class="nav-btn ${state.screen === 'halls' ? 'state' : ''}" data-action="go-halls" aria-label="Статус на залите">${cgIcon("hall", 18)} Зали</button>` : "",
           `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''} ${chartsCooldownUntil > Date.now() ? 'cooldown' : ''}" data-action="go-charts" aria-label="Данни от Sheets" ${chartsCooldownUntil > Date.now() ? 'disabled' : ''}>${cgIcon("data", 18)} ${chartsCooldownUntil > Date.now() ? "Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : "Данни"}</button>`,
           `<button class="nav-btn ${state.screen === 'rules' ? 'state' : ''}" data-action="go-rules" aria-label="Правила за работа">${cgIcon("rules", 18)} Правила</button>`,
+          `<button class="nav-btn ${state.screen === 'lost-found' ? 'state' : ''}" data-action="go-lost-found" aria-label="Lost &amp; Found — изгубени и намерени вещи">${cgIcon("lost-found", 18)} Lost &amp; Found</button>`,
           `<button class="nav-btn ${state.showSettingsModal ? 'state' : ''}" data-action="open-settings" aria-label="Настройки">${cgIcon("settings", 18)} Настройки</button>`,
         ].filter(Boolean).join("");
 
@@ -7331,6 +7926,7 @@
           state.screen === "charts" ? renderCharts() :
           state.screen === "halls" ? renderHallsScreen() :
           state.screen === "rules" ? renderRulesScreen() :
+          state.screen === "lost-found" ? renderLostFoundScreen() :
           state.screen === "select-cr" ? renderChangingRoomSelect() :
           state.screen === "cr-detail" ? renderChangingRoomDetail() :
           state.screen === "phone-photo-upload" ? renderPhonePhotoUpload() :
@@ -7365,6 +7961,7 @@
         { icon: "data", label: "Данни и статистики", sub: "Графики от Sheets", action: "go-charts" },
         { icon: "inspection", label: "Начало", sub: "Главен екран", action: "go-home" },
         { icon: "qr", label: "QR кодове", sub: "Генерирай и принтирай QR", action: "open-qr" },
+        { icon: "lost-found", label: "Lost & Found", sub: "Изгубени и намерени вещи", action: "go-lost-found" },
       ];
 
       let _searchBarInited = false;
@@ -7588,7 +8185,7 @@
         if (state.screen === "locking") return;
 
         /* Navigation — blocked for QR-only sessions */
-        if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection" || action === "face-check")) return;
+        if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection" || action === "face-check" || action === "go-lost-found")) return;
         /* ── Announcement actions ── */
         if (action === "announce-add")    { cgAnnShow('add-pass');    return; }
         if (action === "announce-edit")   { cgAnnShow('edit-pass');   return; }
@@ -7721,6 +8318,32 @@
         if (action === "go-history") { state.screen = "history"; render(); return; }
         if (action === "go-halls") { state.screen = "halls"; fetchNextClean(); fetchNextBoard(); render(); return; }
         if (action === "go-rules") { state.screen = "rules"; if (RULES_MD === null) loadRules(); render(); return; }
+        /* ── Lost & Found ── */
+        if (action === "go-lost-found") { state.screen = "lost-found"; render(); lfLoad(); return; }
+        if (action === "lf-toggle-form") { lf.formOpen = true; lf.formErr = ""; if (!lf.form) lf.form = lfBlankForm(); render();
+          const first = document.getElementById("lf-f-category"); if (first) first.focus(); return; }
+        if (action === "lf-cancel") { lf.formOpen = false; lf.form = null; lf.photo = null; lf.formErr = ""; render(); return; }
+        if (action === "lf-set-kind") { if (lf.form) lf.form.kind = btn.dataset.kind; render(); return; }
+        if (action === "lf-save") { lfSave(); return; }
+        if (action === "lf-photo-remove") { lf.photo = null; render(); return; }
+        if (action === "lf-reload") { lfLoad(); return; }
+        if (action === "lf-clear-filters") { lf.filters = { q: "", kind: "", category: "", status: "", hall: "", from: "", to: "" }; render(); return; }
+        if (action === "lf-status-chip") { const v = btn.dataset.status || ""; lf.filters.status = lf.filters.status === v ? "" : v; render(); return; }
+        if (action === "lf-admin-open") { lf.adminOpen = true; lf.adminErr = ""; render(); const i = document.getElementById("lf-admin-pass"); if (i) i.focus(); return; }
+        if (action === "lf-admin-cancel") { lf.adminOpen = false; lf.adminErr = ""; render(); return; }
+        if (action === "lf-admin-login") { lfAdminLogin(); return; }
+        if (action === "lf-admin-logout") { lfLogout(); render(); lfLoad(); return; }
+        if (action === "lf-delete") {
+          if (!lf.admin) return;
+          const id = btn.dataset.id;
+          /* Изтриването е в две стъпки: първото натискане иска потвърждение. */
+          if (lf.confirmDelete !== id) {
+            lf.confirmDelete = id; clearTimeout(lf.confirmTimer);
+            lf.confirmTimer = setTimeout(() => { lf.confirmDelete = ""; lfRefreshResults(); }, 5000);
+            lfRefreshResults(); return;
+          }
+          clearTimeout(lf.confirmTimer); lfDelete(id); return;
+        }
         if (action === "open-settings") {
           state.showSettingsModal = true;
           render();

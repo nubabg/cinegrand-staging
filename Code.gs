@@ -121,6 +121,12 @@ function doPost(e) {
     if (data.action === "updateChangingRoom") return handleUpdateChangingRoom_(data);
     if (data.action === "uploadPhoto") return handleUploadPhoto_(data);
     if (data.action === "getPhotosBySession") return handleGetPhotosBySession_(data);
+    // Lost and Found — регистърът на вещите (виж края на файла).
+    if (data.action === "lfList") return handleLfList_(data);
+    if (data.action === "lfAdd") return handleLfAdd_(data);
+    if (data.action === "lfSetStatus") return handleLfSetStatus_(data);
+    if (data.action === "lfDelete") return handleLfDelete_(data);
+    if (data.action === "lfAdminCheck") return handleLfAdminCheck_(data);
 
     var record = data.record;
     var ss = SpreadsheetApp.openById("17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA");
@@ -983,4 +989,269 @@ function handleCheckLock_(data) {
 function jsonResponse_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ===========================================================
+// LOST AND FOUND — регистър на изгубени и намерени вещи
+// ===========================================================
+// Колоните се намират по заглавие, а не по позиция: листът е оформен ръчно
+// и може да се пренарежда. Липсващите служебни колони (Категория, ID,
+// Обновено) се добавят сами в края на заглавния ред.
+//
+// Администраторската парола НЕ стои в кода. Задава се в Apps Script:
+// Project Settings → Script properties → LF_ADMIN_PASS. Без нея смяната на
+// статус и изтриването са изключени.
+var LF_SHEET = "LOST AND FOUND";
+var LF_STATUSES = ["Търси се", "Намерена", "Върната"];
+var LF_KINDS = ["Изгубена", "Намерена"];
+var LF_CATEGORIES = ["Телефон", "Портфейл / документи", "Ключове", "Дрехи", "Чанта / раница",
+  "Очила", "Слушалки / електроника", "Бижута / часовник", "Детски вещи", "Чадър", "Друго"];
+var LF_MAX_FAILS = 5;            // грешни админ пароли преди заключване
+var LF_LOCKOUT_SEC = 600;        // заключване за 10 минути
+
+/* Ред на служебните полета; „header" е заглавието, с което се създава
+   колоната, ако я няма. „match" разпознава съществуващо заглавие. */
+var LF_FIELDS = [
+  { key: "employee",  header: "Име служител",                      match: function (h) { return h.indexOf("служител") !== -1; } },
+  { key: "date",      header: "Дата",                              match: function (h) { return h === "дата"; } },
+  { key: "time",      header: "Час",                               match: function (h) { return h === "час"; } },
+  { key: "kind",      header: "Изгубена или намерена",             match: function (h) { return h.indexOf("изгубена") === 0; } },
+  { key: "item",      header: "Вещ, белези, цвят и марка",         match: function (h) { return h.indexOf("вещ") === 0; } },
+  { key: "location",  header: "Локация подробно",                  match: function (h) { return h.indexOf("локация") === 0; } },
+  { key: "screening", header: "Прожекция: заглавие, зала и час",   match: function (h) { return h.indexOf("заглавие") !== -1; } },
+  { key: "contact",   header: "Контакти клиент",                   match: function (h) { return h.indexOf("контакт") === 0; } },
+  { key: "status",    header: "Статус Търси се/Намерена/Върната",  match: function (h) { return h.indexOf("статус") === 0; } },
+  { key: "photo",     header: "Снимка на загубена вещ",            match: function (h) { return h.indexOf("снимка") === 0; } },
+  { key: "category",  header: "Категория",                         match: function (h) { return h.indexOf("категория") === 0; } },
+  { key: "id",        header: "ID",                                match: function (h) { return h === "id"; } },
+  { key: "updated",   header: "Обновено",                          match: function (h) { return h.indexOf("обновено") === 0; } }
+];
+
+function lfNorm_(s) { return String(s || "").replace(/\s+/g, " ").trim().toLowerCase(); }
+
+/* Листът и картата „поле → номер на колона" (1-базиран). Добавя липсващите
+   колони. Викай под LockService, защото може да пише заглавия. */
+function lfSheet_(ss) {
+  var sheet = getSheetLoose_(ss, LF_SHEET);
+  if (!sheet) {
+    sheet = ss.insertSheet(LF_SHEET);
+    sheet.getRange(1, 1, 1, LF_FIELDS.length).setValues([LF_FIELDS.map(function (f) { return f.header; })]);
+    sheet.setFrozenRows(1);
+  }
+  var headers = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getDisplayValues()[0].map(lfNorm_);
+  var map = {};
+  var used = {};
+  LF_FIELDS.forEach(function (f) {
+    for (var c = 0; c < headers.length; c++) {
+      if (!used[c] && headers[c] && f.match(headers[c])) { map[f.key] = c + 1; used[c] = true; return; }
+    }
+  });
+  LF_FIELDS.forEach(function (f) {
+    if (!map[f.key]) {
+      var col = sheet.getLastColumn() + 1;
+      sheet.getRange(1, col).setValue(f.header);
+      map[f.key] = col;
+    }
+  });
+  return { sheet: sheet, map: map };
+}
+
+function lfNewId_() {
+  return "LF-" + Utilities.formatDate(new Date(), "Europe/Sofia", "yyMMddHHmm") + "-" +
+    Utilities.getUuid().replace(/-/g, "").slice(0, 5).toUpperCase();
+}
+
+/* Контакт без администратор: имейлът остава с първата буква и домейна,
+   а в телефоните се виждат само последните три цифри. */
+function lfMaskContact_(s) {
+  s = String(s || "");
+  if (!s) return "";
+  s = s.replace(/([^\s@]{1})[^\s@]*@([^\s@]+)/g, "$1•••@$2");
+  var digits = (s.match(/\d/g) || []).length;
+  var seen = 0;
+  return s.replace(/\d/g, function (d) { seen++; return seen > digits - 3 ? d : "•"; });
+}
+
+/* Админ проверка — паролата е само в Script properties. При
+   LF_MAX_FAILS грешни опита проверката се заключва за LF_LOCKOUT_SEC. */
+function lfAdminCheck_(pass) {
+  var want = PropertiesService.getScriptProperties().getProperty("LF_ADMIN_PASS");
+  if (!want) return { ok: false, code: "NO_ADMIN_PASS", error: "Администраторската парола не е зададена в Apps Script (Script properties → LF_ADMIN_PASS)." };
+  var cache = CacheService.getScriptCache();
+  var fails = parseInt(cache.get("lf_admin_fails") || "0", 10);
+  if (fails >= LF_MAX_FAILS) return { ok: false, code: "LOCKED", error: "Твърде много грешни опита. Опитай отново след 10 минути." };
+  var given = String(pass || "");
+  var diff = given.length === want.length ? 0 : 1;
+  for (var i = 0; i < Math.max(given.length, want.length); i++) {
+    diff |= (given.charCodeAt(i) || 0) ^ (want.charCodeAt(i) || 0);
+  }
+  if (diff !== 0) {
+    cache.put("lf_admin_fails", String(fails + 1), LF_LOCKOUT_SEC);
+    return { ok: false, code: "BAD_PASS", error: "Грешна администраторска парола." };
+  }
+  cache.remove("lf_admin_fails");
+  return { ok: true };
+}
+
+function lfOpen_() { return SpreadsheetApp.openById("17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA"); }
+
+function lfReadAll_(ctx) {
+  var sheet = ctx.sheet, map = ctx.map;
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var lastCol = sheet.getLastColumn();
+  var vals = sheet.getRange(2, 1, lastRow - 1, lastCol).getDisplayValues();
+  var out = [];
+  for (var r = 0; r < vals.length; r++) {
+    var row = vals[r];
+    var it = { _row: r + 2 };
+    LF_FIELDS.forEach(function (f) { it[f.key] = String(row[map[f.key] - 1] || "").trim(); });
+    if (!it.employee && !it.item && !it.date && !it.kind && !it.location) continue;
+    out.push(it);
+  }
+  return out;
+}
+
+function handleLfList_(data) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ctx = lfSheet_(lfOpen_());
+    var items = lfReadAll_(ctx);
+    // Редове, въведени ръчно в таблицата, получават ID, за да могат да се
+    // променят и трият от системата.
+    items.forEach(function (it) {
+      if (!it.id) {
+        it.id = lfNewId_();
+        ctx.sheet.getRange(it._row, ctx.map.id).setNumberFormat("@").setValue(it.id);
+      }
+    });
+    var admin = false;
+    if (data.adminPass) {
+      var chk = lfAdminCheck_(data.adminPass);
+      if (!chk.ok) return jsonResponse_({ success: false, code: chk.code, error: chk.error });
+      admin = true;
+    }
+    var list = items.map(function (it) {
+      var o = {};
+      LF_FIELDS.forEach(function (f) { o[f.key] = it[f.key]; });
+      if (!admin) o.contact = lfMaskContact_(o.contact);
+      return o;
+    });
+    return jsonResponse_({ success: true, admin: admin, items: list,
+      statuses: LF_STATUSES, kinds: LF_KINDS, categories: LF_CATEGORIES });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleLfAdd_(data) {
+  var it = data.item || {};
+  var clean = function (v, max) { return String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, " ").trim().slice(0, max || 500); };
+  var rec = {
+    employee:  clean(it.employee, 80),
+    date:      clean(it.date, 10),
+    time:      clean(it.time, 5),
+    kind:      clean(it.kind, 20),
+    category:  clean(it.category, 40),
+    item:      clean(it.item, 1000),
+    location:  clean(it.location, 300),
+    screening: clean(it.screening, 300),
+    contact:   clean(it.contact, 200)
+  };
+  if (!rec.employee || !rec.item || !rec.location) {
+    return jsonResponse_({ success: false, code: "MISSING", error: "Попълни служител, описание на вещта и локация." });
+  }
+  if (LF_KINDS.indexOf(rec.kind) === -1) return jsonResponse_({ success: false, code: "BAD_KIND", error: "Невалиден тип: " + rec.kind });
+  if (LF_CATEGORIES.indexOf(rec.category) === -1) rec.category = "Друго";
+  var now = new Date();
+  if (!/^\d{2}\.\d{2}\.\d{4}$/.test(rec.date)) rec.date = Utilities.formatDate(now, "Europe/Sofia", "dd.MM.yyyy");
+  if (!/^\d{2}:\d{2}$/.test(rec.time)) rec.time = Utilities.formatDate(now, "Europe/Sofia", "HH:mm");
+  // Изгубената вещ започва като търсена, намерената — като намерена.
+  rec.status = rec.kind === "Изгубена" ? "Търси се" : "Намерена";
+  var id = /^LF-[A-Za-z0-9-]{4,40}$/.test(String(data.id || "")) ? String(data.id) : lfNewId_();
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ctx = lfSheet_(lfOpen_());
+    // Повторно изпращане на същия запис (напр. след изтекла връзка) не създава дубликат.
+    var existing = lfReadAll_(ctx).filter(function (x) { return x.id === id; })[0];
+    if (existing) return jsonResponse_({ success: true, id: id, duplicate: true });
+
+    if (data.photoData) {
+      try {
+        var blob = Utilities.newBlob(Utilities.base64Decode(String(data.photoData)), "image/jpeg", id + ".jpg");
+        var folder = lfPhotoFolder_();
+        if (folder) {
+          var file = folder.createFile(blob);
+          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+          rec.photo = file.getUrl();
+        }
+      } catch (photoErr) {
+        rec.photo = "";   // вещта се записва и без снимка
+      }
+    }
+    rec.id = id;
+    rec.updated = Utilities.formatDate(now, "Europe/Sofia", "dd.MM.yyyy HH:mm") + " · регистрирана от " + rec.employee;
+
+    var sheet = ctx.sheet;
+    var width = sheet.getLastColumn();
+    var row = [];
+    for (var c = 0; c < width; c++) row.push("");
+    LF_FIELDS.forEach(function (f) { if (rec[f.key] != null) row[ctx.map[f.key] - 1] = rec[f.key]; });
+    var target = sheet.getLastRow() + 1;
+    var range = sheet.getRange(target, 1, 1, width);
+    range.setNumberFormat("@");          // телефони с водеща нула, дати и часове остават текст
+    range.setValues([row]);
+    return jsonResponse_({ success: true, id: id, status: rec.status, photo: rec.photo || "" });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function lfPhotoFolder_() {
+  var root = getOrCreatePhotosFolder_();
+  if (!root) return null;
+  var it = root.getFoldersByName("Lost and Found");
+  return it.hasNext() ? it.next() : root.createFolder("Lost and Found");
+}
+
+/* Общо за промяна и изтриване: проверява паролата и намира реда по ID. */
+function lfAdminFind_(data, cb) {
+  var chk = lfAdminCheck_(data.adminPass);
+  if (!chk.ok) return jsonResponse_({ success: false, code: chk.code, error: chk.error });
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ctx = lfSheet_(lfOpen_());
+    var hit = lfReadAll_(ctx).filter(function (x) { return x.id && x.id === String(data.id || ""); })[0];
+    if (!hit) return jsonResponse_({ success: false, code: "NOT_FOUND", error: "Записът не е намерен — може да е изтрит или преместен." });
+    return cb(ctx, hit);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleLfSetStatus_(data) {
+  var status = String(data.status || "");
+  if (LF_STATUSES.indexOf(status) === -1) return jsonResponse_({ success: false, code: "BAD_STATUS", error: "Невалиден статус: " + status });
+  return lfAdminFind_(data, function (ctx, hit) {
+    var stamp = Utilities.formatDate(new Date(), "Europe/Sofia", "dd.MM.yyyy HH:mm") + " · статус „" + status + "\" от администратор";
+    ctx.sheet.getRange(hit._row, ctx.map.status).setValue(status);
+    ctx.sheet.getRange(hit._row, ctx.map.updated).setNumberFormat("@").setValue(stamp);
+    return jsonResponse_({ success: true, id: hit.id, status: status, updated: stamp });
+  });
+}
+
+function handleLfDelete_(data) {
+  return lfAdminFind_(data, function (ctx, hit) {
+    ctx.sheet.deleteRow(hit._row);
+    return jsonResponse_({ success: true, id: hit.id, deleted: true });
+  });
+}
+
+function handleLfAdminCheck_(data) {
+  var chk = lfAdminCheck_(data.adminPass);
+  return jsonResponse_(chk.ok ? { success: true, admin: true } : { success: false, code: chk.code, error: chk.error });
 }
