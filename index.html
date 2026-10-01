@@ -1891,6 +1891,10 @@
       .lf-search { margin-bottom: var(--s4); }
       .lf-q, .lf-filters .field { margin-bottom: var(--s3); }
       .lf-filters { display: grid; gap: 0 var(--s3); grid-template-columns: repeat(6, minmax(0, 1fr)); }
+      /* Полетата за дата имат вградена минимална ширина; без това „До дата"
+         излизаше извън екрана на 360px при по-едрия шрифт на специалните теми. */
+      .lf-filters .field, .lf-grid .field { min-width: 0; grid-template-columns: minmax(0, 1fr); }
+      .lf-filters input, .lf-filters select, .lf-grid input, .lf-grid select { min-width: 0; }
       .lf-search-foot { display: flex; gap: var(--s2); flex-wrap: wrap; align-items: center; }
       .lf-adminbar { margin-left: auto; display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; font-size: var(--fs-body); }
       .lf-adminbar--on { color: var(--green-2); font-weight: 600; }
@@ -3571,6 +3575,7 @@
         "Чанта / раница": "Bag / backpack", "Очила": "Glasses", "Слушалки / електроника": "Headphones / electronics",
         "Бижута / часовник": "Jewellery / watch", "Детски вещи": "Children's items", "Чадър": "Umbrella", "Друго": "Other",
         "Зареждам регистъра…": "Loading the register…", "Записвам…": "Saving…",
+        "Открита от служител": "Found by staff", "Сигнал от клиент": "Reported by customer",
         "Пълният контакт се вижда само от администратор.": "The full contact is visible to administrators only.",
         "Служител е намерил вещ в киното.": "An employee found an item in the cinema.",
         "Клиент търси вещ — запиши контакт, за да се свържем при намиране.": "A customer is looking for an item — note a contact so we can reach them.",
@@ -3651,6 +3656,7 @@
         [/^(\d+)\/(\d+) заети$/, "$1/$2 taken"],
         [/^(\d+) свободни$/, "$1 free"],
         [/^след (\d+) мин$/, "in $1 min"],
+        [/^Резултати: (\d+)$/, "Results: $1"],
         /* Лентата със залите на екрана „Зали": „до 21:15" / „от 19:40". */
         [/^до (\d{1,2}:\d{2})$/, "until $1"], [/^от (\d{1,2}:\d{2})$/, "from $1"],
         [/^Не се препоръчва за лица под (\d+)-годишна възраст$/, "Not recommended for persons under $1"],
@@ -4350,6 +4356,9 @@
         "Очила", "Слушалки / електроника", "Бижута / часовник", "Детски вещи", "Чадър", "Друго"];
       const LF_LOCATIONS = [...HALLS, "Дамска тоалетна", "Мъжка тоалетна", "Фоайе", "Бар", "Каса", "Вход", "Паркинг"];
       const LF_STATUS_KEY = { "Търси се": "search", "Намерена": "found", "Върната": "returned" };
+      /* Типът и статусът и двата могат да са „Намерена" — в картата типът се
+         казва с други думи, за да не стои „Намерена · Намерена". */
+      const LF_KIND_LABEL = { "Намерена": "Открита от служител", "Изгубена": "Сигнал от клиент" };
       const LF_ADMIN_KEY = "cg_lf_admin";
       const lf = {
         items: null, loading: false, error: "", needsDeploy: false,
@@ -4524,7 +4533,7 @@
             <div class="lf-card-main">
               <div class="lf-card-top">
                 <span class="lf-status lf-status--${key}">${escapeHtml(it.status || "Търси се")}</span>
-                ${it.kind ? `<span class="lf-chip">${escapeHtml(it.kind)}</span>` : ""}
+                ${it.kind ? `<span class="lf-chip">${escapeHtml(LF_KIND_LABEL[it.kind] || it.kind)}</span>` : ""}
                 ${it.category ? `<span class="lf-chip lf-chip--cat">${escapeHtml(it.category)}</span>` : ""}
               </div>
               <div class="lf-card-title">${escapeHtml(it.item || "—")}</div>
@@ -4551,7 +4560,7 @@
         const shown = list.slice(0, LIMIT);
         return `<div class="lf-sums" role="group" aria-label="Статус">${chips}</div>
           ${lf.error ? `<div class="lf-note">Последното опресняване не успя (${escapeHtml(lf.error)}). Показани са данните от предишното зареждане.</div>` : ""}
-          <div class="lf-count">${lf.loading ? spokes("sm") + " " : ""}<span>Намерени: ${list.length}</span>${list.length > LIMIT ? ` <span>· показани първите ${LIMIT}</span>` : ""}</div>
+          <div class="lf-count">${lf.loading ? spokes("sm") + " " : ""}<span>Резултати: ${list.length}</span>${list.length > LIMIT ? ` <span>· показани първите ${LIMIT}</span>` : ""}</div>
           ${shown.length ? `<div class="lf-list">${shown.map(lfCardHtml).join("")}</div>`
             : `<div class="panel lf-empty">${all.length ? "Нищо не отговаря на търсенето. Пробвай с по-малко думи или изчисти филтрите." : "Регистърът е празен. Регистрирай първата вещ с бутона горе."}</div>`}`;
       }
@@ -4779,6 +4788,14 @@
         lfRefreshResults();
       }
 
+      /* Старото „Попълни: …" не остава, докато потребителят поправя полетата. */
+      function lfClearFormErr() {
+        if (!lf.formErr) return;
+        lf.formErr = "";
+        const el = document.querySelector("#lf-form .lf-form-err");
+        if (el) el.remove();
+      }
+
       /* Полетата на формата и търсенето пишат в състоянието без пълно
          пре-рисуване, за да не губят фокуса докато се пише. */
       document.addEventListener("input", (e) => {
@@ -4786,7 +4803,7 @@
         if (!t || !t.id || state.screen !== "lost-found") return;
         if (t.id === "lf-q") { lf.filters.q = t.value; lfRefreshResults(); return; }
         const m = /^lf-f-(\w+)$/.exec(t.id);
-        if (m && lf.form && m[1] !== "photo" && m[1] in lf.form) lf.form[m[1]] = t.value;
+        if (m && lf.form && m[1] !== "photo" && m[1] in lf.form) { lf.form[m[1]] = t.value; lfClearFormErr(); }
       });
       document.addEventListener("change", (e) => {
         const t = e.target;
@@ -4794,7 +4811,7 @@
         if (t.id && t.id.indexOf("lf-filter-") === 0) { lf.filters[t.id.slice(10)] = t.value; lfRefreshResults(); return; }
         if (t.id === "lf-f-photo") { lfPickPhoto(t); return; }
         const m = t.id ? /^lf-f-(\w+)$/.exec(t.id) : null;
-        if (m && lf.form && m[1] in lf.form) { lf.form[m[1]] = t.value; return; }
+        if (m && lf.form && m[1] in lf.form) { lf.form[m[1]] = t.value; lfClearFormErr(); return; }
         if (t.dataset && t.dataset.lfStatus) lfSetStatus(t.dataset.lfStatus, t.value);
       });
       document.addEventListener("keydown", (e) => {
@@ -8323,7 +8340,7 @@
         if (action === "lf-toggle-form") { lf.formOpen = true; lf.formErr = ""; if (!lf.form) lf.form = lfBlankForm(); render();
           const first = document.getElementById("lf-f-category"); if (first) first.focus(); return; }
         if (action === "lf-cancel") { lf.formOpen = false; lf.form = null; lf.photo = null; lf.formErr = ""; render(); return; }
-        if (action === "lf-set-kind") { if (lf.form) lf.form.kind = btn.dataset.kind; render(); return; }
+        if (action === "lf-set-kind") { if (lf.form) lf.form.kind = btn.dataset.kind; lf.formErr = ""; render(); return; }
         if (action === "lf-save") { lfSave(); return; }
         if (action === "lf-photo-remove") { lf.photo = null; render(); return; }
         if (action === "lf-reload") { lfLoad(); return; }
