@@ -1987,6 +1987,49 @@
       .cg-fresh > span { flex: 1 1 auto; min-width: 0; }
       .cg-fresh > :not(span) { flex: none; margin-top: 1px; }
       .cg-fresh--warn { color: var(--amber-2); }
+      /* ── „Проверки по дни" — вълнообразна линия ── */
+      .cg-lc { position: relative; --lc: var(--c-blue); }
+      .cg-lc-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-height: 36px; margin: 0 0 var(--s2); }
+      .cg-lc-big { font-size: 30px; line-height: 1; font-weight: 800; letter-spacing: -.02em; color: var(--text); font-variant-numeric: tabular-nums; }
+      .cg-lc-cap { font-size: var(--fs-meta); color: var(--muted); min-width: 0; }
+      .cg-lc-plot { position: relative; touch-action: pan-y; cursor: crosshair; outline: none; border-radius: 6px;
+        -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+      .cg-lc-plot:focus-visible { outline: 2px solid var(--lc); outline-offset: 6px; }
+      .cg-lc-svg { display: block; overflow: visible; }
+      .cg-lc-grid line { stroke: var(--border); stroke-width: 1; shape-rendering: crispEdges; transition: opacity .24s cubic-bezier(.22,1,.36,1); }
+      .cg-lc-base { stroke: var(--border-strong); stroke-width: 1; shape-rendering: crispEdges; }
+      .cg-lc-line { fill: none; stroke: var(--lc); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+      .cg-lc-stop-top { stop-color: var(--lc); stop-opacity: .22; }
+      .cg-lc-stop-bottom { stop-color: var(--lc); stop-opacity: 0; }
+      .cg-lc-cross { stroke: var(--muted-2); stroke-width: 1; opacity: 0; transition: opacity .12s; shape-rendering: crispEdges; }
+      .cg-lc-dot { fill: var(--lc); stroke: var(--panel); stroke-width: 2.5; opacity: 0; transition: opacity .12s; }
+      .cg-lc-plot[data-active] .cg-lc-cross { opacity: .7; }
+      .cg-lc-plot[data-active] .cg-lc-dot { opacity: 1; }
+      .cg-lc-mark { fill: var(--lc); stroke: var(--panel); stroke-width: 2.5; transition: opacity .2s; }
+      .cg-lc-halo { fill: var(--lc); opacity: .18; transform-box: fill-box; transform-origin: center; transition: opacity .2s; animation: cg-lc-pulse 2.4s ease-in-out infinite; }
+      @keyframes cg-lc-pulse { 0%, 100% { transform: scale(.7); } 50% { transform: scale(1.15); } }
+      body.low-perf .cg-lc-halo { animation: none; }
+      @media (prefers-reduced-motion: reduce) { .cg-lc-halo { animation: none; } }
+      .cg-lc-ticks { position: absolute; inset: 0; pointer-events: none; }
+      .cg-lc-tick { position: absolute; left: 0; transform: translateY(-100%); padding-bottom: 2px; font-size: var(--fs-micro);
+        line-height: 1; color: var(--muted-2); font-variant-numeric: tabular-nums; transition: opacity .24s cubic-bezier(.22,1,.36,1); }
+      .cg-lc-tip { position: absolute; left: 0; top: 0; z-index: 2; pointer-events: none; opacity: 0; transition: opacity .12s;
+        min-width: 112px; max-width: 220px; padding: 8px 11px; border-radius: 10px; background: var(--panel);
+        border: 1px solid var(--border-strong); box-shadow: 0 14px 34px rgba(0,0,0,.18), 0 2px 8px rgba(0,0,0,.08); will-change: transform; }
+      .cg-lc-plot[data-active] .cg-lc-tip { opacity: 1; }
+      .cg-lc-tip-title { margin: 0 0 4px; font-size: var(--fs-micro); color: var(--muted); white-space: nowrap; }
+      .cg-lc-tip-row { margin: 0; display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+      .cg-lc-tip-key { width: 12px; height: 3px; border-radius: 2px; background: var(--lc); flex: none; }
+      .cg-lc-tip-val { font-size: var(--fs-body); font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+      .cg-lc-tip-unit { font-size: var(--fs-micro); color: var(--muted); }
+      .cg-lc-msg { position: absolute; left: 0; right: 0; top: 38%; margin: 0; text-align: center; font-size: var(--fs-meta); color: var(--muted); pointer-events: none; }
+      .cg-lc-msg[hidden] { display: none; }
+      .cg-lc-axis { position: relative; height: 34px; margin-top: 8px; }
+      .cg-lc-ax { position: absolute; top: 0; display: flex; flex-direction: column; align-items: center; gap: 2px;
+        white-space: nowrap; font-size: var(--fs-micro); line-height: 1.15; color: var(--muted); font-variant-numeric: tabular-nums; }
+      .cg-lc-ax-sub { color: var(--muted-2); }
+      .cg-lc-ax.is-mark, .cg-lc-ax.is-mark .cg-lc-ax-sub { color: var(--text); font-weight: 700; }
+      .cg-lc-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
       /* ── СЛЕДВАЩА прожекция — открояване по контур ── */
       .cg-next-card { border-color: var(--gold-line) !important; }
       .cg-next-pill { /* статичен; открояването е в цвета на бàджа */ }
@@ -3701,6 +3744,8 @@
         "Качи още снимки": "Upload more photos",
         /* Toasts / misc */
         "✓ Синхронизирано с Google Sheets.": "✓ Synced with Google Sheets.",
+        "Проверки по дни": "Inspections by day", "Днес": "Today", "7 дни": "7 days",
+        "Дневна активност · последните 7 дни": "Daily activity · last 7 days",
         "Изпрати сега": "Send now", "Изпраща се към Google Sheets…": "Sending to Google Sheets…",
         "Обновява се от таблицата…": "Refreshing from the sheet…",
         "Зарежда цялата история от таблицата…": "Loading the full history from the sheet…",
@@ -3740,6 +3785,8 @@
         [/^свършва (\d{1,2}:\d{2})/, "ends $1"],
         [/^📊 Данни \((\d+)\)$/, "📊 Data ($1)"],
         [/^Проверяващ \*$/, "Inspector *"], [/^Локация \*$/, "Location *"],
+        [/^Дневна активност · (.+) · по часове$/, "Daily activity · $1 · by hour"],
+        [/^Дневна активност · (.+) \((\d+) дни\)$/, "Daily activity · $1 ($2 days)"],
         /* Изпращане на проверки и състояние на данните */
         [/^Изпраща се към Google Sheets: (\d+) (?:проверка|проверки)…$/, (m, n) => `Sending to Google Sheets: ${n} inspection${n === "1" ? "" : "s"}…`],
         [/^(\d+) (?:проверка|проверки) (?:чака|чакат) изпращане \((.+)\)\. Пазят се на това устройство и се пращат автоматично\.$/,
@@ -6530,27 +6577,462 @@
         return new Date(year || new Date().getFullYear(), +m - 1, +d);
       }
 
-      /* Re-renders only the day-chart bars without rebuilding the whole dashboard */
+      /* ══════════════════════════════════════════════════════════════
+         „Проверки по дни" — вълнообразна линия.
+         Пренос на React компонента LineChart (motion) на чист JS + SVG:
+         гладка монотонна крива, която никога не прескача данните; лек
+         пълнеж под нея; изрисуване отляво надясно при първо показване;
+         плавно преливане от една форма в друга при смяна на периода;
+         вертикална линия с балонче, което следва пръста, мишката или
+         стрелките. Един ден се показва по часове.
+         ══════════════════════════════════════════════════════════════ */
+      const CG_LC_H = 180, CG_LC_TOP = 14, CG_LC_GAP = 14;
+      const cgLcReduced = () => document.body.classList.contains("low-perf")
+        || !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+      const cgLcClamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+      /* Чисти деления за броеве: стъпка 1, 2, 2.5, 5 ×10ⁿ (само цели), от
+         нула, най-много 4 реда. */
+      function cgLcScale(high) {
+        const hi = Math.max(1, high);
+        const steps = [];
+        for (let m = 1; m <= 1e6; m *= 10) steps.push(m, 2 * m, ...(m >= 10 ? [2.5 * m] : []), 5 * m);
+        const step = steps.find((s) => Math.ceil(hi / s) <= 4) || hi;
+        const top = Math.ceil(hi / step) * step;
+        const ticks = [];
+        for (let v = 0; v <= top + step / 2; v += step) ticks.push(v);
+        return { max: top, ticks };
+      }
+
+      /* Линията през всички стойности, гъсто разграфена по x от 0 до 1.
+         Монотонни кубични тангенти — кривата не излиза над/под данните. */
+      function cgLcCurve(values) {
+        if (!values.length) return [];
+        if (values.length === 1) return [[0, values[0]], [1, values[0]]];
+        const last = values.length - 1, step = 1 / last;
+        const slopes = values.slice(1).map((v, i) => (v - values[i]) / step);
+        const tan = values.map((_, i) => (i === 0 || i === last) ? 0
+          : (Math.sign(slopes[i - 1]) + Math.sign(slopes[i])) *
+            Math.min(Math.abs(slopes[i - 1]), Math.abs(slopes[i]), Math.abs(slopes[i - 1] + slopes[i]) / 4) || 0);
+        if (last > 1) {
+          tan[0] = (3 * slopes[0] - tan[1]) / 2;
+          tan[last] = (3 * slopes[last - 1] - tan[last - 1]) / 2;
+        } else { tan[0] = slopes[0]; tan[1] = slopes[0]; }
+        const samples = Math.max(1, Math.min(16, Math.round(192 / last)));
+        const pts = [];
+        for (let i = 0; i < last; i++) {
+          const lo = Math.min(values[i], values[i + 1]), hi = Math.max(values[i], values[i + 1]);
+          for (let s = 0; s < samples; s++) {
+            const t = s / samples, t2 = t * t, t3 = t2 * t;
+            const v = (2 * t3 - 3 * t2 + 1) * values[i] + (t3 - 2 * t2 + t) * step * tan[i]
+              + (3 * t2 - 2 * t3) * values[i + 1] + (t3 - t2) * step * tan[i + 1];
+            pts.push([(i + t) * step, cgLcClamp(v, lo, hi)]);
+          }
+        }
+        pts.push([1, values[last]]);
+        return pts;
+      }
+      function cgLcValueAt(shape, x) {
+        if (!shape.length) return 0;
+        let lo = 0, hi = shape.length - 1;
+        if (x <= shape[lo][0]) return shape[lo][1];
+        if (x >= shape[hi][0]) return shape[hi][1];
+        while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (shape[mid][0] < x) lo = mid; else hi = mid; }
+        const [x0, y0] = shape[lo], [x1, y1] = shape[hi];
+        return x1 === x0 ? y1 : y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
+      }
+      const CG_LC_GRID = Array.from({ length: 241 }, (_, i) => i / 240);
+      /* cubic-bezier(.65,0,.35,1) и (.22,1,.36,1) — същите криви като в оригинала. */
+      const cgLcInOut = (t) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      const cgLcOut = (t) => 1 - Math.pow(1 - t, 4);
+      /* Последната нарисувана форма — нов екран „Данни" прелива от нея,
+         вместо да рисува пак от нулата. */
+      let _cgLcLast = null;
+
+      function cgLcEl(tag, attrs, svg) {
+        const el = svg ? document.createElementNS("http://www.w3.org/2000/svg", tag) : document.createElement(tag);
+        for (const k in attrs || {}) el.setAttribute(k, attrs[k]);
+        return el;
+      }
+
+      /* Рисува/обновява графиката в host. model = { sig, points:[{key,label,axis,sub,value,mark}],
+         total, caption, empty, unit(n) } */
+      function cgLineChart(host, model) {
+        let st = host._cgLc;
+        if (!st) {
+          host.innerHTML = "";
+          host.classList.add("cg-lc");
+          st = host._cgLc = { shape: [], max: 1, ticks: [], drawn: 0, model: null,
+            active: null, cx: 0, tx: 0, ty: 0, cxT: 0, txT: 0, tyT: 0, raf: 0, last: 0,
+            morph: null, draw: null, seen: false, hideTimer: 0 };
+          const uid = "cglc" + Math.random().toString(36).slice(2, 8);
+          const head = cgLcEl("div", { class: "cg-lc-head" });
+          st.big = cgLcEl("b", { class: "cg-lc-big" });
+          st.cap = cgLcEl("span", { class: "cg-lc-cap" });
+          head.append(st.big, st.cap);
+          st.plot = cgLcEl("div", { class: "cg-lc-plot", role: "slider", tabindex: "0", "aria-orientation": "horizontal" });
+          st.plot.style.height = CG_LC_H + "px";
+          const svg = cgLcEl("svg", { class: "cg-lc-svg", width: "100%", height: String(CG_LC_H), "aria-hidden": "true", focusable: "false" }, true);
+          const defs = cgLcEl("defs", {}, true);
+          const grad = cgLcEl("linearGradient", { id: uid + "-fill", x1: "0", y1: "0", x2: "0", y2: "1" }, true);
+          grad.append(cgLcEl("stop", { offset: "0", class: "cg-lc-stop-top" }, true), cgLcEl("stop", { offset: "1", class: "cg-lc-stop-bottom" }, true));
+          const clip = cgLcEl("clipPath", { id: uid + "-draw", clipPathUnits: "userSpaceOnUse" }, true);
+          st.clip = cgLcEl("rect", { x: "-8", y: "-16", width: "0", height: String(CG_LC_H + 32) }, true);
+          clip.append(st.clip);
+          defs.append(grad, clip);
+          st.grid = cgLcEl("g", { class: "cg-lc-grid" }, true);
+          const base = cgLcEl("line", { class: "cg-lc-base", x1: "0", x2: "100%", y1: String(CG_LC_H - .5), y2: String(CG_LC_H - .5) }, true);
+          st.cross = cgLcEl("line", { class: "cg-lc-cross", y1: String(CG_LC_TOP - 4), y2: String(CG_LC_H) }, true);
+          const series = cgLcEl("g", { "clip-path": `url(#${uid}-draw)` }, true);
+          st.area = cgLcEl("path", { class: "cg-lc-area", fill: `url(#${uid}-fill)` }, true);
+          st.line = cgLcEl("path", { class: "cg-lc-line" }, true);
+          series.append(st.area, st.line);
+          st.marks = cgLcEl("g", { class: "cg-lc-marks" }, true);
+          st.dot = cgLcEl("circle", { class: "cg-lc-dot", r: "5" }, true);
+          svg.append(defs, st.grid, base, st.cross, series, st.marks, st.dot);
+          st.ticksBox = cgLcEl("div", { class: "cg-lc-ticks", "aria-hidden": "true" });
+          st.tip = cgLcEl("div", { class: "cg-lc-tip", "aria-hidden": "true" });
+          st.tipTitle = cgLcEl("p", { class: "cg-lc-tip-title" });
+          const row = cgLcEl("p", { class: "cg-lc-tip-row" });
+          st.tipVal = cgLcEl("b", { class: "cg-lc-tip-val" });
+          st.tipUnit = cgLcEl("span", { class: "cg-lc-tip-unit" });
+          row.append(cgLcEl("span", { class: "cg-lc-tip-key" }), st.tipVal, st.tipUnit);
+          st.tip.append(st.tipTitle, row);
+          st.msg = cgLcEl("p", { class: "cg-lc-msg" });
+          st.plot.append(svg, st.ticksBox, st.tip, st.msg);
+          st.axis = cgLcEl("div", { class: "cg-lc-axis", "aria-hidden": "true" });
+          st.sr = cgLcEl("table", { class: "cg-lc-sr" });
+          host.append(head, st.plot, st.axis, st.sr);
+          cgLcBind(host, st);
+          /* Нов екран след опресняване: преливане от последната форма. */
+          if (_cgLcLast) { st.shape = _cgLcLast.shape; st.max = _cgLcLast.max; st.drawn = 1; st.seen = true; }
+        }
+        const prev = st.model;
+        st.model = model;
+        const values = model.points.map((p) => p.value);
+        const target = cgLcCurve(values);
+        const scale = cgLcScale(Math.max(0, ...values));
+        if (!prev || prev.sig !== model.sig) st.active = null;
+        /* Деления: новите се появяват, старите избледняват. */
+        cgLcTicks(st, scale.ticks);
+        st.scaleTo = scale.max;
+        if (!st.shape.length || cgLcReduced()) {
+          st.shape = target; st.max = scale.max; st.morph = null;
+        } else {
+          const xs = [...new Set([...CG_LC_GRID, ...target.map(([x]) => x)])].sort((a, b) => a - b);
+          st.morph = { t0: performance.now(), dur: 620, xs,
+            from: xs.map((x) => cgLcValueAt(st.shape, x)), to: xs.map((x) => cgLcValueAt(target, x)),
+            target, max0: st.max, max1: scale.max };
+        }
+        cgLcAxis(st);
+        cgLcText(st);
+        cgLcTable(st);
+        if (cgLcReduced()) st.drawn = 1;
+        if (!st.seen) cgLcWatch(host, st);
+        cgLcKick(st);
+      }
+
+      function cgLcTicks(st, ticks) {
+        const keep = new Set(ticks.map(String));
+        st.grid.querySelectorAll("line").forEach((l) => {
+          if (!keep.has(l.dataset.v) || l.dataset.gone) { l.dataset.gone = "1"; l.style.opacity = "0"; setTimeout(() => l.remove(), 260); }
+        });
+        st.ticksBox.querySelectorAll(".cg-lc-tick").forEach((t) => {
+          if (!keep.has(t.dataset.v) || t.dataset.gone) { t.dataset.gone = "1"; t.style.opacity = "0"; setTimeout(() => t.remove(), 260); }
+        });
+        ticks.forEach((v) => {
+          const key = String(v);
+          if (v > 0 && !st.grid.querySelector(`line[data-v="${key}"]:not([data-gone])`)) {
+            const l = cgLcEl("line", { x1: "0", x2: "100%" }, true);
+            l.dataset.v = key; l.style.opacity = "0";
+            st.grid.append(l);
+            requestAnimationFrame(() => { l.style.opacity = ""; });
+          }
+          if (!st.ticksBox.querySelector(`.cg-lc-tick[data-v="${key}"]:not([data-gone])`)) {
+            const t = cgLcEl("span", { class: "cg-lc-tick" });
+            t.dataset.v = key; t.textContent = key; t.style.opacity = "0";
+            st.ticksBox.append(t);
+            requestAnimationFrame(() => { t.style.opacity = ""; });
+          }
+        });
+        st.ticks = ticks;
+      }
+
+      /* Надписи по оста: колкото се събират (по един на ~46px), броени от
+         последния назад, така че последният ден / часът „сега" винаги личи.
+         Отбелязаната точка (днес) се показва винаги. */
+      function cgLcAxis(st) {
+        const pts = st.model.points, last = pts.length - 1;
+        const w = st.plot.clientWidth || 300;
+        const room = Math.max(2, Math.floor(w / 46));
+        const stride = Math.max(1, Math.ceil(pts.length / room));
+        const picks = new Set();
+        for (let i = last; i >= 0; i -= stride) picks.add(i);
+        pts.forEach((p, i) => { if (p.mark) picks.add(i); });
+        /* Отбелязаната точка не се залепва до съседен надпис. */
+        pts.forEach((p, i) => { if (p.mark) for (let d = 1; d < stride; d++) { if (!pts[i + d]?.mark) picks.delete(i + d); if (!pts[i - d]?.mark) picks.delete(i - d); } });
+        st.axis.textContent = "";
+        [...picks].sort((a, b) => a - b).forEach((i) => {
+          const p = pts[i], share = last > 0 ? i / last : .5;
+          const el = cgLcEl("span", { class: "cg-lc-ax" + (p.mark ? " is-mark" : "") });
+          el.style.left = (share * 100) + "%";
+          el.style.transform = `translateX(${-share * 100}%)`;
+          if (p.sub) { const s = cgLcEl("span", { class: "cg-lc-ax-sub" }); s.textContent = p.sub; el.append(s); }
+          const m = cgLcEl("span", { class: "cg-lc-ax-main" }); m.textContent = p.axis; el.append(m);
+          st.axis.append(el);
+        });
+      }
+
+      function cgLcText(st) {
+        const m = st.model, i = st.active;
+        const p = i == null ? null : m.points[i];
+        st.big.textContent = String(p ? p.value : m.total);
+        st.cap.textContent = p ? `${m.unit(p.value)} · ${p.label}` : `${m.unit(m.total)} · ${m.caption}`;
+        st.plot.setAttribute("aria-label", `${m.title}. ${currentLang === "en" ? "Use the arrow keys to move between points" : "Стрелките местят по точките"}`);
+        st.plot.setAttribute("aria-valuemin", "1");
+        st.plot.setAttribute("aria-valuemax", String(Math.max(1, m.points.length)));
+        st.plot.setAttribute("aria-valuenow", String((i == null ? m.points.length - 1 : i) + 1));
+        st.plot.setAttribute("aria-valuetext", p ? `${p.label}: ${p.value} ${m.unit(p.value)}` : `${m.caption}: ${m.total} ${m.unit(m.total)}`);
+        st.msg.textContent = m.empty || "";
+        st.msg.hidden = !m.empty;
+        const tp = p || m.points[m.points.length - 1];
+        if (tp) { st.tipTitle.textContent = tp.label; st.tipVal.textContent = String(tp.value); st.tipUnit.textContent = m.unit(tp.value); }
+        st.plot.toggleAttribute("data-active", i != null);
+      }
+
+      function cgLcTable(st) {
+        const m = st.model;
+        st.sr.textContent = "";
+        const cap = cgLcEl("caption"); cap.textContent = `${m.title} · ${m.caption}`;
+        const tb = cgLcEl("tbody");
+        m.points.forEach((p) => {
+          const tr = cgLcEl("tr"), th = cgLcEl("th", { scope: "row" }), td = cgLcEl("td");
+          th.textContent = p.label; td.textContent = `${p.value} ${m.unit(p.value)}`;
+          tr.append(th, td); tb.append(tr);
+        });
+        st.sr.append(cap, tb);
+      }
+
+      /* Изрисуване, щом поне 30% от графиката се види. */
+      function cgLcWatch(host, st) {
+        if (st.watching) return;
+        st.watching = true;
+        const go = () => { if (st.seen) return; st.seen = true; if (cgLcReduced()) { st.drawn = 1; cgLcPaint(st); return; } st.draw = { t0: performance.now(), dur: 840 }; cgLcKick(st); };
+        if (!("IntersectionObserver" in window)) { go(); return; }
+        const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); go(); } }, { threshold: .3 });
+        io.observe(host);
+      }
+
+      function cgLcKick(st) {
+        if (st.raf) return;
+        st.last = performance.now();
+        const frame = (now) => {
+          st.raf = 0;
+          const dt = Math.min(64, now - st.last); st.last = now;
+          let busy = false;
+          if (st.draw) {
+            const t = Math.min(1, (now - st.draw.t0) / st.draw.dur);
+            st.drawn = cgLcInOut(t);
+            if (t >= 1) st.draw = null; else busy = true;
+          }
+          if (st.morph) {
+            const mo = st.morph, t = Math.min(1, (now - mo.t0) / mo.dur), e = cgLcOut(t);
+            st.shape = mo.xs.map((x, k) => [x, mo.from[k] + (mo.to[k] - mo.from[k]) * e]);
+            st.max = mo.max0 + (mo.max1 - mo.max0) * e;
+            if (t >= 1) { st.shape = mo.target; st.max = mo.max1; st.morph = null; } else busy = true;
+          }
+          /* Вертикалната линия и балончето следват като пружина. */
+          const k = cgLcReduced() ? 1 : 1 - Math.exp(-dt / 55);
+          for (const [a, b] of [["cx", "cxT"], ["tx", "txT"], ["ty", "tyT"]]) {
+            const d = st[b] - st[a];
+            if (Math.abs(d) > .25) { st[a] += d * k; busy = true; } else st[a] = st[b];
+          }
+          cgLcPaint(st);
+          /* Рисуването може да е преместило целта на балончето. */
+          if (Math.abs(st.txT - st.tx) > .25 || Math.abs(st.tyT - st.ty) > .25 || Math.abs(st.cxT - st.cx) > .25) busy = true;
+          if (busy) st.raf = requestAnimationFrame(frame);
+        };
+        st.raf = requestAnimationFrame(frame);
+      }
+
+      function cgLcPaint(st) {
+        const w = st.plot.clientWidth;
+        if (!w || !st.model) return;
+        const H = CG_LC_H, span = st.max || 1;
+        const toY = (v) => CG_LC_TOP + (1 - v / span) * (H - 1 - CG_LC_TOP);
+        const d = st.shape.length ? "M" + st.shape.map(([x, v]) => `${(x * w).toFixed(1)},${toY(v).toFixed(1)}`).join("L") : "";
+        st.line.setAttribute("d", d);
+        st.area.setAttribute("d", d ? `${d}L${w},${H}L0,${H}Z` : "");
+        st.clip.setAttribute("width", String(st.drawn * (w + 16)));
+        st.grid.querySelectorAll("line").forEach((l) => { const y = Math.round(toY(+l.dataset.v)) + .5; l.setAttribute("y1", y); l.setAttribute("y2", y); });
+        st.ticksBox.querySelectorAll(".cg-lc-tick").forEach((t) => { t.style.top = Math.round(toY(+t.dataset.v)) + "px"; });
+        _cgLcLast = { shape: st.shape, max: st.max };
+        const pts = st.model.points, last = pts.length - 1;
+        /* Отбелязаната точка (днес / сега) — видима, щом линията стигне до нея. */
+        const marks = pts.map((p, i) => p.mark ? i : -1).filter((i) => i >= 0);
+        while (st.marks.childNodes.length < marks.length * 2) {
+          st.marks.append(cgLcEl("circle", { class: "cg-lc-halo", r: "10" }, true), cgLcEl("circle", { class: "cg-lc-mark", r: "4.5" }, true));
+        }
+        while (st.marks.childNodes.length > marks.length * 2) st.marks.lastChild.remove();
+        marks.forEach((i, n) => {
+          const x = last > 0 ? i / last : .5, cx = (x * w).toFixed(1), cy = toY(cgLcValueAt(st.shape, x)).toFixed(1);
+          const show = st.drawn >= x - .001 ? "1" : "0";
+          [st.marks.childNodes[n * 2], st.marks.childNodes[n * 2 + 1]].forEach((c) => { c.setAttribute("cx", cx); c.setAttribute("cy", cy); c.style.opacity = show; });
+        });
+        if (st.active != null) {
+          const at = st.cx / w;
+          const cx = Math.round(st.cx) + .5;
+          st.cross.setAttribute("x1", cx); st.cross.setAttribute("x2", cx);
+          const cy = toY(cgLcValueAt(st.shape, cgLcClamp(at, 0, 1)));
+          st.dot.setAttribute("cx", st.cx.toFixed(1)); st.dot.setAttribute("cy", cy.toFixed(1));
+          /* Балончето е до линията, сменя страната преди да излезе от
+             графиката и се центрира спрямо точката. */
+          const tw = st.tip.offsetWidth, th = st.tip.offsetHeight;
+          const tx = st.cxT + CG_LC_GAP + tw > w ? st.cxT - CG_LC_GAP - tw : st.cxT + CG_LC_GAP;
+          const tyGoal = toY(st.model.points[st.active].value);
+          st.txT = cgLcClamp(tx, 0, Math.max(0, w - tw));
+          st.tyT = cgLcClamp(tyGoal - th / 2, 0, Math.max(0, H - th));
+          st.tip.style.transform = `translate(${st.tx.toFixed(1)}px, ${st.ty.toFixed(1)}px)`;
+        }
+      }
+
+      function cgLcSetActive(st, i, jump) {
+        const m = st.model;
+        if (!m || !m.points.length) return;
+        const last = m.points.length - 1;
+        if (i == null) { st.active = null; cgLcText(st); return; }
+        i = cgLcClamp(i, 0, last);
+        const w = st.plot.clientWidth;
+        const x = (last > 0 ? i / last : .5) * w;
+        const first = st.active == null;
+        st.active = i;
+        st.cxT = x;
+        cgLcText(st);
+        if (first || jump || cgLcReduced()) {
+          st.cx = x;
+          cgLcPaint(st);                 // мери балончето и намира целта му
+          st.tx = st.txT; st.ty = st.tyT;
+        }
+        cgLcKick(st);
+      }
+
+      function cgLcBind(host, st) {
+        const plot = st.plot;
+        const idxAt = (clientX) => {
+          const r = plot.getBoundingClientRect(), last = st.model.points.length - 1;
+          if (!r.width || last < 1) return Math.max(0, last);
+          return cgLcClamp(Math.round(((clientX - r.left) / r.width) * last), 0, last);
+        };
+        plot.addEventListener("pointerdown", (e) => {
+          clearTimeout(st.hideTimer);
+          if (e.pointerType !== "mouse") { try { plot.setPointerCapture(e.pointerId); } catch (_) {} }
+          cgLcSetActive(st, idxAt(e.clientX));
+        });
+        plot.addEventListener("pointermove", (e) => {
+          if (e.pointerType === "mouse" || e.buttons) cgLcSetActive(st, idxAt(e.clientX));
+        });
+        /* На телефон стойността остава още миг след вдигането на пръста. */
+        const release = (e) => {
+          if (e.pointerType === "mouse") return;
+          clearTimeout(st.hideTimer);
+          st.hideTimer = setTimeout(() => cgLcSetActive(st, null), 1800);
+        };
+        plot.addEventListener("pointerup", release);
+        plot.addEventListener("pointercancel", () => cgLcSetActive(st, null));
+        plot.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") cgLcSetActive(st, null); });
+        plot.addEventListener("blur", () => cgLcSetActive(st, null));
+        plot.addEventListener("focus", () => { if (plot.matches(":focus-visible") && st.active == null) cgLcSetActive(st, st.model.points.length - 1); });
+        plot.addEventListener("keydown", (e) => {
+          const last = st.model.points.length - 1;
+          if (e.key === "Escape" && st.active != null) { e.preventDefault(); cgLcSetActive(st, null); return; }
+          const from = st.active == null ? last + 1 : st.active, page = Math.max(1, Math.round((last + 1) / 6));
+          const next = { ArrowLeft: from - 1, ArrowDown: from - 1,
+            ArrowRight: st.active == null ? last : from + 1, ArrowUp: st.active == null ? last : from + 1,
+            PageDown: from - page, PageUp: from + page, Home: 0, End: last }[e.key];
+          if (next === undefined || last < 0) return;
+          e.preventDefault();
+          cgLcSetActive(st, next);
+        });
+        if ("ResizeObserver" in window) {
+          let pw = 0;
+          new ResizeObserver(() => {
+            const w = plot.clientWidth;
+            if (w === pw) return; pw = w;
+            cgLcAxis(st);
+            if (st.active != null) { const i = st.active; st.active = null; cgLcSetActive(st, i, true); } else cgLcPaint(st);
+          }).observe(plot);
+        }
+      }
+
+      /* ── Данните за графиката ── */
+      const CG_WD_BG = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+      const CG_WD_BG_LONG = ["неделя", "понеделник", "вторник", "сряда", "четвъртък", "петък", "събота"];
+      const CG_WD_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      /* Ключът е „дд.мм" без година — годината е текущата, освен ако така
+         датата би била в бъдещето. */
+      function cgDayKeyDate(key) {
+        const now = new Date();
+        const d = fmtKeyToDate(key, now.getFullYear());
+        if (d > now && d.getMonth() > now.getMonth()) d.setFullYear(now.getFullYear() - 1);
+        return d;
+      }
+      function cgUnit(n) {
+        if (currentLang === "en") return n === 1 ? "inspection" : "inspections";
+        return n === 1 ? "проверка" : "проверки";
+      }
+
+      /* Re-renders only the day chart without rebuilding the whole dashboard.
+         Един ден → по часове; няколко дни → по дни. */
       function cgRenderDayChart(keys) {
-        const bars = document.getElementById('day-chart-bars');
+        const host = document.getElementById('day-chart-bars');
         const sub  = document.getElementById('day-chart-subtitle');
-        if (!bars || !window._cgByDay) return;
+        if (!host || !window._cgByDay) return;
         const byDay = window._cgByDay;
         if (!keys || !keys.length) keys = (window._cgAllDayKeys || []).slice(-7);
-        const maxDay = Math.max(1, ...keys.map(k => byDay[k] || 0));
-        bars.innerHTML = keys.map(k => {
-          const v = byDay[k] || 0;
-          const barH = v ? Math.max(8, Math.round(150 * v / maxDay)) : 8;
-          const dimmed = v === 0 ? 'opacity:.35;' : '';
-          return `<div class="charts-vertical-col" title="${k}: ${v} проверки">
-            <div class="daily-bar-track"><div class="daily-bar-fill" style="height:${barH}px;${dimmed}"></div></div>
-            <span style="font-size:var(--fs-micro);color:var(--muted);">${k}</span>
-            <span style="font-weight:600;font-size:var(--fs-body);${v===0?'color:var(--muted);':''}">${v}</span>
-          </div>`;
-        }).join('');
+        const en = currentLang === "en";
+        const todayKey = fmtChartDate(new Date());
+        let model;
+        if (keys.length === 1) {
+          const key = keys[0], isToday = key === todayKey;
+          const hours = (window._cgHoursByDay || {})[key] || {};
+          const has = Object.keys(hours).map(Number);
+          const nowH = new Date().getHours();
+          /* От 9 ч. (или по-рано, ако има проверки); за минал ден — до 23 ч.,
+             за днес — само до сега: бъдещите часове не са нули. */
+          let h1 = isToday ? Math.max(nowH, ...has) : Math.max(23, ...has);
+          let h0 = Math.min(9, ...has);
+          if (h0 > h1) h0 = Math.max(0, h1 - 5);
+          const dayName = isToday ? (en ? "Today" : "Днес") : key;
+          const points = [];
+          for (let h = h0; h <= h1; h++) {
+            const hh = String(h).padStart(2, "0");
+            points.push({ key: key + "-" + hh, value: hours[h] || 0, axis: hh + ":00", sub: "",
+              label: `${dayName}, ${hh}:00–${String((h + 1) % 24).padStart(2, "0")}:00`, mark: isToday && h === nowH });
+          }
+          const total = byDay[key] || 0;
+          model = { sig: "h:" + key, points, total,
+            title: en ? "Inspections by hour" : "Проверки по часове",
+            caption: isToday ? (en ? "today" : "днес") : key,
+            empty: total ? "" : (isToday ? (en ? "No inspections yet today" : "Днес още няма проверки") : (en ? "No inspections that day" : "Няма проверки този ден")) };
+        } else {
+          const points = keys.map((k) => {
+            const d = cgDayKeyDate(k), isToday = k === todayKey, wd = d.getDay();
+            return { key: k, value: byDay[k] || 0, axis: k,
+              sub: isToday ? (en ? "Today" : "Днес") : (en ? CG_WD_EN[wd] : CG_WD_BG[wd]),
+              label: isToday ? `${en ? "Today" : "Днес"}, ${k}` : `${en ? CG_WD_EN[wd] : CG_WD_BG_LONG[wd]}, ${k}`, mark: isToday };
+          });
+          const total = points.reduce((s, p) => s + p.value, 0);
+          model = { sig: "d:" + keys.join(","), points, total,
+            title: en ? "Inspections by day" : "Проверки по дни",
+            caption: `${keys[0]} – ${keys[keys.length - 1]}`,
+            empty: total ? "" : (en ? "No inspections in this period" : "Няма проверки за периода") };
+        }
+        model.unit = cgUnit;
+        cgLineChart(host, model);
         if (sub) {
-          if (keys.length === 1) sub.textContent = `Дневна активност · ${keys[0]}`;
+          if (keys.length === 1) sub.textContent = `Дневна активност · ${keys[0]} · по часове`;
           else sub.textContent = `Дневна активност · ${keys[0]} – ${keys[keys.length-1]} (${keys.length} дни)`;
+          applyTranslation(sub.parentElement);
         }
       }
 
@@ -6945,6 +7427,14 @@
 
         /* Store globally for filter re-renders */
         window._cgByDay = byDay;
+        /* По часове за всеки ден — един ден в графиката се показва по часове. */
+        const hoursByDay = {};
+        normalized.forEach(r => {
+          if (!r.dateKey || r.hour === null) return;
+          const h = hoursByDay[r.dateKey] || (hoursByDay[r.dateKey] = {});
+          h[r.hour] = (h[r.hour] || 0) + 1;
+        });
+        window._cgHoursByDay = hoursByDay;
         window._cgAllDayKeys = dayKeys;
 
         /* Часово разпределение — само последните 24 часа */
@@ -7018,7 +7508,7 @@
                   <button class="day-filter-btn" data-action="day-filter-today">Днес</button>
                   <button class="day-filter-btn active" data-action="day-filter-7d">7 дни</button>
                 </div>
-                <div class="charts-vertical-wrap" id="day-chart-bars"></div>
+                <div class="cg-lc-host" id="day-chart-bars"></div>
               </div>
             </div>
           </div>
