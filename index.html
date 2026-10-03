@@ -1976,6 +1976,17 @@
         .lf-toolbar-btns .btn { flex: 1; }
       }
 
+      /* ── Лента за неизпратени проверки ── */
+      .cg-sync-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        margin-bottom: var(--s4); padding: var(--s3) var(--s4); font-size: var(--fs-body); color: var(--text); }
+      .cg-sync-bar > span:not(.cg-sync-ico) { flex: 1 1 220px; min-width: 0; }
+      .cg-sync-bar--wait { border-color: var(--amber); background: var(--amber-soft); }
+      .cg-sync-ico { color: var(--amber-2); font-weight: 700; }
+      .cg-sync-bar .btn { padding: 8px 14px; min-height: 40px; }
+      .cg-fresh { display: flex; align-items: flex-start; gap: 8px; font-size: var(--fs-meta); line-height: 1.45; color: var(--muted); margin: 0 0 var(--s3); }
+      .cg-fresh > span { flex: 1 1 auto; min-width: 0; }
+      .cg-fresh > :not(span) { flex: none; margin-top: 1px; }
+      .cg-fresh--warn { color: var(--amber-2); }
       /* ── СЛЕДВАЩА прожекция — открояване по контур ── */
       .cg-next-card { border-color: var(--gold-line) !important; }
       .cg-next-pill { /* статичен; открояването е в цвета на бàджа */ }
@@ -3286,7 +3297,9 @@
       function cleanupOldRecords() {
         const cutoff = Date.now() - LOCAL_RETENTION_DAYS * 86400000;
         const before = state.records.length;
-        state.records = state.records.filter((r) => new Date(r.timestamp).getTime() > cutoff);
+        /* Неизпратена проверка не се трие — тя е единственото ѝ копие. */
+        state.records = state.records.filter((r) => new Date(r.timestamp).getTime() > cutoff
+          || (r.uid && state.syncHistory[r.id] !== "synced"));
         if (state.records.length < before) {
           persist();
           console.log(`[Cleanup] Изтрити ${before - state.records.length} стари записа (>7 дни)`);
@@ -3334,40 +3347,84 @@
         };
       }
 
+      /* Изпраща една проверка и я брои за записана САМО когато Apps Script
+         потвърди със success:true. Досега всеки HTTP 200 минаваше за успех
+         (и грешка вътре в скрипта също връща 200), а при мрежова грешка
+         имаше „сляп" no-cors опит, който не може да види дали редът е
+         записан. Повторните опити са безопасни: сървърът разпознава
+         проверката по record.uid и не прави втори ред. */
       async function sendToSheets(record) {
         if (!isSheetsConfigured()) return { success: false, error: "Sheets URL \u043d\u0435 \u0435 \u043a\u043e\u043d\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043d" };
-        const payload = JSON.stringify({ record, _token: SHEETS_SECRET_TOKEN });
-
         try {
-          const response = await fetch(SHEETS_WEB_APP_URL, {
-            method: "POST",
+          const json = await fetchJsonRetry(SHEETS_WEB_APP_URL, {
+            method: "POST", redirect: "follow",
             headers: { "Content-Type": "text/plain;charset=UTF-8" },
-            body: payload,
-          });
-          if (!response.ok) return { success: false, error: "HTTP " + response.status };
-          return { success: true, verified: true };
+            body: JSON.stringify({ record, _token: SHEETS_SECRET_TOKEN }),
+          }, { timeouts: [25000, 35000, 45000], backoffs: [1500, 4000] });
+          if (json && json.success === true) return { success: true, verified: true, duplicate: !!json.duplicate };
+          return { success: false, error: (json && json.error) || "\u043d\u0435\u043f\u043e\u0437\u043d\u0430\u0442 \u043e\u0442\u0433\u043e\u0432\u043e\u0440" };
         } catch (err) {
-          try {
-            await fetch(SHEETS_WEB_APP_URL, {
-              method: "POST",
-              mode: "no-cors",
-              body: payload,
-            });
-            return { success: true, verified: false };
-          } catch (fallbackErr) {
-            return { success: false, error: fallbackErr.message || err.message };
-          }
+          return { success: false, error: (err && (err.reason || err.message)) || "\u043d\u044f\u043c\u0430 \u0432\u0440\u044a\u0437\u043a\u0430" };
         }
       }
 
-      async function syncRecord(record) {
-        if (!isSheetsConfigured()) return { success: false, error: "Sheets URL \u043d\u0435 \u0435 \u043a\u043e\u043d\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043d" };
-        state.syncHistory[record.id] = "syncing";
-        persist(); render();
-        const result = await sendToSheets(record);
-        state.syncHistory[record.id] = result.success ? (result.verified ? "synced" : "sent") : "error";
-        persist(); render();
-        return result;
+      /* Проверки, които изпращаме в момента — за да не тръгне една и съща
+         два пъти паралелно (бутон, опашка, възстановена връзка). */
+      const _syncInflight = new Map();
+      function syncRecord(record) {
+        if (!isSheetsConfigured()) return Promise.resolve({ success: false, error: "Sheets URL \u043d\u0435 \u0435 \u043a\u043e\u043d\u0444\u0438\u0433\u0443\u0440\u0438\u0440\u0430\u043d" });
+        if (_syncInflight.has(record.id)) return _syncInflight.get(record.id);
+        const p = (async () => {
+          state.syncHistory[record.id] = "syncing";
+          persist(); renderSyncState();
+          const result = await sendToSheets(record);
+          state.syncHistory[record.id] = result.success ? "synced" : "error";
+          persist(); renderSyncState();
+          return result;
+        })().finally(() => _syncInflight.delete(record.id));
+        _syncInflight.set(record.id, p);
+        return p;
+      }
+
+      /* ── Опашка за неизпратени проверки ──
+         Проверка, която не е стигнала до таблицата (няма връзка, Apps Script
+         не отговори), остава на устройството и се праща пак автоматично:
+         при отваряне на приложението, при връщане на връзката, при връщане
+         към раздела и на всеки 2 минути, докато има чакащи. Само записи с
+         uid — по-старите нямат защита от дублиране и остават за ръчно „retry". */
+      function pendingRecords() {
+        return state.records.filter((r) => r && r.uid && state.syncHistory[r.id] !== "synced");
+      }
+      let _outboxBusy = false;
+      async function flushOutbox() {
+        if (_outboxBusy || !isSheetsConfigured()) return;
+        if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+        const list = pendingRecords().filter((r) => !_syncInflight.has(r.id));
+        if (!list.length) return;
+        _outboxBusy = true;
+        let sent = 0;
+        try {
+          /* Една по една и от най-старата — така и редовете в таблицата
+             остават в реда, в който са направени проверките. */
+          for (const rec of list.slice().reverse()) {
+            const res = await syncRecord(rec);
+            if (!res.success) break;   // няма смисъл да блъскаме, ако сървърът не отговаря
+            sent++;
+          }
+        } finally {
+          _outboxBusy = false;
+        }
+        if (sent) {
+          const left = pendingRecords().length;
+          showToast(left
+            ? `\u2713 \u0418\u0437\u043f\u0440\u0430\u0442\u0435\u043d\u0438 ${sent} \u0447\u0430\u043a\u0430\u0449\u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438. \u041e\u0441\u0442\u0430\u0432\u0430\u0442 ${left}.`
+            : `\u2713 \u0418\u0437\u043f\u0440\u0430\u0442\u0435\u043d\u0438 ${sent} \u0447\u0430\u043a\u0430\u0449\u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438 \u043a\u044a\u043c Google Sheets.`);
+        }
+      }
+      function renderSyncState() {
+        /* Само екраните, които показват състоянието на изпращането — да не
+           прекъсваме попълването на форма с пълно прерисуване. */
+        if (state.screen === "home" || state.screen === "history") render();
       }
 
       function getQRBaseUrl() {
@@ -3383,6 +3440,9 @@
       }
 
       function startInspection(type, locationOverride) {
+        /* Докато се попълва проверката, Apps Script се събужда — така
+           изпращането след минута-две не плаща студения старт. */
+        warmUpBackend();
         const config = getConfig(type);
         const loc = locationOverride && config.locations.includes(locationOverride) ? locationOverride : config.locations[0];
         Object.assign(state, {
@@ -3641,6 +3701,11 @@
         "Качи още снимки": "Upload more photos",
         /* Toasts / misc */
         "✓ Синхронизирано с Google Sheets.": "✓ Synced with Google Sheets.",
+        "Изпрати сега": "Send now", "Изпраща се към Google Sheets…": "Sending to Google Sheets…",
+        "Обновява се от таблицата…": "Refreshing from the sheet…",
+        "Зарежда цялата история от таблицата…": "Loading the full history from the sheet…",
+        "⚠ Няма връзка с таблицата. Проверката е запазена на телефона и ще се изпрати автоматично при следващото отваряне.":
+          "⚠ No connection to the sheet. The inspection is saved on the phone and will be sent automatically next time the app opens.",
         "Виж история": "View history", "Последни проверки": "Recent inspections", "История на проверки": "Inspection history",
       };
 
@@ -3675,6 +3740,25 @@
         [/^свършва (\d{1,2}:\d{2})/, "ends $1"],
         [/^📊 Данни \((\d+)\)$/, "📊 Data ($1)"],
         [/^Проверяващ \*$/, "Inspector *"], [/^Локация \*$/, "Location *"],
+        /* Изпращане на проверки и състояние на данните */
+        [/^Изпраща се към Google Sheets: (\d+) (?:проверка|проверки)…$/, (m, n) => `Sending to Google Sheets: ${n} inspection${n === "1" ? "" : "s"}…`],
+        [/^(\d+) (?:проверка|проверки) (?:чака|чакат) изпращане \((.+)\)\. Пазят се на това устройство и се пращат автоматично\.$/,
+          (m, n, l) => `${n} inspection${n === "1" ? "" : "s"} waiting to be sent (${l}). Kept on this device and sent automatically.`],
+        [/^Показани са данните от (.+)\. Обновява се от таблицата…$/, "Showing data from $1. Refreshing from the sheet…"],
+        [/^✓ Актуално · (\d+) (?:вещ|вещи) в регистъра · заредено в (.+)$/, (m, n, t) => `✓ Up to date · ${n} item${n === "1" ? "" : "s"} in the register · loaded at ${t}`],
+        [/^✓ Актуално · (\d+) записа от таблицата · заредено в (.+?)(?: · (\d+) без разчетима дата \(не влизат в графиките по дни и часове\))?$/,
+          (m, n, t, nd) => `✓ Up to date · ${n} records from the sheet · loaded at ${t}${nd ? ` · ${nd} without a readable date (left out of the day and hour charts)` : ""}`],
+        [/^⚠ Дойдоха (\d+) от (\d+) записа\. Натисни „Обнови“\.$/, "⚠ Received $1 of $2 records. Press “Refresh”."],
+        [/^Последното опресняване не успя \((.+)\)\. Показани са данните от (.+)\.$/, "The last refresh failed ($1). Showing data from $2."],
+        [/^Не успях да обновя данните \((.+)\)\. Показана е пълната история от (.+) — (\d+) записа; по-новите проверки липсват\.$/,
+          "Could not refresh the data ($1). Showing the full history from $2 — $3 records; newer inspections are missing."],
+        [/^Не успях да обновя данните \((.+)\)\. Показани са данните от (.+)\.$/, "Could not refresh the data ($1). Showing data from $2."],
+        [/^Проверката на „(.+)“ е запазена\. Изпраща се към Google Sheets…$/, "Inspection of “$1” saved. Sending to Google Sheets…"],
+        [/^✓ „(.+)“ е записана в Google Sheets\.$/, "✓ “$1” is saved in Google Sheets."],
+        [/^⚠ „(.+)“ още не е в таблицата \((.+)\)\. Пази се на устройството и ще се изпрати автоматично\.$/,
+          "⚠ “$1” is not in the sheet yet ($2). It is kept on this device and will be sent automatically."],
+        [/^✓ Изпратени (\d+) чакащи проверки към Google Sheets\.$/, "✓ Sent $1 pending inspections to Google Sheets."],
+        [/^✓ Изпратени (\d+) чакащи проверки\. Остават (\d+)\.$/, "✓ Sent $1 pending inspections. $2 left."],
       ];
 
       function cgTranslateText(s) {
@@ -4366,6 +4450,36 @@
         formOpen: false, saving: false, formErr: "", form: null, photo: null, photoBusy: false,
         filters: { q: "", kind: "", category: "", status: "", hall: "", from: "", to: "" },
         busyId: "", confirmDelete: "", confirmTimer: null,
+        loadedAt: 0, fromCache: false,
+      };
+      /* Последният заредѐн регистър — за да се покаже веднага при следващо
+         отваряне, докато свежият идва от таблицата. Контактите се пазят само
+         скрити (както ги вижда служител), дори ако е зареждал администратор. */
+      const LF_CACHE_KEY = "cg_lf_list_v1";
+      function lfMaskContact(s) {
+        s = String(s || "");
+        if (!s) return "";
+        s = s.replace(/([^\s@]{1})[^\s@]*@([^\s@]+)/g, "$1\u2022\u2022\u2022@$2");
+        const digits = (s.match(/\d/g) || []).length;
+        let seen = 0;
+        return s.replace(/\d/g, (d) => { seen++; return seen > digits - 3 ? d : "\u2022"; });
+      }
+      function lfWriteCache(items, admin) {
+        try {
+          const safe = items.map((it) => admin ? Object.assign({}, it, { contact: lfMaskContact(it.contact) }) : it);
+          localStorage.setItem(LF_CACHE_KEY, JSON.stringify({ at: Date.now(), items: safe }));
+        } catch (_) { /* пълна квота — кешът е по избор */ }
+      }
+      function lfReadCache() {
+        try {
+          const o = JSON.parse(localStorage.getItem(LF_CACHE_KEY) || "null");
+          return o && Array.isArray(o.items) ? o : null;
+        } catch (_) { return null; }
+      }
+      const lfClock = (t) => { const d = new Date(t); return lfPad(d.getHours()) + ":" + lfPad(d.getMinutes()); };
+      const lfWhen = (t) => {
+        const d = new Date(t), now = new Date();
+        return (d.toDateString() === now.toDateString() ? "" : lfPad(d.getDate()) + "." + lfPad(d.getMonth() + 1) + " ") + lfClock(t);
       };
       /* Админ режимът оцелява презареждане само в рамките на раздела. Сървърът
          проверява паролата при всяко действие, така че това е само удобство. */
@@ -4419,6 +4533,10 @@
 
       async function lfLoad() {
         if (lf.loading) return;
+        if (lf.items === null) {
+          const c = lfReadCache();
+          if (c) { lf.items = c.items; lf.loadedAt = c.at; lf.fromCache = true; }
+        }
         lf.loading = true; lf.error = "";
         lfRefreshResults();
         let retryAsEmployee = false;
@@ -4435,6 +4553,8 @@
             lf.items = Array.isArray(res.items) ? res.items : [];
             lf.admin = !!res.admin;
             lf.needsDeploy = false;
+            lf.loadedAt = Date.now(); lf.fromCache = false;
+            lfWriteCache(lf.items, lf.admin);
           }
         } catch (e) {
           lf.needsDeploy = !!e.needsDeploy;
@@ -4559,10 +4679,24 @@
         const LIMIT = 200;
         const shown = list.slice(0, LIMIT);
         return `<div class="lf-sums" role="group" aria-label="Статус">${chips}</div>
-          ${lf.error ? `<div class="lf-note">Последното опресняване не успя (${escapeHtml(lf.error)}). Показани са данните от предишното зареждане.</div>` : ""}
-          <div class="lf-count">${lf.loading ? spokes("sm") + " " : ""}<span>Резултати: ${list.length}</span>${list.length > LIMIT ? ` <span>· показани първите ${LIMIT}</span>` : ""}</div>
+          ${lf.error ? `<div class="lf-note">Последното опресняване не успя (${escapeHtml(lf.error)}). Показани са данните от ${lf.loadedAt ? lfWhen(lf.loadedAt) : "предишното зареждане"}.</div>` : ""}
+          ${lfFreshHtml()}
+          <div class="lf-count"><span>Резултати: ${list.length}</span>${list.length > LIMIT ? ` <span>· показани първите ${LIMIT}</span>` : ""}</div>
           ${shown.length ? `<div class="lf-list">${shown.map(lfCardHtml).join("")}</div>`
             : `<div class="panel lf-empty">${all.length ? "Нищо не отговаря на търсенето. Пробвай с по-малко думи или изчисти филтрите." : "Регистърът е празен. Регистрирай първата вещ с бутона горе."}</div>`}`;
+      }
+
+      /* Ред със състоянието на данните: дали са от таблицата сега или от
+         предишно отваряне и се обновяват. */
+      function lfFreshHtml() {
+        if (lf.error) return "";
+        if (lf.loading) {
+          return `<div class="cg-fresh" role="status">${spokes("sm")}<span>${lf.fromCache && lf.loadedAt
+            ? `Показани са данните от ${lfWhen(lf.loadedAt)}. Обновява се от таблицата…`
+            : "Обновява се от таблицата…"}</span></div>`;
+        }
+        if (!lf.loadedAt) return "";
+        return `<div class="cg-fresh" role="status"><span>✓ Актуално · ${lf.items.length} ${lf.items.length === 1 ? "вещ" : "вещи"} в регистъра · заредено в ${lfClock(lf.loadedAt)}</span></div>`;
       }
 
       function lfErrorHtml() {
@@ -5319,6 +5453,9 @@
 
           const record = {
             id: Date.now(),
+            /* Уникален номер: по него сървърът разпознава повторно
+               изпращане на същата проверка и не я записва втори път. */
+            uid: "R-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8),
             type: state.inspectionType,
             location: state.location,
             inspector: state.inspector.trim(),
@@ -5338,18 +5475,33 @@
             _lockAcquiredAt = 0;
             sessionStorage.removeItem(LOCK_SESSION_KEY);
           }
-          showToast(`Проверката на „${state.location}" е записана.`);
-          if (isSheetsConfigured()) {
-            const syncResult = await syncRecord(record);
-            if (syncResult.success && syncResult.verified) {
-              showToast("\u2713 \u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0438\u0440\u0430\u043d\u043e \u0441 Google Sheets.");
-            } else if (syncResult.success) {
-              showToast("\u2713 \u0417\u0430\u044f\u0432\u043a\u0430\u0442\u0430 \u0435 \u0438\u0437\u043f\u0440\u0430\u0442\u0435\u043d\u0430 \u043a\u044a\u043c Google Sheets. \u0410\u043a\u043e \u0440\u0435\u0434\u044a\u0442 \u043d\u0435 \u0441\u0435 \u043f\u043e\u044f\u0432\u0438, \u043f\u0440\u043e\u0432\u0435\u0440\u0438 Apps Script \u043b\u043e\u0433\u043e\u0432\u0435\u0442\u0435.");
+          const qrMode = sessionStorage.getItem(QR_MODE_KEY) === "1";
+          const where = state.location;
+          if (isSheetsConfigured() && qrMode) {
+            /* От QR страницата се затваря веднага след записа — затова тук
+               чакаме таблицата да потвърди, преди да я напуснем. */
+            state.submitSending = true;
+            render();
+            const res = await syncRecord(record);
+            state.submitSending = false;
+            if (res.success) {
+              showToast(`\u2713 \u201e${where}\u201c \u0435 \u0437\u0430\u043f\u0438\u0441\u0430\u043d\u0430 \u0432 Google Sheets.`);
             } else {
-              showToast("\u26a0 \u0417\u0430\u043f\u0438\u0441\u044c\u0442 \u0435 \u0437\u0430\u043f\u0430\u0437\u0435\u043d \u043b\u043e\u043a\u0430\u043b\u043d\u043e. Sheets sync \u043d\u0435\u0443\u0441\u043f\u0435\u0448\u0435\u043d: " + (syncResult.error || "\u043d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u0430 \u0433\u0440\u0435\u0448\u043a\u0430"), "error");
+              showToast("\u26a0 \u041d\u044f\u043c\u0430 \u0432\u0440\u044a\u0437\u043a\u0430 \u0441 \u0442\u0430\u0431\u043b\u0438\u0446\u0430\u0442\u0430. \u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430\u0442\u0430 \u0435 \u0437\u0430\u043f\u0430\u0437\u0435\u043d\u0430 \u043d\u0430 \u0442\u0435\u043b\u0435\u0444\u043e\u043d\u0430 \u0438 \u0449\u0435 \u0441\u0435 \u0438\u0437\u043f\u0440\u0430\u0442\u0438 \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u043d\u043e \u043f\u0440\u0438 \u0441\u043b\u0435\u0434\u0432\u0430\u0449\u043e\u0442\u043e \u043e\u0442\u0432\u0430\u0440\u044f\u043d\u0435.", "error");
             }
+            setQRCooldown(state.inspectionType, state.location);
+            state.openedFromQR = false;
+            setTimeout(() => {
+              sessionStorage.removeItem(QR_SESSION_KEY);
+              sessionStorage.removeItem(QR_MODE_KEY);
+              sessionStorage.removeItem(QR_TYPE_KEY);
+              sessionStorage.removeItem(QR_LOC_KEY);
+              window.location.replace(QR_REDIRECT_URL);
+            }, res.success ? 1200 : 4500);
+            return;
           }
-          if (sessionStorage.getItem(QR_MODE_KEY) === "1") {
+          if (qrMode) {
+            showToast(`\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430\u0442\u0430 \u043d\u0430 \u201e${where}\u201c \u0435 \u0437\u0430\u043f\u0438\u0441\u0430\u043d\u0430.`);
             setQRCooldown(state.inspectionType, state.location);
             state.openedFromQR = false;
             setTimeout(() => {
@@ -5360,6 +5512,22 @@
               window.location.replace(QR_REDIRECT_URL);
             }, 1200);
             return;
+          }
+          if (isSheetsConfigured()) {
+            /* Проверката вече е на устройството — служителят не чака
+               таблицата. Изпращането върви отзад; лентата в началото казва
+               докъде е стигнало, а неуспешното остава в опашката. */
+            showToast(`\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430\u0442\u0430 \u043d\u0430 \u201e${where}\u201c \u0435 \u0437\u0430\u043f\u0430\u0437\u0435\u043d\u0430. \u0418\u0437\u043f\u0440\u0430\u0449\u0430 \u0441\u0435 \u043a\u044a\u043c Google Sheets\u2026`);
+            syncRecord(record).then((res) => {
+              if (res.success) {
+                showToast(`\u2713 \u201e${where}\u201c \u0435 \u0437\u0430\u043f\u0438\u0441\u0430\u043d\u0430 \u0432 Google Sheets.`);
+                flushOutbox();
+              } else {
+                showToast(`\u26a0 \u201e${where}\u201c \u043e\u0449\u0435 \u043d\u0435 \u0435 \u0432 \u0442\u0430\u0431\u043b\u0438\u0446\u0430\u0442\u0430 (${res.error || "\u043d\u044f\u043c\u0430 \u0432\u0440\u044a\u0437\u043a\u0430"}). \u041f\u0430\u0437\u0438 \u0441\u0435 \u043d\u0430 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e\u0442\u043e \u0438 \u0449\u0435 \u0441\u0435 \u0438\u0437\u043f\u0440\u0430\u0442\u0438 \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u043d\u043e.`, "error");
+              }
+            });
+          } else {
+            showToast(`\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430\u0442\u0430 \u043d\u0430 \u201e${where}\u201c \u0435 \u0437\u0430\u043f\u0438\u0441\u0430\u043d\u0430.`);
           }
           // Clear photo state
           state.photoFiles = [];
@@ -5989,6 +6157,26 @@
         render();
       }
 
+      /* Лента за проверките, които още не са в таблицата. Няма ли такива —
+         нищо не се показва. */
+      function renderSyncBanner() {
+        if (!isSheetsConfigured()) return "";
+        const pend = pendingRecords();
+        if (!pend.length) return "";
+        const sending = pend.filter((r) => state.syncHistory[r.id] === "syncing" && _syncInflight.has(r.id)).length;
+        const n = pend.length;
+        const word = n === 1 ? "\u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430" : "\u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438";
+        if (sending) {
+          return `<div class="panel cg-sync-bar" role="status">${spokes("sm")}<span>\u0418\u0437\u043f\u0440\u0430\u0449\u0430 \u0441\u0435 \u043a\u044a\u043c Google Sheets: ${n} ${word}\u2026</span></div>`;
+        }
+        const names = pend.slice(0, 3).map((r) => escapeHtml(r.location)).join(", ") + (n > 3 ? "\u2026" : "");
+        return `<div class="panel cg-sync-bar cg-sync-bar--wait" role="status">
+            <span class="cg-sync-ico" aria-hidden="true">\u26a0</span>
+            <span>${n} ${word} ${n === 1 ? "\u0447\u0430\u043a\u0430" : "\u0447\u0430\u043a\u0430\u0442"} \u0438\u0437\u043f\u0440\u0430\u0449\u0430\u043d\u0435 (${names}). \u041f\u0430\u0437\u044f\u0442 \u0441\u0435 \u043d\u0430 \u0442\u043e\u0432\u0430 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e \u0438 \u0441\u0435 \u043f\u0440\u0430\u0449\u0430\u0442 \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u043d\u043e.</span>
+            <button type="button" class="btn btn-outline" data-action="sync-now">\u0418\u0437\u043f\u0440\u0430\u0442\u0438 \u0441\u0435\u0433\u0430</button>
+          </div>`;
+      }
+
       function renderHome() {
         const _ann = cgGetAnn();
         const _annHtml = _ann
@@ -6009,6 +6197,7 @@
             </div>
           </div>
 
+          ${renderSyncBanner()}
           ${renderLastCheckedBadges()}
           ${renderFeatureAnnouncement()}
           ${_annHtml}
@@ -6061,7 +6250,9 @@
             <thead><tr><th>\u0414\u0430\u0442\u0430/\u0427\u0430\u0441</th><th>\u041b\u043e\u043a\u0430\u0446\u0438\u044f</th><th>\u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0432\u0430\u0449</th><th>\u0421\u0442\u0430\u0442\u0443\u0441</th><th>\u041f\u0440\u043e\u0431\u043b\u0435\u043c\u0438</th><th>Sheets</th></tr></thead>
             <tbody>${records.map((r) => {
               const issues = dirtyItems(r);
-              const sync = state.syncHistory[r.id];
+              let sync = state.syncHistory[r.id];
+              /* „syncing" от предишно отваряне, което е прекъснато — чака. */
+              if (sync === "syncing" && !_syncInflight.has(r.id)) sync = "error";
               return `<tr>
                 <td>${fmt(r.timestamp)}</td>
                 <td style="display:flex;align-items:center;gap:6px;">
@@ -6084,6 +6275,7 @@
         const records = historyRecords();
         const locations = [...new Set(state.records.map((r) => r.location))];
         return `<div class="page">
+          ${renderSyncBanner()}
           <div class="panel" style="margin-bottom:16px;">
             <div class="toolbar"><h3 class="section-title" style="margin:0;">\u0418\u0441\u0442\u043e\u0440\u0438\u044f \u0438 PDF \u043e\u0442\u0447\u0435\u0442</h3><span class="meta-chip">${records.length} \u0437\u0430\u043f\u0438\u0441\u0430</span></div>
             <div class="grid cards-2" style="grid-template-columns: 1.2fr 1.2fr; margin-bottom:16px;">
@@ -6107,6 +6299,7 @@
               <button class="btn btn-secondary" id="charts-refresh-btn" onclick="refreshChartsData()">⟳ Обнови</button>
             </div>
           </div>
+          <div id="charts-fresh" class="cg-fresh" role="status" aria-live="polite"></div>
           <div id="charts-container">
             <div class="charts-loading">${spokes("")}<span>Зарежда от Sheets…</span></div>
           </div>
@@ -6151,6 +6344,55 @@
       /* Върнатият набор е частичен (сървърът е приложил limit). Пази се до
          редовете, за да знае екранът „Данни" дали да си дои пълната история. */
       let _rowsArePartial = false;
+      /* Кога са дошли приетите редове и колко записа е казал сървърът. */
+      let _rowsFetchedAt = 0;
+      let _rowsServerTotal = null;
+      let _rowsRawCount = 0;
+      /* Последната пълна история от диска ({at, rows, total}) или null. */
+      let _diskFull = null;
+      let _diskFullLoaded = false;
+
+      /* ── Малко хранилище в IndexedDB ──
+         localStorage е само ~5 MB и се дели с всичко останало, а историята
+         расте. IndexedDB понася много повече. Всяка грешка (частен режим,
+         блокиран storage) значи просто „няма кеш". */
+      let _idbP = null;
+      function cgIdb() {
+        if (!_idbP) {
+          _idbP = new Promise((res, rej) => {
+            try {
+              const r = indexedDB.open("cg-cache", 1);
+              r.onupgradeneeded = () => r.result.createObjectStore("kv");
+              r.onsuccess = () => res(r.result);
+              r.onerror = () => rej(r.error);
+              r.onblocked = () => rej(new Error("blocked"));
+            } catch (e) { rej(e); }
+          });
+          _idbP.catch(() => {});
+        }
+        return _idbP;
+      }
+      function idbReq(mode, fn) {
+        return Promise.race([
+          cgIdb().then((db) => new Promise((res) => {
+            const tx = db.transaction("kv", mode);
+            const q = fn(tx.objectStore("kv"));
+            q.onsuccess = () => res(q.result === undefined ? null : q.result);
+            q.onerror = () => res(null);
+          })),
+          new Promise((res) => setTimeout(() => res(null), 2000)),
+        ]).catch(() => null);
+      }
+      const idbGet = (key) => idbReq("readonly", (st) => st.get(key));
+      const idbSet = (key, val) => idbReq("readwrite", (st) => st.put(val, key));
+      async function loadDiskFull() {
+        if (_diskFullLoaded) return _diskFull;
+        const v = await idbGet("info_full");
+        _diskFullLoaded = true;
+        /* Мрежата може да е донесла по-пресни данни, докато сме чели диска. */
+        if (v && Array.isArray(v.rows) && (!_diskFull || v.at > _diskFull.at)) _diskFull = v;
+        return _diskFull;
+      }
 
       async function fetchSheetsData(limit) {
         let url = SHEETS_WEB_APP_URL + '?action=getInfo&_token=' + encodeURIComponent(SHEETS_SECRET_TOKEN);
@@ -6173,15 +6415,20 @@
         /* Само нова версия на бекенда маркира отговора като отрязан. Липсва
            ли маркерът, значи сме получили целия лист. */
         const partial = json.limited === true;
+        /* Новият бекенд казва колко записа има в листа — за проверка, че
+           е дошло всичко. По-старият не го казва (тогава е null). */
+        const total = typeof json.total === "number" ? json.total : null;
         const data = json.data; // 2D array: row 0 = headers, rest = data
-        if (!data || data.length < 2) return { rows: [], partial };
+        if (!data || data.length < 2) return { rows: [], partial, total, rawCount: 0 };
+        /* Непразни редове, преброени като на сървъра — по суровите клетки. */
+        const rawCount = data.slice(1).filter(row => (row || []).some(v => String(v == null ? '' : v) !== '')).length;
         const headers = data[0].map(h => String(h || '').trim());
         const rows = data.slice(1).map(row => {
           const obj = {};
           headers.forEach((h, i) => { obj[h] = String(row[i] != null ? row[i] : ''); });
           return obj;
         }).filter(r => Object.values(r).some(v => v !== ''));
-        return { rows, partial };
+        return { rows, partial, total, rawCount };
       }
 
       /* ── Една заявка наведнъж ──
@@ -6204,12 +6451,21 @@
         if (_sheetsInflight && (_sheetsInflight.full || !full)) return _sheetsInflight.p;
         const entry = { full: !!full, seq: ++_sheetsSeq };
         entry.p = fetchSheetsData(full ? 0 : SHEETS_RECENT_LIMIT)
-          .then(({ rows, partial }) => {
+          .then(({ rows, partial, total, rawCount }) => {
             /* Отговор, изпреварен от по-късно поискан, не връща екрана назад. */
             if (entry.seq >= _sheetsAdoptedSeq) {
               _sheetsAdoptedSeq = entry.seq;
               _cachedChartRows = rows;
               _rowsArePartial = partial;
+              _rowsFetchedAt = Date.now();
+              _rowsServerTotal = partial ? null : total;
+              _rowsRawCount = rawCount;
+            }
+            /* Пълната история се пази в браузъра — следващото отваряне на
+               „Данни" я показва веднага, докато свежата идва. */
+            if (!partial) {
+              _diskFull = { at: Date.now(), rows, total };
+              idbSet("info_full", _diskFull);
             }
             /* Кешът служи само на началния екран и се пази отрязан, така че
                се пълни и когато бекендът още не поддържа limit. */
@@ -6421,6 +6677,11 @@
 
       let _chartsLoading = false;
       let _chartsFetchVersion = 0;
+      let _chartsLastStats = null;
+      /* Какво е на екрана, докато се зарежда ({rows, at}), и последният
+         неуспех ({at, err}) — за да оцелеят прерисуване. */
+      let _chartsShown = null;
+      let _chartsFail = null;
 
       /* Self-healing зареждане на ИНФО данните — извиква се от badge-овете на
          home когато няма кеширани данни. Прави най-много едно паралелно
@@ -6452,6 +6713,7 @@
         /* Кешът не се трие предварително: ако опресняването не успее, остават
            данните от последното зареждане вместо празен екран с грешка. */
         _chartsLoading = false;
+        _chartsFail = null;
         await initChartsScreen(false, true);
         if (btn) { btn.disabled = false; btn.textContent = '⟳ Обнови'; }
       }
@@ -6461,12 +6723,17 @@
          spinner. */
       function showChartsFallback(container, err) {
         const why = (err && err.reason) || 'таблицата не отговори';
-        const rows = _cachedChartRows;
+        setChartsFresh("");
+        /* Пълна, но по-стара история е по-добра от само последните редове. */
+        const useDisk = _diskFull && _diskFull.rows.length && (!_cachedChartRows || _rowsArePartial);
+        const rows = useDisk ? _diskFull.rows : _cachedChartRows;
         if (rows && rows.length) {
           buildChartsFromData(container, rows);
-          const note = _rowsArePartial
+          const note = useDisk
+            ? `Не успях да обновя данните (${escapeHtml(why)}). Показана е пълната история от ${chartsWhen(_diskFull.at)} — ${rows.length} записа; по-новите проверки липсват.`
+            : _rowsArePartial
             ? `Пълната история не се зареди (${escapeHtml(why)}). Показани са последните ${rows.length} проверки.`
-            : `Не успях да обновя данните (${escapeHtml(why)}). Показани са данните от последното зареждане.`;
+            : `Не успях да обновя данните (${escapeHtml(why)}). Показани са данните от ${chartsWhen(_rowsFetchedAt)}.`;
           container.insertAdjacentHTML('afterbegin', `<div class="panel" role="status" style="margin-bottom:var(--s4);padding:var(--s3) var(--s4);border-color:var(--amber);background:var(--amber-soft);color:var(--text);font-size:var(--fs-body);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
               <span style="color:var(--amber-2);font-weight:700;">⚠</span><span>${note}</span><span style="color:var(--muted);">Натисни „Обнови", за да опиташ пак.</span>
             </div>`);
@@ -6500,11 +6767,12 @@
           return;
         }
 
-        /* Ако има пълни кеширани данни — рисувай директно (само при page load).
-           Частичен кеш (само скорошните редове от началния екран) не става за
-           графики — тогава се минава през заявката по-долу. */
+        /* Пълни данни, дошли в тази сесия, се рисуват директно. Частичен кеш
+           (само скорошните редове от началния екран) не става за графики —
+           тогава се минава през заявката по-долу. */
         if (!force && _cachedChartRows && !_rowsArePartial) {
           buildChartsFromData(container, _cachedChartRows);
+          setChartsFresh("ok");
           return;
         }
 
@@ -6512,19 +6780,39 @@
         const thisVersion = ++_chartsFetchVersion;
         console.log('[Charts] Fetching data (v' + thisVersion + ')…');
 
-        /* Don't destroy charts during loading — keep them visible */
-        if (!_cachedChartRows) {
-          container.innerHTML = `<div class="charts-loading">${spokes("")}<span>Зарежда от Sheets…</span></div>`;
+        /* Докато таблицата отговори: пълната история от последното отваряне,
+           ясно надписана с часа си. Заявката тръгва веднага, не чака диска. */
+        const netP = fetchSheetsRows(true);
+        let netDone = false;
+        netP.then(() => { netDone = true; }, () => { netDone = true; });
+        let shownStale = !!(_cachedChartRows && !_rowsArePartial);
+        if (!shownStale) {
+          const disk = await loadDiskFull();
+          const c0 = document.getElementById('charts-container');
+          if (!netDone && thisVersion === _chartsFetchVersion && disk && disk.rows.length && c0 && state.screen === "charts") {
+            buildChartsFromData(c0, disk.rows);
+            shownStale = true;
+          }
+        }
+        if (shownStale) {
+          const fromMem = _cachedChartRows && !_rowsArePartial;
+          const at = fromMem ? _rowsFetchedAt : (_diskFull && _diskFull.at);
+          _chartsShown = { rows: fromMem ? _cachedChartRows : _diskFull.rows, at };
+          setChartsFresh("loading", at);
+        } else {
+          setChartsFresh("loading");
         }
 
         let rows;
         try {
-          rows = await fetchSheetsRows(true);
+          rows = await netP;
           console.log('[Charts] Fetched', rows ? rows.length : 0, 'raw rows (v' + thisVersion + ')');
         } catch(e) {
           console.warn('[Charts] Fetch failed (v' + thisVersion + '):', e.message);
           _chartsLoading = false;
+          _chartsShown = null;
           if (thisVersion !== _chartsFetchVersion) return;
+          _chartsFail = { at: Date.now(), err: e };
           /* Досега тук при наличен кеш имаше само return — с частичен кеш
              екранът оставаше на „Зарежда от Sheets…" завинаги. */
           const c2 = document.getElementById('charts-container');
@@ -6533,14 +6821,17 @@
         }
 
         _chartsLoading = false;
+        _chartsShown = null;
+        _chartsFail = null;
         if (thisVersion !== _chartsFetchVersion) return;
 
         if (!rows || rows.length === 0) {
           if (_cachedChartRows && _cachedChartRows.length) {
             const c3 = document.getElementById('charts-container');
-            if (c3 && state.screen === "charts") buildChartsFromData(c3, _cachedChartRows);
+            if (c3 && state.screen === "charts") { buildChartsFromData(c3, _cachedChartRows); setChartsFresh("ok"); }
             return;
           }
+          setChartsFresh("");
           const c2 = document.getElementById('charts-container');
           if (c2) c2.innerHTML = `<div class="panel" style="text-align:center;padding:60px 20px;color:var(--muted);">Няма данни в таблицата.</div>`;
           return;
@@ -6548,7 +6839,43 @@
 
         /* Кешът вече е обновен от fetchSheetsRows според реда на заявките. */
         const c2 = document.getElementById('charts-container');
-        if (c2 && state.screen === "charts") buildChartsFromData(c2, rows);
+        if (c2 && state.screen === "charts") {
+          buildChartsFromData(c2, _cachedChartRows && !_rowsArePartial ? _cachedChartRows : rows);
+          setChartsFresh("ok");
+        }
+      }
+
+      const chartsWhen = (t) => {
+        if (!t) return "предишното зареждане";
+        const d = new Date(t), now = new Date(), p2 = (n) => String(n).padStart(2, "0");
+        const hm = p2(d.getHours()) + ":" + p2(d.getMinutes());
+        return d.toDateString() === now.toDateString() ? hm : p2(d.getDate()) + "." + p2(d.getMonth() + 1) + " " + hm;
+      };
+      /* Ред под заглавието: откъде са данните на екрана и колко са. Така
+         се вижда дали е дошло всичко, а не само дали нещо е нарисувано. */
+      function setChartsFresh(kind, at) {
+        const el = document.getElementById('charts-fresh');
+        if (!el) return;
+        el.classList.remove('cg-fresh--warn');
+        if (kind === "loading") {
+          el.innerHTML = spokes("sm") + `<span>${at ? `Показани са данните от ${chartsWhen(at)}. Обновява се от таблицата…` : "Зарежда цялата история от таблицата…"}</span>`;
+        } else if (kind === "ok") {
+          const st = _chartsLastStats || {};
+          const n = (_cachedChartRows || []).length;
+          let txt = `✓ Актуално · ${n} записа от таблицата · заредено в ${chartsWhen(_rowsFetchedAt)}`;
+          /* Сървърът брои непразните редове сам — ако бройките се разминават,
+             нещо не е дошло и трябва да се каже. */
+          if (_rowsServerTotal != null && _rowsServerTotal !== _rowsRawCount) {
+            el.classList.add('cg-fresh--warn');
+            txt = `⚠ Дойдоха ${_rowsRawCount} от ${_rowsServerTotal} записа. Натисни „Обнови“.`;
+          } else if (st.noDate) {
+            txt += ` · ${st.noDate} без разчетима дата (не влизат в графиките по дни и часове)`;
+          }
+          el.innerHTML = `<span>${txt}</span>`;
+        } else {
+          el.innerHTML = "";
+        }
+        applyTranslation(el);
       }
 
       function buildChartsFromData(container, rows) {
@@ -6578,6 +6905,7 @@
           } catch (_) { skipped++; }
         });
         console.log('[Charts] Normalized:', normalized.length, 'rows, skipped:', skipped);
+        _chartsLastStats = { used: normalized.length, skipped, noDate: normalized.filter(r => !r.date).length };
 
         /* ── Derive aggregations from normalized data ── */
         const byInspector = {}, byIssue = {}, byLocation = {}, byDay = {}, byHour = {};
@@ -6875,8 +7203,8 @@
             </div>
           </div>` : ""}
 
-          <button class="btn btn-gold" data-action="submit-inspection" style="width:100%;padding:16px;font-size:var(--fs-card);">
-            ${allFilled && state.inspector.trim() ? `Запази${isSheetsConfigured() ? " и изпрати" : ""}` : `Попълни всички полета (${filledCount}/${config.items.length})`}
+          <button class="btn btn-gold" data-action="submit-inspection" style="width:100%;padding:16px;font-size:var(--fs-card);"${state.submitSending ? ' disabled aria-busy="true"' : ""}>
+            ${state.submitSending ? `${spokes("sm", "margin-right:8px;")}Изпраща се към Google Sheets…` : allFilled && state.inspector.trim() ? `Запази${isSheetsConfigured() ? " и изпрати" : ""}` : `Попълни всички полета (${filledCount}/${config.items.length})`}
           </button>
         </div>`;
       }
@@ -7991,11 +8319,23 @@
            искат цялата история, затова при частичен кеш се минава през
            initChartsScreen, който си я дърпа. */
         if (state.screen === "charts") {
-          if (_cachedChartRows && _cachedChartRows.length > 0 && !_rowsArePartial) {
-            const c = document.getElementById('charts-container');
-            if (c) buildChartsFromData(c, _cachedChartRows);
-          } else {
+          const c = document.getElementById('charts-container');
+          if (c && _chartsLoading && _chartsShown) {
+            /* Прерисуване по време на зареждане (напр. съобщение) не връща
+               спинъра — остава показаното досега, със същия надпис. */
+            buildChartsFromData(c, _chartsShown.rows);
+            setChartsFresh("loading", _chartsShown.at);
+          } else if (c && !_chartsLoading && _chartsFail && Date.now() - _chartsFail.at < 60000) {
+            /* Скорошен неуспех: показва се пак същото, без нова заявка при
+               всяко прерисуване. „Обнови" опитва веднага. */
+            showChartsFallback(c, _chartsFail.err);
+          } else if (c && !_chartsLoading && _cachedChartRows && _cachedChartRows.length > 0 && !_rowsArePartial) {
+            buildChartsFromData(c, _cachedChartRows);
+            setChartsFresh("ok");
+          } else if (!_chartsLoading) {
             initChartsScreen(false);
+          } else {
+            setChartsFresh("loading");
           }
         }
         applyPerfMode();
@@ -8493,6 +8833,7 @@
         }
 
         /* Sync */
+        if (action === "sync-now") { flushOutbox(); renderSyncState(); return; }
         if (action === "retry-sync") {
           const rec = state.records.find((r) => String(r.id) === btn.dataset.id);
           if (rec) await syncRecord(rec);
@@ -8667,6 +9008,13 @@
             if (state.screen === "home") render();
           }
         }
+        /* Неизпратените от миналия път проверки тръгват първи — записът е
+           по-важен от четенето. После: при върната връзка, при връщане към
+           раздела и на всеки 2 минути, докато има чакащи. */
+        setTimeout(flushOutbox, 800);
+        window.addEventListener("online", () => flushOutbox());
+        document.addEventListener("visibilitychange", () => { if (!document.hidden) flushOutbox(); });
+        setInterval(() => { if (pendingRecords().length) flushOutbox(); }, 2 * 60 * 1000);
         /* Preload при зареждане на страницата (F5). Началният екран иска само
            скорошните редове — цялата история се дърпа чак при „Данни". */
         fetchSheetsRows(false).then(() => {

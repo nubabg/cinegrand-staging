@@ -65,8 +65,17 @@ function doGet(e) {
       }
       // limited казва на клиента, че липсва история — само тогава той си
       // дърпа пълния лист, когато потребителят отвори „Данни".
+      // total — колко непразни записа има в листа; клиентът сверява, че е
+      // получил всичките (само при пълен лист — при limit няма смисъл).
+      var total = null;
+      if (!limited) {
+        total = 0;
+        for (var r = 1; r < data.length; r++) {
+          if (data[r].some(function (v) { return v !== ""; })) total++;
+        }
+      }
       return ContentService
-        .createTextOutput(JSON.stringify({ success: true, data: data, limited: limited }))
+        .createTextOutput(JSON.stringify({ success: true, data: data, limited: limited, total: total }))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -128,59 +137,7 @@ function doPost(e) {
     if (data.action === "lfDelete") return handleLfDelete_(data);
     if (data.action === "lfAdminCheck") return handleLfAdminCheck_(data);
 
-    var record = data.record;
-    var ss = SpreadsheetApp.openById("17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA");
-    var sheet = ss.getSheetByName("ИНФО") || ss.getSheetByName("Sheet1") || ss.getSheets()[0];
-    var lastRow = sheet.getLastRow();
-    var nextRow = lastRow < 1 ? 2 : lastRow + 1;
-    var recordNumber = nextRow - 1;
-    var issues = [];
-    var allClean = true;
-    if (record.items && record.items.length > 0) {
-      for (var i = 0; i < record.items.length; i++) {
-        if (record.items[i].status === "dirty") {
-          allClean = false;
-          issues.push(record.items[i].label);
-        }
-      }
-    }
-    var status = allClean ? "Чисто" : "Проблем";
-    var issuesText = issues.length > 0 ? issues.join(", ") : "—";
-    var notes = record.notes || "—";
-    var date = new Date(record.timestamp);
-    var dateStr = Utilities.formatDate(date, "Europe/Sofia", "dd.MM.yyyy HH:mm");
-    var typeText = record.type === "hall"
-      ? "Кинозала - " + record.location
-      : "Тоалетна - " + record.location;
-    // Записване на данните
-    sheet.getRange(nextRow, 1).setValue(recordNumber);
-    sheet.getRange(nextRow, 2).setValue(dateStr);
-    sheet.getRange(nextRow, 3).setValue(typeText);
-    sheet.getRange(nextRow, 4).setValue(record.inspector);
-    sheet.getRange(nextRow, 5).setValue(status);
-    sheet.getRange(nextRow, 6).setValue(issuesText);
-    sheet.getRange(nextRow, 7).setValue(notes);
-    // Колона 8: Линк(ове) към снимка/снимки (ако има)
-    var photoUrls = [];
-    if (record.photoUrls && record.photoUrls.length) {
-      photoUrls = record.photoUrls;
-    } else if (record.photoUrl) {
-      photoUrls = [record.photoUrl];
-    }
-    if (photoUrls.length === 1) {
-      sheet.getRange(nextRow, 8).setFormula('=HYPERLINK("' + photoUrls[0] + '";"📷 Виж снимка")');
-    } else if (photoUrls.length > 1) {
-      var label = "📷 " + photoUrls.length + " снимки";
-      sheet.getRange(nextRow, 8).setFormula('=HYPERLINK("' + photoUrls[0] + '";"' + label + '")');
-      sheet.getRange(nextRow, 8).setNote(photoUrls.join("\n"));
-    } else {
-      sheet.getRange(nextRow, 8).setValue("—");
-    }
-    // Автоматично форматиране на новия ред
-    styleInfoRow(sheet, nextRow);
-    return ContentService
-      .createTextOutput(JSON.stringify({ success: true, row: nextRow, recordNumber: recordNumber }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return handleRecord_(data);
   } catch (error) {
     return ContentService
       .createTextOutput(JSON.stringify({ success: false, error: error.toString() }))
@@ -188,43 +145,150 @@ function doPost(e) {
   }
 }
 // -----------------------------------------------------------
+// Запис на проверка в ИНФО
+// -----------------------------------------------------------
+// Скрит лист с уникалните номера на вече записаните проверки. Приложението
+// праща всяка проверка с номер (uid) и я праща пак, ако не е получило
+// потвърждение — тук повторението се разпознава и не прави втори ред.
+var SYNC_SHEET_NAME = "_CG_SYNC";
+var SYNC_SCAN_ROWS = 5000;
+
+function syncSheet_(ss) {
+  var sh = ss.getSheetByName(SYNC_SHEET_NAME);
+  if (!sh) {
+    sh = ss.insertSheet(SYNC_SHEET_NAME);
+    sh.getRange(1, 1, 1, 4).setValues([["uid", "ред в ИНФО", "№", "записано"]]);
+    sh.setFrozenRows(1);
+    try { sh.hideSheet(); } catch (e) {}
+  }
+  return sh;
+}
+
+function syncFind_(sh, uid) {
+  var last = sh.getLastRow();
+  if (last < 2) return null;
+  var n = Math.min(last - 1, SYNC_SCAN_ROWS);
+  var vals = sh.getRange(last - n + 1, 1, n, 3).getValues();
+  for (var i = vals.length - 1; i >= 0; i--) {
+    if (String(vals[i][0]) === uid) return { row: vals[i][1], recordNumber: vals[i][2] };
+  }
+  return null;
+}
+
+// Текст, който започва с „=", таблицата би приела за формула.
+function sheetText_(v) {
+  var s = String(v == null ? "" : v);
+  return /^[=]/.test(s) ? "'" + s : s;
+}
+
+function handleRecord_(data) {
+  var record = data.record;
+  if (!record || typeof record !== "object") {
+    return jsonResponse_({ success: false, error: "Липсва запис за проверка." });
+  }
+  var uid = /^[A-Za-z0-9-]{6,60}$/.test(String(record.uid || "")) ? String(record.uid) : "";
+  var cache = CacheService.getScriptCache();
+  if (uid) {
+    var hit = cache.get("rec_" + uid);
+    if (hit) {
+      var h = JSON.parse(hit);
+      return jsonResponse_({ success: true, duplicate: true, idem: true, uid: uid, row: h.row, recordNumber: h.recordNumber });
+    }
+  }
+
+  var issues = [];
+  var allClean = true;
+  if (record.items && record.items.length > 0) {
+    for (var i = 0; i < record.items.length; i++) {
+      if (record.items[i].status === "dirty") {
+        allClean = false;
+        issues.push(record.items[i].label);
+      }
+    }
+  }
+  var status = allClean ? "Чисто" : "Проблем";
+  var issuesText = issues.length > 0 ? issues.join(", ") : "—";
+  var notes = record.notes || "—";
+  var date = new Date(record.timestamp);
+  if (isNaN(date.getTime())) date = new Date();
+  var dateStr = Utilities.formatDate(date, "Europe/Sofia", "dd.MM.yyyy HH:mm");
+  var typeText = record.type === "hall"
+    ? "Кинозала - " + record.location
+    : "Тоалетна - " + record.location;
+  // Колона 8: линк(ове) към снимка/снимки (ако има)
+  var photoUrls = [];
+  if (record.photoUrls && record.photoUrls.length) {
+    photoUrls = record.photoUrls;
+  } else if (record.photoUrl) {
+    photoUrls = [record.photoUrl];
+  }
+  var q = function (s) { return String(s).replace(/"/g, '""'); };
+  var photoCell = "—";
+  if (photoUrls.length === 1) {
+    photoCell = '=HYPERLINK("' + q(photoUrls[0]) + '";"📷 Виж снимка")';
+  } else if (photoUrls.length > 1) {
+    photoCell = '=HYPERLINK("' + q(photoUrls[0]) + '";"📷 ' + photoUrls.length + ' снимки")';
+  }
+
+  // Без заключване две едновременни проверки четат един и същ последен ред
+  // и втората презаписва първата.
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var ss = SpreadsheetApp.openById("17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA");
+    var sheet = ss.getSheetByName("ИНФО") || ss.getSheetByName("Sheet1") || ss.getSheets()[0];
+    var sync = uid ? syncSheet_(ss) : null;
+    if (uid) {
+      var found = syncFind_(sync, uid);
+      if (found) {
+        cache.put("rec_" + uid, JSON.stringify(found), 21600);
+        return jsonResponse_({ success: true, duplicate: true, idem: true, uid: uid, row: found.row, recordNumber: found.recordNumber });
+      }
+    }
+    var lastRow = sheet.getLastRow();
+    var nextRow = lastRow < 1 ? 2 : lastRow + 1;
+    var recordNumber = nextRow - 1;
+    sheet.getRange(nextRow, 1, 1, 8).setValues([[
+      recordNumber, dateStr, sheetText_(typeText), sheetText_(record.inspector),
+      status, sheetText_(issuesText), sheetText_(notes), photoCell
+    ]]);
+    if (photoUrls.length > 1) sheet.getRange(nextRow, 8).setNote(photoUrls.join("\n"));
+    styleInfoRow(sheet, nextRow, status);
+    if (uid) {
+      sync.appendRow([uid, nextRow, recordNumber,
+        Utilities.formatDate(new Date(), "Europe/Sofia", "dd.MM.yyyy HH:mm:ss")]);
+    }
+    // Редът трябва да е в таблицата, преди следващата заявка да види
+    // getLastRow() — иначе заключването не пази от нищо.
+    SpreadsheetApp.flush();
+    if (uid) cache.put("rec_" + uid, JSON.stringify({ row: nextRow, recordNumber: recordNumber }), 21600);
+    return jsonResponse_({ success: true, idem: true, uid: uid, row: nextRow, recordNumber: recordNumber });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// -----------------------------------------------------------
 // 2. styleInfoRow - форматира един ред в ИНФО автоматично
 // -----------------------------------------------------------
-function styleInfoRow(sheet, row) {
+function styleInfoRow(sheet, row, status) {
+  // Всичко с по една заявка за целия ред: досега бяха ~20 отделни извиквания
+  // плюс едно четене по средата, което ги принуждаваше да се изпратят веднага.
   try {
+    if (status === undefined) status = sheet.getRange(row, 5).getValue();
     var range = sheet.getRange(row, 1, 1, 8);
     // Редуване на цветове: четни = тъмно синьо, нечетни = малко по-светло
     var bgColor = (row % 2 === 0) ? "#1a2744" : "#1e3054";
-    range.setBackground(bgColor);
-    range.setFontColor("#FFFFFF");
-    range.setFontFamily("Arial");
-    range.setFontSize(10);
-    range.setVerticalAlignment("middle");
-    // Граница
-    range.setBorder(true, true, true, true, true, true, "#2d4a7a", SpreadsheetApp.BorderStyle.SOLID);
-    // Специфични ширини по колона
-    range.setHorizontalAlignment("center");
-    sheet.getRange(row, 6, 1, 1).setHorizontalAlignment("left"); // ПРОБЛЕМИ - ляво
-    sheet.getRange(row, 7, 1, 1).setHorizontalAlignment("left"); // БЕЛЕЖКИ - ляво
-    sheet.getRange(row, 8, 1, 1).setHorizontalAlignment("center"); // СНИМКА - центрирано
-    // Wrap text за ПРОБЛЕМИ и БЕЛЕЖКИ
-    sheet.getRange(row, 6, 1, 1).setWrap(true);
-    sheet.getRange(row, 7, 1, 1).setWrap(true);
-    // СНИМКА линк - синьо оцветяване
-    sheet.getRange(row, 8, 1, 1).setFontColor("#4da6ff").setFontWeight("bold");
-    // Оцветяване на СТАТУС (колона 5)
-    var statusCell = sheet.getRange(row, 5);
-    var statusVal = statusCell.getValue();
-    if (statusVal === "Чисто") {
-      statusCell.setBackground("#1b5e20");
-      statusCell.setFontColor("#a5d6a7");
-      statusCell.setFontWeight("bold");
-    } else if (statusVal === "Проблем") {
-      statusCell.setBackground("#b71c1c");
-      statusCell.setFontColor("#ffcdd2");
-      statusCell.setFontWeight("bold");
-    }
-    // Задаване на минимална височина
+    var bg = [], fc = [], fw = [], ha = [];
+    for (var c = 0; c < 8; c++) { bg.push(bgColor); fc.push("#FFFFFF"); fw.push("normal"); ha.push("center"); }
+    ha[5] = "left"; ha[6] = "left";              // ПРОБЛЕМИ и БЕЛЕЖКИ - ляво
+    fc[7] = "#4da6ff"; fw[7] = "bold";            // СНИМКА линк - синьо
+    if (status === "Чисто") { bg[4] = "#1b5e20"; fc[4] = "#a5d6a7"; fw[4] = "bold"; }
+    else if (status === "Проблем") { bg[4] = "#b71c1c"; fc[4] = "#ffcdd2"; fw[4] = "bold"; }
+    range.setBackgrounds([bg]).setFontColors([fc]).setFontWeights([fw]).setHorizontalAlignments([ha])
+      .setFontFamily("Arial").setFontSize(10).setVerticalAlignment("middle")
+      .setBorder(true, true, true, true, true, true, "#2d4a7a", SpreadsheetApp.BorderStyle.SOLID);
+    sheet.getRange(row, 6, 1, 2).setWrap(true);   // Wrap text за ПРОБЛЕМИ и БЕЛЕЖКИ
     sheet.setRowHeight(row, 40);
   } catch(err) {
     Logger.log("styleInfoRow error: " + err.toString());
@@ -628,15 +692,28 @@ function handleUpdateChangingRoom_(data) {
     var dateStr = data.dateStr || "";
     // Определи колоната (B=2, C=3)
     var colIndex = (col === "B") ? 2 : 3;
-    // Провери дали клетката вече е попълнена
-    var existing = sheet.getRange(row, colIndex).getValue();
-    if (existing && String(existing).trim() !== "") {
-      return ContentService
-        .createTextOutput(JSON.stringify({ success: false, error: "already_filled", existing: existing }))
-        .setMimeType(ContentService.MimeType.JSON);
+    // Проверката и записът са под заключване — иначе двама едновременно
+    // виждат празна клетка и вторият презаписва първия.
+    var lock = LockService.getScriptLock();
+    lock.waitLock(20000);
+    try {
+      var existing = sheet.getRange(row, colIndex).getValue();
+      if (existing && String(existing).trim() !== "") {
+        // Повторен опит на същия човек (отговорът на първия се е загубил)
+        // е успех, не „вече попълнено".
+        if (String(existing).trim() === String(name).trim()) {
+          return jsonResponse_({ success: true, row: row, col: col, name: name, duplicate: true });
+        }
+        return ContentService
+          .createTextOutput(JSON.stringify({ success: false, error: "already_filled", existing: existing }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      // Запиши името
+      sheet.getRange(row, colIndex).setValue(name);
+      SpreadsheetApp.flush();
+    } finally {
+      lock.releaseLock();
     }
-    // Запиши името
-    sheet.getRange(row, colIndex).setValue(name);
     return ContentService
       .createTextOutput(JSON.stringify({ success: true, row: row, col: col, name: name }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -1030,10 +1107,12 @@ var LF_FIELDS = [
 function lfNorm_(s) { return String(s || "").replace(/\s+/g, " ").trim().toLowerCase(); }
 
 /* Листът и картата „поле → номер на колона" (1-базиран). Добавя липсващите
-   колони. Викай под LockService, защото може да пише заглавия. */
-function lfSheet_(ss) {
+   колони. Викай под LockService, защото може да пише заглавия — освен с
+   readOnly: тогава нищо не пише и връща null, ако има какво да се допише. */
+function lfSheet_(ss, readOnly) {
   var sheet = getSheetLoose_(ss, LF_SHEET);
   if (!sheet) {
+    if (readOnly) return null;
     sheet = ss.insertSheet(LF_SHEET);
     sheet.getRange(1, 1, 1, LF_FIELDS.length).setValues([LF_FIELDS.map(function (f) { return f.header; })]);
     sheet.setFrozenRows(1);
@@ -1046,6 +1125,7 @@ function lfSheet_(ss) {
       if (!used[c] && headers[c] && f.match(headers[c])) { map[f.key] = c + 1; used[c] = true; return; }
     }
   });
+  if (readOnly && LF_FIELDS.some(function (f) { return !map[f.key]; })) return null;
   LF_FIELDS.forEach(function (f) {
     if (!map[f.key]) {
       var col = sheet.getLastColumn() + 1;
@@ -1113,36 +1193,45 @@ function lfReadAll_(ctx) {
 }
 
 function handleLfList_(data) {
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
-  try {
-    var ctx = lfSheet_(lfOpen_());
-    var items = lfReadAll_(ctx);
-    // Редове, въведени ръчно в таблицата, получават ID, за да могат да се
-    // променят и трият от системата.
-    items.forEach(function (it) {
-      if (!it.id) {
-        it.id = lfNewId_();
-        ctx.sheet.getRange(it._row, ctx.map.id).setNumberFormat("@").setValue(it.id);
-      }
-    });
-    var admin = false;
-    if (data.adminPass) {
-      var chk = lfAdminCheck_(data.adminPass);
-      if (!chk.ok) return jsonResponse_({ success: false, code: chk.code, error: chk.error });
-      admin = true;
-    }
-    var list = items.map(function (it) {
-      var o = {};
-      LF_FIELDS.forEach(function (f) { o[f.key] = it[f.key]; });
-      if (!admin) o.contact = lfMaskContact_(o.contact);
-      return o;
-    });
-    return jsonResponse_({ success: true, admin: admin, items: list,
-      statuses: LF_STATUSES, kinds: LF_KINDS, categories: LF_CATEGORIES });
-  } finally {
-    lock.releaseLock();
+  var admin = false;
+  if (data.adminPass) {
+    var chk = lfAdminCheck_(data.adminPass);
+    if (!chk.ok) return jsonResponse_({ success: false, code: chk.code, error: chk.error });
+    admin = true;
   }
+  // Обикновено само се чете — без заключване, за да не чака списъкът чужд
+  // запис (напр. качване на снимка). Заключва се само ако има какво да се
+  // допише: липсваща колона или ред, въведен ръчно без ID.
+  var ss = lfOpen_();
+  var ctx = lfSheet_(ss, true);
+  var items = ctx ? lfReadAll_(ctx) : null;
+  if (!items || items.some(function (it) { return !it.id; })) {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(20000);
+    try {
+      ctx = lfSheet_(ss);
+      items = lfReadAll_(ctx);
+      // Редове, въведени ръчно в таблицата, получават ID, за да могат да се
+      // променят и трият от системата.
+      items.forEach(function (it) {
+        if (!it.id) {
+          it.id = lfNewId_();
+          ctx.sheet.getRange(it._row, ctx.map.id).setNumberFormat("@").setValue(it.id);
+        }
+      });
+      SpreadsheetApp.flush();
+    } finally {
+      lock.releaseLock();
+    }
+  }
+  var list = items.map(function (it) {
+    var o = {};
+    LF_FIELDS.forEach(function (f) { o[f.key] = it[f.key]; });
+    if (!admin) o.contact = lfMaskContact_(o.contact);
+    return o;
+  });
+  return jsonResponse_({ success: true, admin: admin, items: list,
+    statuses: LF_STATUSES, kinds: LF_KINDS, categories: LF_CATEGORIES });
 }
 
 function handleLfAdd_(data) {
@@ -1171,26 +1260,40 @@ function handleLfAdd_(data) {
   rec.status = rec.kind === "Изгубена" ? "Търси се" : "Намерена";
   var id = /^LF-[A-Za-z0-9-]{4,40}$/.test(String(data.id || "")) ? String(data.id) : lfNewId_();
 
+  // Повторно изпращане на същия запис (напр. след изтекла връзка) не създава
+  // дубликат. Първа проверка без заключване — за да не се качва снимката
+  // напразно; окончателната е под заключването по-долу.
+  var ss = lfOpen_();
+  var pre = lfSheet_(ss, true);
+  if (pre && lfReadAll_(pre).some(function (x) { return x.id === id; })) {
+    return jsonResponse_({ success: true, id: id, duplicate: true });
+  }
+  // Качването в Drive отнема секунди — прави се извън заключването, за да не
+  // чакат през това време другите записи и четения.
+  var file = null;
+  if (data.photoData) {
+    try {
+      var blob = Utilities.newBlob(Utilities.base64Decode(String(data.photoData)), "image/jpeg", id + ".jpg");
+      var folder = lfPhotoFolder_();
+      if (folder) {
+        file = folder.createFile(blob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        rec.photo = file.getUrl();
+      }
+    } catch (photoErr) {
+      rec.photo = "";   // вещта се записва и без снимка
+    }
+  }
+
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
-    var ctx = lfSheet_(lfOpen_());
-    // Повторно изпращане на същия запис (напр. след изтекла връзка) не създава дубликат.
+    var ctx = lfSheet_(ss);
     var existing = lfReadAll_(ctx).filter(function (x) { return x.id === id; })[0];
-    if (existing) return jsonResponse_({ success: true, id: id, duplicate: true });
-
-    if (data.photoData) {
-      try {
-        var blob = Utilities.newBlob(Utilities.base64Decode(String(data.photoData)), "image/jpeg", id + ".jpg");
-        var folder = lfPhotoFolder_();
-        if (folder) {
-          var file = folder.createFile(blob);
-          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-          rec.photo = file.getUrl();
-        }
-      } catch (photoErr) {
-        rec.photo = "";   // вещта се записва и без снимка
-      }
+    if (existing) {
+      // Паралелен опит със същия запис е бил по-бърз — снимката е излишна.
+      if (file) { try { file.setTrashed(true); } catch (e) {} }
+      return jsonResponse_({ success: true, id: id, duplicate: true });
     }
     rec.id = id;
     rec.updated = Utilities.formatDate(now, "Europe/Sofia", "dd.MM.yyyy HH:mm") + " · регистрирана от " + rec.employee;
@@ -1204,6 +1307,7 @@ function handleLfAdd_(data) {
     var range = sheet.getRange(target, 1, 1, width);
     range.setNumberFormat("@");          // телефони с водеща нула, дати и часове остават текст
     range.setValues([row]);
+    SpreadsheetApp.flush();
     return jsonResponse_({ success: true, id: id, status: rec.status, photo: rec.photo || "" });
   } finally {
     lock.releaseLock();
@@ -1227,7 +1331,9 @@ function lfAdminFind_(data, cb) {
     var ctx = lfSheet_(lfOpen_());
     var hit = lfReadAll_(ctx).filter(function (x) { return x.id && x.id === String(data.id || ""); })[0];
     if (!hit) return jsonResponse_({ success: false, code: "NOT_FOUND", error: "Записът не е намерен — може да е изтрит или преместен." });
-    return cb(ctx, hit);
+    var out = cb(ctx, hit);
+    SpreadsheetApp.flush();
+    return out;
   } finally {
     lock.releaseLock();
   }
