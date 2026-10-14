@@ -1976,6 +1976,102 @@
         .lf-toolbar-btns .btn { flex: 1; }
       }
 
+      /* ── Моите задачи ── */
+      .tk-pick { display: flex; gap: var(--s3); align-items: flex-end; flex-wrap: wrap; margin-bottom: var(--s5); }
+      .tk-pick .field { flex: 1 1 220px; min-width: 0; margin: 0; }
+      .tk-who { color: var(--muted); font-size: var(--fs-body); margin: 0 0 var(--s3); }
+      .tk-h { margin: var(--s5) 0 var(--s3); display: flex; align-items: center; gap: 10px; }
+      .tk-list { display: grid; gap: var(--s4); }
+      .tk-card { padding: var(--s5); }
+      .tk-card.tk-in { animation: tk-rise .4s cubic-bezier(.22,1,.36,1) both; }
+      @keyframes tk-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+      @media (prefers-reduced-motion: reduce) { .tk-card { animation: none; } .tk-dot { animation: none !important; } }
+      body.low-perf .tk-card { animation: none; }
+      .tk-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+      .tk-title { margin: 10px 0 6px; font-size: var(--fs-card); font-weight: 700; color: var(--text); }
+      .tk-desc { margin: 8px 0 0; color: var(--text); opacity: .9; white-space: pre-wrap; line-height: 1.55; }
+      .tk-sub { font-size: var(--fs-meta); color: var(--muted); }
+      .tk-metas { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+      .tk-meta { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-meta); color: var(--muted); }
+      .tk-meta b { color: var(--text); }
+      .tk-tag { display: inline-flex; padding: 3px 10px; border-radius: 999px; font-size: var(--fs-micro); font-weight: 700; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+      .tk-p-high { background: var(--amber-soft); color: var(--amber-2); border-color: var(--amber); }
+      .tk-p-urgent { background: var(--red-soft); color: var(--red-2); border-color: var(--red); }
+      .tk-badge { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; border-radius: 999px; font-size: var(--fs-micro); font-weight: 700; border: 1px solid transparent; }
+      .tk-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+      .tk-s-assigned { color: var(--blue-2); background: var(--blue-soft); border-color: var(--blue); }
+      .tk-s-assigned .tk-dot, .tk-s-done .tk-dot { animation: tk-pulse 1.6s ease-in-out infinite; }
+      @keyframes tk-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+      .tk-s-done { color: var(--amber-2); background: var(--amber-soft); border-color: var(--amber); }
+      .tk-s-rated { color: var(--green-2); background: var(--green-soft); border-color: var(--green); }
+      .tk-s-cancel { color: var(--muted); background: var(--panel-2); border-color: var(--border); }
+      .tk-actions { display: flex; gap: var(--s2); flex-wrap: wrap; margin-top: var(--s4); }
+      .tk-form { margin-top: var(--s4); padding-top: var(--s4); border-top: 1px solid var(--border); }
+      .tk-grid { display: grid; gap: var(--s3); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+      .tk-grid .field, .tk-form .field { margin: 0 0 var(--s3); min-width: 0; }
+      .tk-err { background: var(--red-soft); color: var(--red-2); border-radius: 10px; padding: 9px 12px; margin-bottom: var(--s3); font-size: var(--fs-body); }
+      .tk-empty { color: var(--muted); text-align: center; padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+      .tk-note { color: var(--muted); font-size: var(--fs-body); }
+      .tk-pinrow { display: flex; gap: var(--s3); align-items: flex-end; flex-wrap: wrap; }
+      .tk-pinrow .field { margin: 0; flex: 0 1 220px; }
+      .tk-stats { display: flex; gap: var(--s3); flex-wrap: wrap; margin-bottom: var(--s3); }
+      .tk-stats > div { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; min-width: 120px; }
+      .tk-stats b { display: block; font-size: 22px; color: var(--text); }
+      .tk-stats span { font-size: var(--fs-micro); color: var(--muted); }
+      .tk-hist { display: grid; gap: var(--s3); }
+      .tk-hrow { padding: var(--s4); }
+      .tk-score { font-size: var(--fs-body); color: var(--muted); }
+      .tk-score b { font-size: 20px; color: var(--text); }
+      .tk-comment { margin-top: 10px; padding: 10px 12px; background: var(--panel-2); border-radius: 10px; white-space: pre-wrap; color: var(--text); }
+      /* Карта на задача по дизайна „ProjectDetailView" */
+      .tk-pd { padding: 0; overflow: hidden; }
+      .tk-pd-head { padding: 12px var(--s5); border-bottom: 1px solid var(--border); background: var(--panel-2); }
+      .tk-crumbs { font-size: var(--fs-meta); color: var(--muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .tk-crumbs span + span::before { content: "/"; margin: 0 8px; color: var(--muted-2); }
+      .tk-pd-body { padding: var(--s5); }
+      @media (min-width: 760px) { .tk-pd-body { padding: 28px 30px; } }
+      .tk-pd-title { margin: 0 0 20px; font-size: clamp(21px, 3.6vw, 28px); line-height: 1.2; font-weight: 800; letter-spacing: -.01em; color: var(--text); }
+      .tk-pd-meta { display: grid; gap: 20px; grid-template-columns: 1fr; font-size: var(--fs-body); }
+      @media (min-width: 640px) { .tk-pd-meta { grid-template-columns: 1fr 1fr; } }
+      @media (min-width: 1000px) { .tk-pd-meta { grid-template-columns: 1fr 1fr 1fr; } }
+      .tk-mi { display: flex; gap: 12px; align-items: flex-start; min-width: 0; }
+      .tk-min0 { min-width: 0; }
+      .tk-ic { width: 18px; height: 18px; flex: none; color: var(--muted-2); margin-top: 2px; }
+      .tk-ml { font-size: var(--fs-meta); color: var(--muted); }
+      .tk-mv { margin-top: 4px; font-weight: 600; color: var(--text); }
+      .tk-dates { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .tk-dates .tk-ic { margin: 0; width: 16px; height: 16px; }
+      .tk-span2 { grid-column: 1 / -1; }
+      @media (min-width: 1000px) { .tk-span2 { grid-column: span 2; } }
+      .tk-person { display: flex; align-items: center; gap: 10px; margin-top: 4px; font-weight: 600; color: var(--text); }
+      .tk-person small { display: block; font-weight: 500; font-size: var(--fs-micro); color: var(--muted); }
+      .tk-avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--gold-soft); color: var(--gold-2); flex: none; }
+      .tk-pd-section { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--border); }
+      .tk-h3 { margin: 0 0 12px; display: flex; align-items: center; gap: 8px; font-size: var(--fs-card); font-weight: 700; color: var(--text); }
+      .tk-h3 .tk-ic { margin: 0; color: var(--muted); }
+      .tk-count { font-size: var(--fs-micro); padding: 1px 8px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); }
+      .tk-hist { margin-top: var(--s5); }
+      .tk-table-wrap { overflow-x: auto; }
+      .tk-table { width: 100%; border-collapse: collapse; font-size: var(--fs-body); }
+      .tk-table th { text-align: left; font-size: var(--fs-micro); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); padding: 10px 12px; border-bottom: 1px solid var(--border); }
+      .tk-table td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
+      .tk-table tbody tr { transition: background .15s; }
+      .tk-table tbody tr:hover { background: var(--panel-2); }
+      .tk-table tbody tr:last-child td { border-bottom: 0; }
+      .tk-table tr.tk-in { animation: tk-rise .35s cubic-bezier(.22,1,.36,1) both; }
+      .tk-no { width: 44px; color: var(--muted) !important; }
+      .tk-r { text-align: right; white-space: nowrap; color: var(--muted) !important; }
+      .tk-tt { font-weight: 650; }
+      .tk-cm { margin-top: 4px; font-size: var(--fs-meta); color: var(--text); opacity: .85; }
+      .tk-cm span { color: var(--muted); }
+      @media (max-width: 700px) {
+        .tk-table thead { display: none; }
+        .tk-table, .tk-table tbody, .tk-table tr, .tk-table td { display: block; width: 100%; }
+        .tk-table tr { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; padding: 6px 2px; }
+        .tk-table td { border: 0; padding: 4px 12px; }
+        .tk-table .tk-no { display: none; }
+        .tk-r { text-align: left; }
+      }
       /* ── Лента за неизпратени проверки ── */
       .cg-sync-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
         margin-bottom: var(--s4); padding: var(--s3) var(--s4); font-size: var(--fs-body); color: var(--text); }
@@ -2516,6 +2612,18 @@
         <path d="M3.75 8 12 3.75 20.25 8v8.75L12 21l-8.25-4.25V8Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
         <path d="M3.75 8 12 12.25 20.25 8M12 12.25V21M7.75 5.9l8.25 4.25" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
       </symbol>
+      <symbol id="cg-tasks" viewBox="0 0 24 24">
+        <rect x="4" y="3.75" width="16" height="17.5" rx="2.25" fill="none" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M8 9.25l1.5 1.5L12.5 7.75M8 15.25l1.5 1.5 3-3M14.75 9.5H17M14.75 15.5H17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+      <symbol id="cg-tk-dots" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></g></symbol>
+      <symbol id="cg-tk-users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></g></symbol>
+      <symbol id="cg-tk-cal" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></g></symbol>
+      <symbol id="cg-tk-tag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></g></symbol>
+      <symbol id="cg-tk-text" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h5M16 13H8M16 17H8M10 9H8"/></g></symbol>
+      <symbol id="cg-tk-arrow" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="cg-tk-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></g></symbol>
+      <symbol id="cg-tk-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
       <symbol id="cg-logo-mark" viewBox="0 0 256 256" fill="currentColor">
         <path
         style="fill:none;stroke:currentColor;stroke-width:3"
@@ -3978,6 +4086,7 @@
         "✓ Синхронизирано с Google Sheets.": "✓ Synced with Google Sheets.",
         "Проверки по дни": "Inspections by day", "Днес": "Today", "7 дни": "7 days",
         "Дневна активност · последните 7 дни": "Daily activity · last 7 days",
+        "Задачи": "Tasks", "Моите задачи": "My tasks", "Възложени задачи и оценки": "Assigned tasks and ratings",
         "Изпрати сега": "Send now", "Изпраща се към Google Sheets…": "Sending to Google Sheets…",
         "Обновява се от таблицата…": "Refreshing from the sheet…",
         "Зарежда цялата история от таблицата…": "Loading the full history from the sheet…",
@@ -5908,6 +6017,7 @@
           `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''} ${chartsCooldownUntil > Date.now() ? 'cooldown' : ''}" data-action="go-charts" aria-label="Данни от Sheets" ${chartsCooldownUntil > Date.now() ? 'disabled' : ''}>${cgIcon("data", 18)} ${chartsCooldownUntil > Date.now() ? "Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : "Данни"}</button>`,
           `<button class="nav-btn ${state.screen === 'rules' ? 'state' : ''}" data-action="go-rules" aria-label="Правила за работа">${cgIcon("rules", 18)} Правила</button>`,
           `<button class="nav-btn ${state.screen === 'lost-found' ? 'state' : ''}" data-action="go-lost-found" aria-label="Lost &amp; Found — изгубени и намерени вещи">${cgIcon("lost-found", 18)} Lost &amp; Found</button>`,
+          `<button class="nav-btn ${state.screen === 'tasks' ? 'state' : ''}" data-action="go-tasks">${cgIcon("tasks", 18)} Задачи</button>`,
           `<button class="nav-btn ${state.showSettingsModal ? 'state' : ''}" data-action="open-settings" aria-label="Настройки">${cgIcon("settings", 18)} Настройки</button>`,
         ].filter(Boolean).join("");
 
@@ -8504,6 +8614,212 @@
       }
 
       /* ── Настройки: език и тема на интерфейса ── */
+      /* ══════════════════════════════════════════════════════════════
+         МОИТЕ ЗАДАЧИ — служителят вижда възложените му задачи и ги
+         приключва (име + часове). Възлагането и оценките са в admin.html.
+         Ако администраторът е задал ПИН на служителя, без него задача не
+         се приключва; оценките и коментарите се виждат само с ПИН.
+         ══════════════════════════════════════════════════════════════ */
+      const TK_NAME_KEY = "cg_tk_name";
+      const tk = { name: "", data: null, loading: false, error: "", needsDeploy: false,
+        pin: "", history: null, histErr: "", histBusy: false, doing: "", form: { hours: "", note: "", who: "", pin: "" }, formErr: "", saving: false };
+      try { tk.name = localStorage.getItem(TK_NAME_KEY) || ""; } catch (_) {}
+      const tkEn = () => currentLang === "en";
+      const tkT = (bg, en) => tkEn() ? en : bg;
+      const TK_STATUS_CLS = { "Възложена": "tk-s-assigned", "Изпълнена": "tk-s-done", "Оценена": "tk-s-rated", "Отменена": "tk-s-cancel" };
+      const TK_STATUS_EN = { "Възложена": "Assigned", "Изпълнена": "Awaiting rating", "Оценена": "Rated", "Отменена": "Cancelled" };
+      const TK_PRIO_EN = { "Нисък": "Low", "Нормален": "Normal", "Висок": "High", "Спешен": "Urgent" };
+      const tkBadge = (s) => `<span class="tk-badge ${TK_STATUS_CLS[s] || "tk-s-cancel"}"><span class="tk-dot"></span>${escapeHtml(tkEn() ? (TK_STATUS_EN[s] || s) : (s === "Изпълнена" ? "Чака оценка" : s))}</span>`;
+      async function tkCall(action, body) {
+        if (!isSheetsConfigured()) { const e = new Error("not configured"); e.reason = "таблицата не е настроена"; throw e; }
+        const json = await fetchJsonRetry(SHEETS_WEB_APP_URL, {
+          method: "POST", redirect: "follow",
+          headers: { "Content-Type": "text/plain;charset=UTF-8" },
+          body: JSON.stringify(Object.assign({ action, _token: SHEETS_SECRET_TOKEN }, body || {})),
+        }, { timeouts: [20000, 30000], backoffs: [1000] });
+        if (json && json.success === false && /Unknown action|TypeError|of undefined/i.test(String(json.error || ""))) {
+          const e = new Error(json.error); e.needsDeploy = true; e.reason = "Apps Script още не поддържа задачите"; throw e;
+        }
+        return json || {};
+      }
+      async function tkLoad() {
+        if (!tk.name || tk.loading) { render(); return; }
+        tk.loading = true; tk.error = ""; render();
+        try {
+          const j = await tkCall("tasksMine", { name: tk.name });
+          if (!j.success) { const e = new Error(j.error); e.reason = j.error; throw e; }
+          tk.data = j; tk.needsDeploy = false; tk.anim = true;
+        } catch (e) { tk.error = e.reason || e.message; tk.needsDeploy = !!e.needsDeploy; }
+        tk.loading = false;
+        if (state.screen === "tasks") render();
+      }
+      async function tkLoadHistory() {
+        if (tk.histBusy) return;
+        if (!/^\d{4,8}$/.test(tk.pin)) { tk.histErr = tkT("Въведете ПИН-а си (4–8 цифри).", "Enter your PIN (4–8 digits)."); render(); return; }
+        tk.histBusy = true; tk.histErr = ""; render();
+        try {
+          const j = await tkCall("tasksMine", { name: tk.name, pin: tk.pin });
+          if (!j.success) throw Object.assign(new Error(j.error), { reason: j.error });
+          if (!Array.isArray(j.history)) throw Object.assign(new Error("no history"), { reason: tkT("Сървърът не върна история — опитайте пак.", "The server returned no history — try again.") });
+          tk.history = j.history; tk.data = j;
+        } catch (e) { tk.histErr = e.reason || e.message; tk.history = null; }
+        tk.histBusy = false;
+        if (state.screen === "tasks") render();
+      }
+      async function tkComplete(id) {
+        const f = tk.form;
+        if (tk.saving) return;
+        const hours = Number(String(f.hours).replace(",", "."));
+        if (f.who.trim() !== tk.name) { tk.formErr = tkT(`Напишете името си точно както е в списъка: „${tk.name}“.`, `Type your name exactly as in the list: “${tk.name}”.`); render(); return; }
+        if (!(hours > 0 && hours <= 200)) { tk.formErr = tkT("Въведете колко часа сте работили (напр. 1,5).", "Enter how many hours you worked (e.g. 1.5)."); render(); return; }
+        if (tk.data && tk.data.hasPin && !/^\d{4,8}$/.test(f.pin)) { tk.formErr = tkT("Въведете ПИН-а си.", "Enter your PIN."); render(); return; }
+        tk.saving = true; tk.formErr = ""; render();
+        try {
+          const j = await tkCall("tasksComplete", { id, name: tk.name, hours, note: f.note, pin: f.pin });
+          if (!j.success) throw Object.assign(new Error(j.error), { reason: j.error });
+          tk.doing = ""; tk.form = { hours: "", note: "", who: "", pin: "" };
+          showToast(tkT("✓ Задачата е приключена. Администраторът ще я оцени.", "✓ Task completed. The administrator will rate it."));
+          tk.saving = false; tk.history = null;
+          await tkLoad();
+          return;
+        } catch (e) { tk.formErr = e.reason || e.message; }
+        tk.saving = false; render();
+      }
+      /* Иконите на дизайна (lucide), като символи в спрайта. */
+      const tkIc = (id) => `<svg class="tk-ic" aria-hidden="true" focusable="false"><use href="#cg-tk-${id}"></use></svg>`;
+      const tkInitials = (n) => String(n || "?").trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+      const tkPrio = (p) => p ? `<span class="tk-tag${p === "Висок" ? " tk-p-high" : p === "Спешен" ? " tk-p-urgent" : ""}">${escapeHtml(tkEn() ? (TK_PRIO_EN[p] || p) : p)}</span>` : "";
+      /* Карта на задача — като „ProjectDetailView": горна лента с пътя,
+         заглавие, решетка (статус, изпълнител, дата, етикети, възложил,
+         описание) и отдолу „Изпълнение". Служителят няма права да оценява,
+         възлага или отменя — само да приключи своята задача. */
+      function tkTaskCard(x) {
+        const doing = tk.doing === x.id, f = tk.form, d = tk.data || {};
+        const sub = [d.rank, d.position].filter(Boolean).join(" · ");
+        return `<article class="panel tk-card tk-pd${tk.anim ? " tk-in" : ""}">
+          <div class="tk-pd-head"><span class="tk-crumbs"><span>${tkT("Моите задачи", "My tasks")}</span><span>${escapeHtml(x.title)}</span></span></div>
+          <div class="tk-pd-body">
+            <h2 class="tk-pd-title">${escapeHtml(x.title)}</h2>
+            <div class="tk-pd-meta">
+              <div class="tk-mi">${tkIc("dots")}<div><div class="tk-ml">${tkT("Статус", "Status")}</div><div class="tk-mv">${tkBadge(x.status)}</div></div></div>
+              <div class="tk-mi">${tkIc("users")}<div class="tk-min0"><div class="tk-ml">${tkT("Изпълнител", "Assignee")}</div>
+                <div class="tk-person"><span class="tk-avatar" aria-hidden="true">${escapeHtml(tkInitials(tk.name))}</span><span>${escapeHtml(tk.name)}${sub ? `<small>${escapeHtml(sub)}</small>` : ""}</span></div></div></div>
+              <div class="tk-mi">${tkIc("cal")}<div><div class="tk-ml">${tkT("Дата", "Date")}</div>
+                <div class="tk-mv tk-dates">${escapeHtml(x.created)} ${tkIc("arrow")} ${escapeHtml(x.due || tkT("без срок", "no due date"))}</div></div></div>
+              <div class="tk-mi">${tkIc("tag")}<div><div class="tk-ml">${tkT("Етикети", "Tags")}</div>
+                <div class="tk-metas">${x.category ? `<span class="tk-tag">${escapeHtml(x.category)}</span>` : ""}${tkPrio(x.priority)}${!x.category && !x.priority ? "—" : ""}</div></div></div>
+              ${x.createdBy ? `<div class="tk-mi">${tkIc("users")}<div><div class="tk-ml">${tkT("Възложил", "Assigned by")}</div><div class="tk-mv">${escapeHtml(x.createdBy)}</div></div></div>` : ""}
+              <div class="tk-mi tk-span2">${tkIc("text")}<div class="tk-min0"><div class="tk-ml">${tkT("Описание", "Description")}</div><div class="tk-desc">${escapeHtml(x.description || "—")}</div></div></div>
+            </div>
+            <div class="tk-pd-section">
+              <h3 class="tk-h3">${tkIc("clock")}${tkT("Изпълнение", "Completion")}</h3>
+              ${doing ? `<form class="tk-form" data-tk-form="${escapeHtml(x.id)}" onsubmit="return false" novalidate>
+                  ${tk.formErr ? `<div class="tk-err" role="alert">${escapeHtml(tk.formErr)}</div>` : ""}
+                  <div class="tk-grid">
+                    <div class="field"><label for="tk-who">${tkT("Вашето име", "Your name")}</label><input id="tk-who" autocomplete="off" value="${escapeHtml(f.who)}" placeholder="${escapeHtml(tk.name)}"></div>
+                    <div class="field"><label for="tk-hours">${tkT("Колко часа", "How many hours")}</label><input id="tk-hours" inputmode="decimal" value="${escapeHtml(f.hours)}" placeholder="1,5"></div>
+                    ${d.hasPin ? `<div class="field"><label for="tk-pin">${tkT("ПИН", "PIN")}</label><input id="tk-pin" type="password" inputmode="numeric" autocomplete="off" maxlength="8" value="${escapeHtml(f.pin)}"></div>` : ""}
+                  </div>
+                  <div class="field"><label for="tk-note">${tkT("Бележка (по желание)", "Note (optional)")}</label><textarea id="tk-note" rows="2" maxlength="1000">${escapeHtml(f.note)}</textarea></div>
+                  <div class="tk-actions">
+                    <button type="button" class="btn btn-gold" data-action="tk-submit" data-id="${escapeHtml(x.id)}"${tk.saving ? " disabled" : ""}>${tk.saving ? spokes("sm") + " " : ""}${tkT("Готово — приключи", "Done — complete")}</button>
+                    <button type="button" class="btn btn-outline" data-action="tk-cancel">${tkT("Отказ", "Cancel")}</button>
+                  </div>
+                </form>`
+                : `<p class="tk-note">${tkT("Когато свършите, приключете задачата с името си и колко часа ви е отнела. Администраторът ще я оцени.", "When you are done, complete the task with your name and how many hours it took. The administrator will rate it.")}</p>
+                   <div class="tk-actions"><button type="button" class="btn btn-gold" data-action="tk-start" data-id="${escapeHtml(x.id)}">${tkT("Приключи задачата", "Complete task")}</button></div>`}
+            </div>
+          </div>
+        </article>`;
+      }
+      /* „Списък със задачи" — таблицата от дизайна. С ПИН — и оценките. */
+      function tkListHtml() {
+        const d = tk.data;
+        if (!d) return "";
+        const rated = tk.history ? new Map(tk.history.map((x) => [x.id, x])) : null;
+        const rows = [...d.open, ...(d.done || []).slice().reverse()];
+        const fmt1 = (n) => tkEn() ? n.toFixed(1) : n.toFixed(1).replace(".", ",");
+        let stats = "";
+        if (tk.history) {
+          const r = tk.history.filter((x) => x.score);
+          const avg = r.length ? r.reduce((s, x) => s + Number(x.score), 0) / r.length : null;
+          const hours = tk.history.reduce((s, x) => s + (Number(x.hours) || 0), 0);
+          stats = `<div class="tk-stats"><div><b>${tk.history.filter((x) => x.status !== "Отменена").length}</b><span>${tkT("Изпълнени", "Completed")}</span></div>
+            <div><b>${avg == null ? "—" : fmt1(avg)}</b><span>${tkT("Средна оценка", "Average rating")}</span></div>
+            <div><b>${fmt1(hours)}</b><span>${tkT("Общо часове", "Total hours")}</span></div></div>`;
+        }
+        const table = rows.length ? `<div class="tk-table-wrap"><table class="tk-table">
+            <thead><tr><th class="tk-no">№</th><th>${tkT("Задача", "Task")}</th><th>${tkT("Категория", "Category")}</th><th>${tkT("Статус", "Status")}</th>${rated ? `<th>${tkT("Оценка", "Rating")}</th>` : ""}<th class="tk-r">${tkT("Срок", "Due")}</th></tr></thead>
+            <tbody>${rows.map((x, i) => { const h = rated && rated.get(x.id); return `<tr${tk.anim ? ` class="tk-in" style="animation-delay:${Math.min(i, 10) * 40}ms"` : ""}>
+              <td class="tk-no">${i + 1}</td>
+              <td><div class="tk-tt">${escapeHtml(x.title)}</div>${h && h.comment ? `<div class="tk-cm"><span>${tkT("Коментар", "Comment")} (${escapeHtml(h.ratedBy || "")}):</span> ${escapeHtml(h.comment)}</div>` : ""}</td>
+              <td>${escapeHtml(x.category || "—")}</td>
+              <td>${tkBadge(x.status)}</td>
+              ${rated ? `<td>${h && h.score ? `<span class="tk-score"><b>${escapeHtml(h.score)}</b>/10</span>` : "—"}</td>` : ""}
+              <td class="tk-r">${escapeHtml(x.due || "—")}</td></tr>`; }).join("")}</tbody></table></div>`
+          : `<p class="tk-note">${tkT("Още няма задачи.", "No tasks yet.")}</p>`;
+        let pinBox = "";
+        if (!d.hasPin) pinBox = `<p class="tk-note">${tkT("За да виждате оценките и коментарите си, помолете администратора да ви зададе ПИН.", "To see your ratings and comments, ask the administrator to set a PIN for you.")}</p>`;
+        else if (!tk.history) pinBox = `<form class="tk-pinrow" onsubmit="return false">
+            <div class="field"><label for="tk-hpin">${tkT("ПИН за оценките ми", "PIN to see my ratings")}</label><input id="tk-hpin" type="password" inputmode="numeric" maxlength="8" autocomplete="off" value="${escapeHtml(tk.pin)}"></div>
+            <button type="button" class="btn btn-outline" data-action="tk-history"${tk.histBusy ? " disabled" : ""}>${tk.histBusy ? spokes("sm") + " " : ""}${tkT("Покажи оценките ми", "Show my ratings")}</button>
+          </form>${tk.histErr ? `<div class="tk-err" role="alert">${escapeHtml(tk.histErr)}</div>` : ""}`;
+        return `<section class="panel tk-pd tk-hist">
+          <div class="tk-pd-head"><span class="tk-crumbs"><span>${tkT("Моите задачи", "My tasks")}</span><span>${tkT("Списък със задачи", "Task list")}</span></span></div>
+          <div class="tk-pd-body">
+            <h3 class="tk-h3">${tkIc("list")}${tkT("Списък със задачи", "Task list")} <span class="tk-count">${rows.length}</span></h3>
+            ${stats}${table}${pinBox ? `<div class="tk-pd-section">${pinBox}</div>` : ""}
+          </div>
+        </section>`;
+      }
+      function renderTasksScreen() {
+        /* Картите се появяват плавно само веднъж — при нови данни, не при
+           всяко прерисуване (иначе мигат при всяко съобщение). */
+        setTimeout(() => { tk.anim = false; }, 0);
+        const names = ALLOWED_NAMES || [];
+        const d = tk.data;
+        let body;
+        if (!tk.name) body = `<div class="panel tk-empty">${tkT("Изберете името си, за да видите задачите си.", "Choose your name to see your tasks.")}</div>`;
+        else if (tk.loading && !d) body = `<div class="panel tk-empty">${spokes("")} <span>${tkT("Зарежда задачите…", "Loading tasks…")}</span></div>`;
+        else if (tk.error && !d) body = `<div class="panel tk-empty tk-err-box">${tk.needsDeploy ? tkT("Задачите още не са включени в Apps Script — нужен е нов deploy с новия Code.gs.", "Tasks are not enabled in Apps Script yet — deploy the new Code.gs.") : escapeHtml(tk.error)}
+            <div><button type="button" class="btn btn-outline" data-action="tk-reload" style="margin-top:12px;">⟳ ${tkT("Опитай пак", "Try again")}</button></div></div>`;
+        else if (d) {
+          body = `<h2 class="section-title tk-h">${tkT("Възложени на мен", "Assigned to me")} <span class="meta-chip">${d.open.length}</span></h2>
+            ${d.open.length ? `<div class="tk-list">${d.open.map(tkTaskCard).join("")}</div>` : `<div class="panel tk-empty">${tkT("Нямате отворени задачи. 👍", "You have no open tasks. 👍")}</div>`}
+            ${tkListHtml()}`;
+        }
+        return `<div class="page tk-page">
+          <div class="toolbar">
+            <div><h1 class="hero-title" style="display:flex;align-items:center;gap:12px;">${cgIcon("tasks", 28)} <span>${tkT("Моите задачи", "My tasks")}</span></h1>
+              <div class="muted">${tkT("Задачи, възложени от администратора", "Tasks assigned by the administrator")}</div></div>
+            <button type="button" class="btn btn-outline" data-action="go-home">${tkT("← Начало", "← Home")}</button>
+          </div>
+          <div class="panel tk-pick">
+            <div class="field" style="margin:0;"><label for="tk-name">${tkT("Аз съм", "I am")}</label>
+              <select id="tk-name"><option value="">${tkT("Изберете име…", "Choose a name…")}</option>${names.map((n) => `<option${n === tk.name ? " selected" : ""}>${escapeHtml(n)}</option>`).join("")}</select></div>
+            ${d && (d.rank || d.position) ? `<div class="tk-who">${escapeHtml([d.rank, d.position].filter(Boolean).join(" · "))}</div>` : ""}
+            <button type="button" class="btn btn-outline" data-action="tk-reload"${tk.loading || !tk.name ? " disabled" : ""}>${tk.loading ? spokes("sm") + " " : "⟳ "}${tkT("Обнови", "Refresh")}</button>
+          </div>
+          ${body || ""}
+        </div>`;
+      }
+      /* Полетата пазят стойностите си при прерисуване. */
+      document.addEventListener("input", (e) => {
+        const id = e.target && e.target.id;
+        if (id === "tk-who") tk.form.who = e.target.value;
+        else if (id === "tk-hours") tk.form.hours = e.target.value;
+        else if (id === "tk-note") tk.form.note = e.target.value;
+        else if (id === "tk-pin") tk.form.pin = e.target.value;
+        else if (id === "tk-hpin") tk.pin = e.target.value;
+      });
+      document.addEventListener("change", (e) => {
+        if (e.target && e.target.id === "tk-name") {
+          tk.name = e.target.value; tk.data = null; tk.history = null; tk.pin = ""; tk.doing = ""; tk.error = "";
+          try { localStorage.setItem(TK_NAME_KEY, tk.name); } catch (_) {}
+          tkLoad();
+        }
+      });
+
       /* ── Екран „Скорост на системата" ── */
       function cgPerfFmt(ms) {
         if (ms == null) return "—";
@@ -9232,6 +9548,7 @@
           state.screen === "rules" ? renderRulesScreen() :
           state.screen === "lost-found" ? renderLostFoundScreen() :
           state.screen === "speed" ? renderSpeedScreen() :
+          state.screen === "tasks" ? renderTasksScreen() :
           state.screen === "select-cr" ? renderChangingRoomSelect() :
           state.screen === "cr-detail" ? renderChangingRoomDetail() :
           state.screen === "phone-photo-upload" ? renderPhonePhotoUpload() :
@@ -9279,6 +9596,7 @@
         { icon: "inspection", label: "Начало", sub: "Главен екран", action: "go-home" },
         { icon: "qr", label: "QR кодове", sub: "Генерирай и принтирай QR", action: "open-qr" },
         { icon: "lost-found", label: "Lost & Found", sub: "Изгубени и намерени вещи", action: "go-lost-found" },
+        { icon: "tasks", label: "Моите задачи", sub: "Възложени задачи и оценки", action: "go-tasks" },
       ];
 
       let _searchBarInited = false;
@@ -9502,7 +9820,7 @@
         if (state.screen === "locking") return;
 
         /* Navigation — blocked for QR-only sessions */
-        if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection" || action === "face-check" || action === "go-lost-found")) return;
+        if (isQROnlySession() && (action === "go-home" || action === "go-history" || action === "open-qr" || action === "start-inspection" || action === "face-check" || action === "go-lost-found" || action === "go-tasks")) return;
         /* ── Announcement actions ── */
         if (action === "announce-add")    { cgAnnShow('add-pass');    return; }
         if (action === "announce-edit")   { cgAnnShow('edit-pass');   return; }
@@ -9637,6 +9955,12 @@
         if (action === "go-rules") { state.screen = "rules"; if (RULES_MD === null) loadRules(); render(); return; }
         /* ── Lost & Found ── */
         if (action === "go-lost-found") { state.screen = "lost-found"; render(); lfLoad(); return; }
+        if (action === "go-tasks") { state.screen = "tasks"; render(); tkLoad(); return; }
+        if (action === "tk-reload") { tk.history = null; tkLoad(); return; }
+        if (action === "tk-start") { tk.doing = btn.dataset.id; tk.formErr = ""; tk.form = { hours: "", note: "", who: "", pin: "" }; render(); const w = document.getElementById("tk-who"); if (w) w.focus(); return; }
+        if (action === "tk-cancel") { tk.doing = ""; tk.formErr = ""; render(); return; }
+        if (action === "tk-submit") { tkComplete(btn.dataset.id); return; }
+        if (action === "tk-history") { const p = document.getElementById("tk-hpin"); if (p && p.value) tk.pin = p.value; tkLoadHistory(); return; }
         if (action === "speed-copy") { cgPerfCopy(); return; }
         if (action === "speed-mode") {
           try { if (btn.dataset.mode === "old") localStorage.setItem("cg_perf_legacy", "1"); else localStorage.removeItem("cg_perf_legacy"); } catch (_) {}

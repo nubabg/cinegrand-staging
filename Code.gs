@@ -136,6 +136,17 @@ function doPost(e) {
     if (data.action === "lfSetStatus") return handleLfSetStatus_(data);
     if (data.action === "lfDelete") return handleLfDelete_(data);
     if (data.action === "lfAdminCheck") return handleLfAdminCheck_(data);
+    // Задачи (виж края на файла).
+    if (data.action === "tasksStaff") return handleTasksStaff_(data);
+    if (data.action === "tasksMine") return handleTasksMine_(data);
+    if (data.action === "tasksComplete") return handleTasksComplete_(data);
+    if (data.action === "tasksLogin") return handleTasksLogin_(data);
+    if (data.action === "tasksAdminList") return handleTasksAdminList_(data);
+    if (data.action === "tasksCreate") return handleTasksCreate_(data);
+    if (data.action === "tasksRate") return handleTasksRate_(data);
+    if (data.action === "tasksCancel") return handleTasksCancel_(data);
+    if (data.action === "tasksStaffSeed") return handleTasksStaffSeed_(data);
+    if (data.action === "tasksStaffSave") return handleTasksStaffSave_(data);
 
     return handleRecord_(data);
   } catch (error) {
@@ -1360,4 +1371,308 @@ function handleLfDelete_(data) {
 function handleLfAdminCheck_(data) {
   var chk = lfAdminCheck_(data.adminPass);
   return jsonResponse_(chk.ok ? { success: true, admin: true } : { success: false, code: chk.code, error: chk.error });
+}
+
+// ===========================================================
+// ЗАДАЧИ — възлагане от администратор, изпълнение от служител,
+// оценка 1–10 с коментар. Листове „Tasks" и „Служители" в същата
+// таблица. Администраторите са в Script properties:
+//   TASKS_ADMIN_<потребител> = <парола>   (напр. TASKS_ADMIN_denis)
+// В GitHub няма пароли — страницата е публична.
+// ===========================================================
+var TK_SHEET = "Tasks";
+var TK_STAFF_SHEET = "Служители";
+var TK_HEADERS = ["ID", "Създадена", "Създал", "Заглавие", "Описание", "Категория", "Приоритет",
+  "Възложена на", "Срок", "Статус", "Изпълнена на", "Изпълнил", "Часове", "Бележка от служителя",
+  "Оценка", "Коментар", "Оценена на", "Оценил", "Обновено"];
+var TK_STAFF_HEADERS = ["Име", "Ранг", "Позиция", "ПИН", "Активен"];
+var TK_STATUSES = ["Възложена", "Изпълнена", "Оценена", "Отменена"];
+var TK_PRIORITIES = ["Нисък", "Нормален", "Висок", "Спешен"];
+var TK_TOKEN_HOURS = 12;
+var TK_MAX_FAILS = 5;
+var TK_LOCKOUT_SEC = 600;
+
+function tkOpen_() { return SpreadsheetApp.openById("17cuchNPS7ajySczy-Wc7eUlDFgAClaE8gsZrqCXAKcA"); }
+function tkNow_() { return Utilities.formatDate(new Date(), "Europe/Sofia", "dd.MM.yyyy HH:mm"); }
+function tkClean_(v, max) { return String(v == null ? "" : v).replace(/[\u0000-\u001f]/g, " ").trim().slice(0, max || 500); }
+function tkText_(v) { var s = String(v == null ? "" : v); return /^=/.test(s) ? "'" + s : s; }
+
+/* Лист с точно тези заглавия (създава го; добавя липсващи колони накрая). */
+function tkSheet_(ss, name, headers) {
+  var sh = ss.getSheetByName(name);
+  if (!sh) {
+    sh = ss.insertSheet(name);
+    sh.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sh.setFrozenRows(1);
+  }
+  var have = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getDisplayValues()[0].map(function (h) { return String(h).trim(); });
+  var map = {};
+  have.forEach(function (h, i) { if (h && !map[h]) map[h] = i; });
+  headers.forEach(function (h) {
+    if (map[h] == null) {
+      var col = sh.getLastColumn() + 1;
+      sh.getRange(1, col).setValue(h);
+      map[h] = col - 1;
+    }
+  });
+  return { sheet: sh, map: map };
+}
+function tkRows_(ctx, headers) {
+  var sh = ctx.sheet, last = sh.getLastRow();
+  if (last < 2) return [];
+  var width = sh.getLastColumn();
+  var vals = sh.getRange(2, 1, last - 1, width).getDisplayValues();
+  var out = [];
+  for (var r = 0; r < vals.length; r++) {
+    var o = { _row: r + 2 };
+    headers.forEach(function (h) { o[h] = String(vals[r][ctx.map[h]] == null ? "" : vals[r][ctx.map[h]]).trim(); });
+    out.push(o);
+  }
+  return out;
+}
+function tkWriteRow_(ctx, row, obj) {
+  var width = ctx.sheet.getLastColumn();
+  var cur = row <= ctx.sheet.getLastRow() ? ctx.sheet.getRange(row, 1, 1, width).getValues()[0] : [];
+  while (cur.length < width) cur.push("");
+  Object.keys(obj).forEach(function (h) { if (ctx.map[h] != null) cur[ctx.map[h]] = tkText_(obj[h]); });
+  var rg = ctx.sheet.getRange(row, 1, 1, width);
+  rg.setNumberFormat("@");
+  rg.setValues([cur]);
+}
+
+/* ── Сигурност ── */
+function tkSecret_() {
+  var props = PropertiesService.getScriptProperties();
+  var s = props.getProperty("TASKS_SECRET");
+  if (!s) { s = Utilities.getUuid() + Utilities.getUuid(); props.setProperty("TASKS_SECRET", s); }
+  return s;
+}
+function tkB64_(bytes) { return Utilities.base64EncodeWebSafe(bytes).replace(/=+$/, ""); }
+function tkSign_(payload) { return tkB64_(Utilities.computeHmacSha256Signature(payload, tkSecret_())); }
+function tkHashPin_(pin) {
+  var d = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, tkSecret_() + "|pin|" + String(pin));
+  return "h:" + tkB64_(d);
+}
+function tkSafeEq_(a, b) {
+  a = String(a); b = String(b);
+  var diff = a.length ^ b.length;
+  for (var i = 0; i < Math.max(a.length, b.length); i++) diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  return diff === 0;
+}
+function tkFailKey_(k) { return "tk_fail_" + String(k).toLowerCase().slice(0, 60); }
+function tkLocked_(k) { return Number(CacheService.getScriptCache().get(tkFailKey_(k)) || 0) >= TK_MAX_FAILS; }
+function tkFail_(k) {
+  var c = CacheService.getScriptCache(), key = tkFailKey_(k);
+  c.put(key, String(Number(c.get(key) || 0) + 1), TK_LOCKOUT_SEC);
+}
+function tkAdmins_() {
+  var all = PropertiesService.getScriptProperties().getProperties(), out = {};
+  Object.keys(all).forEach(function (k) {
+    if (k.indexOf("TASKS_ADMIN_") === 0 && all[k]) out[k.slice(12).toLowerCase()] = { name: k.slice(12), pass: all[k] };
+  });
+  return out;
+}
+function tkCheckToken_(token) {
+  var parts = String(token || "").split(".");
+  if (parts.length !== 2) return null;
+  var payload;
+  try { payload = Utilities.newBlob(Utilities.base64DecodeWebSafe(parts[0])).getDataAsString(); } catch (e) { return null; }
+  if (!tkSafeEq_(tkSign_(payload), parts[1])) return null;
+  var p = payload.split("|");
+  if (p.length !== 2 || Number(p[1]) < Date.now()) return null;
+  var admin = tkAdmins_()[p[0].toLowerCase()];
+  return admin ? admin.name : null;   // махнат администратор губи достъп веднага
+}
+function tkDeny_() { return jsonResponse_({ success: false, code: "AUTH", error: "Входът е изтекъл — влезте отново." }); }
+
+/* ── Данни ── */
+function tkPublicTask_(t, withRating) {
+  var o = { id: t["ID"], created: t["Създадена"], title: t["Заглавие"], description: t["Описание"],
+    category: t["Категория"], priority: t["Приоритет"], assignee: t["Възложена на"], due: t["Срок"],
+    status: t["Статус"], doneAt: t["Изпълнена на"], doneBy: t["Изпълнил"], hours: t["Часове"], note: t["Бележка от служителя"],
+    createdBy: t["Създал"] };
+  if (withRating) { o.score = t["Оценка"]; o.comment = t["Коментар"]; o.ratedAt = t["Оценена на"]; o.ratedBy = t["Оценил"]; o.updated = t["Обновено"]; }
+  return o;
+}
+function tkStaff_(ss) { return tkRows_(tkSheet_(ss, TK_STAFF_SHEET, TK_STAFF_HEADERS), TK_STAFF_HEADERS); }
+function tkStaffPublic_(rows) {
+  return rows.filter(function (s) { return s["Име"] && s["Активен"] !== "не"; })
+    .map(function (s) { return { name: s["Име"], rank: s["Ранг"], position: s["Позиция"], hasPin: !!s["ПИН"] }; });
+}
+function tkPinOk_(staffRow, pin) {
+  if (!staffRow || !staffRow["ПИН"]) return true;
+  return tkSafeEq_(staffRow["ПИН"], tkHashPin_(pin || ""));
+}
+
+/* ── Действия на служител ── */
+function handleTasksStaff_(data) {
+  return jsonResponse_({ success: true, staff: tkStaffPublic_(tkStaff_(tkOpen_())) });
+}
+function handleTasksMine_(data) {
+  var name = tkClean_(data.name, 80);
+  if (!name) return jsonResponse_({ success: false, code: "MISSING", error: "Изберете име." });
+  var ss = tkOpen_();
+  var me = tkStaff_(ss).filter(function (s) { return s["Име"] === name; })[0];
+  var withHistory = false;
+  if (data.pin != null && data.pin !== "") {
+    if (tkLocked_("pin_" + name)) return jsonResponse_({ success: false, code: "LOCKED", error: "Твърде много грешни ПИН-ове. Опитайте след 10 минути." });
+    if (!me || !me["ПИН"]) return jsonResponse_({ success: false, code: "NO_PIN", error: "Нямате ПИН — помолете администратора да ви зададе." });
+    if (!tkPinOk_(me, data.pin)) { tkFail_("pin_" + name); return jsonResponse_({ success: false, code: "BAD_PIN", error: "Грешен ПИН." }); }
+    withHistory = true;
+  }
+  var tasks = tkRows_(tkSheet_(ss, TK_SHEET, TK_HEADERS), TK_HEADERS).filter(function (t) { return t["ID"] && t["Възложена на"] === name; });
+  var open = tasks.filter(function (t) { return t["Статус"] === "Възложена"; }).map(function (t) { return tkPublicTask_(t, false); });
+  // Приключените — без оценка и коментар (те са само с ПИН, в history).
+  var done = tasks.filter(function (t) { return t["Статус"] !== "Възложена"; }).slice(-30).map(function (t) { return tkPublicTask_(t, false); });
+  var res = { success: true, name: name, hasPin: !!(me && me["ПИН"]), rank: me ? me["Ранг"] : "", position: me ? me["Позиция"] : "", open: open, done: done };
+  if (withHistory) res.history = tasks.filter(function (t) { return t["Статус"] !== "Възложена"; }).map(function (t) { return tkPublicTask_(t, true); });
+  return jsonResponse_(res);
+}
+function handleTasksComplete_(data) {
+  var name = tkClean_(data.name, 80), id = tkClean_(data.id, 60);
+  var hours = Number(String(data.hours || "").replace(",", "."));
+  if (!name || !id) return jsonResponse_({ success: false, code: "MISSING", error: "Липсва име или задача." });
+  if (!(hours > 0 && hours <= 200)) return jsonResponse_({ success: false, code: "BAD_HOURS", error: "Въведете колко часа (напр. 1,5)." });
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = tkOpen_();
+    var me = tkStaff_(ss).filter(function (s) { return s["Име"] === name; })[0];
+    if (me && me["ПИН"]) {
+      if (tkLocked_("pin_" + name)) return jsonResponse_({ success: false, code: "LOCKED", error: "Твърде много грешни ПИН-ове. Опитайте след 10 минути." });
+      if (!tkPinOk_(me, data.pin)) { tkFail_("pin_" + name); return jsonResponse_({ success: false, code: "BAD_PIN", error: "Грешен ПИН." }); }
+    }
+    var ctx = tkSheet_(ss, TK_SHEET, TK_HEADERS);
+    var t = tkRows_(ctx, TK_HEADERS).filter(function (x) { return x["ID"] === id; })[0];
+    if (!t) return jsonResponse_({ success: false, code: "NOT_FOUND", error: "Задачата не е намерена." });
+    if (t["Възложена на"] !== name) return jsonResponse_({ success: false, code: "NOT_YOURS", error: "Тази задача е възложена на " + t["Възложена на"] + "." });
+    if (t["Статус"] === "Изпълнена" && t["Изпълнил"] === name) return jsonResponse_({ success: true, duplicate: true, id: id });
+    if (t["Статус"] !== "Възложена") return jsonResponse_({ success: false, code: "BAD_STATE", error: "Задачата вече е „" + t["Статус"] + "“." });
+    var now = tkNow_();
+    tkWriteRow_(ctx, t._row, { "Статус": "Изпълнена", "Изпълнена на": now, "Изпълнил": name,
+      "Часове": String(Math.round(hours * 100) / 100), "Бележка от служителя": tkClean_(data.note, 1000),
+      "Обновено": now + " · изпълнена от " + name });
+    SpreadsheetApp.flush();
+    return jsonResponse_({ success: true, id: id, status: "Изпълнена" });
+  } finally { lock.releaseLock(); }
+}
+
+/* ── Администратор ── */
+function handleTasksLogin_(data) {
+  var user = tkClean_(data.user, 60).toLowerCase(), pass = String(data.pass || "");
+  var admins = tkAdmins_();
+  if (!Object.keys(admins).length) return jsonResponse_({ success: false, code: "NO_ADMINS", error: "Няма администратори — добавете TASKS_ADMIN_<име> в Script properties." });
+  if (tkLocked_("adm_" + user)) return jsonResponse_({ success: false, code: "LOCKED", error: "Твърде много грешни опити. Опитайте след 10 минути." });
+  var a = admins[user];
+  if (!a || !tkSafeEq_(a.pass, pass)) { tkFail_("adm_" + user); return jsonResponse_({ success: false, code: "BAD_LOGIN", error: "Грешно име или парола." }); }
+  var payload = a.name + "|" + (Date.now() + TK_TOKEN_HOURS * 3600 * 1000);
+  return jsonResponse_({ success: true, user: a.name, token: tkB64_(Utilities.newBlob(payload).getBytes()) + "." + tkSign_(payload), hours: TK_TOKEN_HOURS });
+}
+function handleTasksAdminList_(data) {
+  var admin = tkCheckToken_(data.token);
+  if (!admin) return tkDeny_();
+  var ss = tkOpen_();
+  var tasks = tkRows_(tkSheet_(ss, TK_SHEET, TK_HEADERS), TK_HEADERS).filter(function (t) { return t["ID"]; })
+    .map(function (t) { return tkPublicTask_(t, true); });
+  return jsonResponse_({ success: true, admin: admin, tasks: tasks, staff: tkStaffPublic_(tkStaff_(ss)),
+    statuses: TK_STATUSES, priorities: TK_PRIORITIES });
+}
+function handleTasksCreate_(data) {
+  var admin = tkCheckToken_(data.token);
+  if (!admin) return tkDeny_();
+  var it = data.task || {};
+  var rec = { title: tkClean_(it.title, 200), description: tkClean_(it.description, 3000), category: tkClean_(it.category, 60),
+    priority: TK_PRIORITIES.indexOf(it.priority) >= 0 ? it.priority : "Нормален", assignee: tkClean_(it.assignee, 80), due: tkClean_(it.due, 10) };
+  if (!rec.title || !rec.assignee) return jsonResponse_({ success: false, code: "MISSING", error: "Попълнете заглавие и на кого е задачата." });
+  if (rec.due && !/^\d{2}\.\d{2}\.\d{4}$/.test(rec.due)) rec.due = "";
+  var id = /^TK-[A-Za-z0-9-]{4,40}$/.test(String(data.id || "")) ? String(data.id) : "TK-" + Utilities.formatDate(new Date(), "Europe/Sofia", "yyMMddHHmm") + "-" + Utilities.getUuid().slice(0, 5).toUpperCase();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = tkOpen_();
+    var staff = tkStaffPublic_(tkStaff_(ss)).map(function (s) { return s.name; });
+    if (staff.indexOf(rec.assignee) < 0) return jsonResponse_({ success: false, code: "BAD_ASSIGNEE", error: "„" + rec.assignee + "“ не е в списъка със служители." });
+    var ctx = tkSheet_(ss, TK_SHEET, TK_HEADERS);
+    if (tkRows_(ctx, TK_HEADERS).some(function (t) { return t["ID"] === id; })) return jsonResponse_({ success: true, duplicate: true, id: id });
+    var now = tkNow_();
+    tkWriteRow_(ctx, ctx.sheet.getLastRow() + 1, { "ID": id, "Създадена": now, "Създал": admin, "Заглавие": rec.title,
+      "Описание": rec.description, "Категория": rec.category, "Приоритет": rec.priority, "Възложена на": rec.assignee,
+      "Срок": rec.due, "Статус": "Възложена", "Обновено": now + " · възложена от " + admin });
+    SpreadsheetApp.flush();
+    return jsonResponse_({ success: true, id: id });
+  } finally { lock.releaseLock(); }
+}
+function tkAdminTask_(data, fn) {
+  var admin = tkCheckToken_(data.token);
+  if (!admin) return tkDeny_();
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ctx = tkSheet_(tkOpen_(), TK_SHEET, TK_HEADERS);
+    var t = tkRows_(ctx, TK_HEADERS).filter(function (x) { return x["ID"] && x["ID"] === String(data.id || ""); })[0];
+    if (!t) return jsonResponse_({ success: false, code: "NOT_FOUND", error: "Задачата не е намерена." });
+    var out = fn(ctx, t, admin);
+    SpreadsheetApp.flush();
+    return out;
+  } finally { lock.releaseLock(); }
+}
+function handleTasksRate_(data) {
+  var score = Number(data.score);
+  if (!(score >= 1 && score <= 10 && Math.round(score) === score)) return jsonResponse_({ success: false, code: "BAD_SCORE", error: "Оценката е от 1 до 10." });
+  return tkAdminTask_(data, function (ctx, t, admin) {
+    if (t["Статус"] !== "Изпълнена" && t["Статус"] !== "Оценена") return jsonResponse_({ success: false, code: "BAD_STATE", error: "Може да се оцени само изпълнена задача." });
+    var now = tkNow_();
+    tkWriteRow_(ctx, t._row, { "Статус": "Оценена", "Оценка": String(score), "Коментар": tkClean_(data.comment, 2000),
+      "Оценена на": now, "Оценил": admin, "Обновено": now + " · оценена " + score + "/10 от " + admin });
+    return jsonResponse_({ success: true, id: t["ID"], status: "Оценена" });
+  });
+}
+function handleTasksCancel_(data) {
+  return tkAdminTask_(data, function (ctx, t, admin) {
+    if (t["Статус"] !== "Възложена") return jsonResponse_({ success: false, code: "BAD_STATE", error: "Може да се отмени само задача, която още не е изпълнена." });
+    var now = tkNow_();
+    tkWriteRow_(ctx, t._row, { "Статус": "Отменена", "Обновено": now + " · отменена от " + admin });
+    return jsonResponse_({ success: true, id: t["ID"], status: "Отменена" });
+  });
+}
+/* Добавя имена от списъка за проверките (Names.md), които още ги няма. */
+function handleTasksStaffSeed_(data) {
+  var admin = tkCheckToken_(data.token);
+  if (!admin) return tkDeny_();
+  var names = (Array.isArray(data.names) ? data.names : []).map(function (n) { return tkClean_(n, 80); }).filter(String).slice(0, 300);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ctx = tkSheet_(tkOpen_(), TK_STAFF_SHEET, TK_STAFF_HEADERS);
+    var have = {}; tkRows_(ctx, TK_STAFF_HEADERS).forEach(function (s) { have[s["Име"]] = 1; });
+    var added = 0;
+    names.forEach(function (n) {
+      if (have[n]) return;
+      tkWriteRow_(ctx, ctx.sheet.getLastRow() + 1, { "Име": n, "Активен": "да" });
+      have[n] = 1; added++;
+    });
+    SpreadsheetApp.flush();
+    return jsonResponse_({ success: true, added: added });
+  } finally { lock.releaseLock(); }
+}
+function handleTasksStaffSave_(data) {
+  var admin = tkCheckToken_(data.token);
+  if (!admin) return tkDeny_();
+  var name = tkClean_(data.name, 80);
+  if (!name) return jsonResponse_({ success: false, code: "MISSING", error: "Липсва име." });
+  var pin = data.pin == null ? null : String(data.pin);
+  if (pin !== null && pin !== "" && !/^\d{4,8}$/.test(pin)) return jsonResponse_({ success: false, code: "BAD_PIN", error: "ПИН-ът е от 4 до 8 цифри." });
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ctx = tkSheet_(tkOpen_(), TK_STAFF_SHEET, TK_STAFF_HEADERS);
+    var s = tkRows_(ctx, TK_STAFF_HEADERS).filter(function (x) { return x["Име"] === name; })[0];
+    var row = s ? s._row : ctx.sheet.getLastRow() + 1;
+    var obj = { "Име": name, "Ранг": tkClean_(data.rank, 60), "Позиция": tkClean_(data.position, 80) };
+    if (!s) obj["Активен"] = "да";
+    if (pin !== null) obj["ПИН"] = pin === "" ? "" : tkHashPin_(pin);   // "" = махни ПИН-а
+    tkWriteRow_(ctx, row, obj);
+    SpreadsheetApp.flush();
+    return jsonResponse_({ success: true, name: name });
+  } finally { lock.releaseLock(); }
 }
