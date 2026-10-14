@@ -17,7 +17,7 @@
     --blue: #6aa8ff; --blue-soft: rgba(106,168,255,.14);
     --amber: #f2bd52; --amber-soft: rgba(242,189,82,.14);
     --green: #4fd18b; --green-soft: rgba(79,209,139,.14);
-    --red: #ff7a7a; --red-soft: rgba(255,122,122,.14);
+    --red: #ff7a7a; --red-soft: rgba(255,122,122,.14); --red-strong: #b42335;
     --gray: #aab4c2; --gray-soft: rgba(170,180,194,.12);
     --shadow: 0 24px 60px rgba(0,0,0,.45);
     color-scheme: dark;
@@ -35,7 +35,7 @@
     --blue: #1d4ed8; --blue-soft: rgba(29,78,216,.09);
     --amber: #92400e; --amber-soft: rgba(217,119,6,.13);
     --green: #166534; --green-soft: rgba(22,101,52,.10);
-    --red: #b91c1c; --red-soft: rgba(185,28,28,.09);
+    --red: #b91c1c; --red-soft: rgba(185,28,28,.09); --red-strong: #b91c1c;
     --gray: #4b5563; --gray-soft: rgba(75,85,99,.10);
     --shadow: 0 20px 48px rgba(15,23,42,.10), 0 3px 10px rgba(15,23,42,.05);
     color-scheme: light;
@@ -169,6 +169,26 @@
   .login { max-width: 400px; margin: 8vh auto 0; }
   .spin { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--accent); animation: spin .8s linear infinite; display: inline-block; vertical-align: middle; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  /* Просрочени: срокът е минал, а задачата още е „Възложена" — в червено. */
+  .late-badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-weight: 800; white-space: nowrap; color: #fff; background: var(--red-strong); }
+  .late-badge .icon { width: 13px; height: 13px; }
+  .tlist tr.late td { background: var(--red-soft); }
+  .tlist tr.late td:first-child { box-shadow: inset 3px 0 0 var(--red); }
+  .tlist tr.late:hover td { background: var(--red-soft); }
+  .chip.late { color: var(--red); border-color: var(--red); background: var(--red-soft); }
+  .chip.late[aria-pressed="true"] { box-shadow: inset 0 0 0 1px var(--red); }
+  .due-late { color: var(--red); font-weight: 800; }
+  .card.is-late { border-color: var(--red); box-shadow: 0 0 0 1px var(--red), var(--shadow); }
+  .card.is-late .card-head { background: var(--red-soft); }
+  .notes { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+  .notes li { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .notes small { display: block; color: var(--muted); font-size: 12px; margin-bottom: 3px; }
+  .row-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+  @media (max-width: 700px) {
+    .tlist tr.late { border-color: var(--red); background: var(--red-soft); }
+    .tlist tr.late td { background: transparent; }
+    .tlist tr.late td:first-child { box-shadow: none; }
+  }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 </style>
 </head>
@@ -220,7 +240,13 @@
     "Общо часове": "Total hours", "Чакат оценка": "Awaiting rating", "Възложени": "Assigned", "Зарежда…": "Loading…",
     "Задачата е възложена.": "Task assigned.", "Оценката е записана.": "Rating saved.", "Записано.": "Saved.", "Задачата е отменена.": "Task cancelled.",
     "Възложил": "Assigned by", "Оценил": "Rated by", "Без срок": "No due date", "часа": "hours", "Нисък": "Low", "Нормален": "Normal", "Висок": "High", "Спешен": "Urgent",
-    "Изберете оценка от 1 до 10.": "Choose a rating from 1 to 10.", "Без оценки": "No ratings", "Няма служители. Добавете ги от списъка за проверки.": "No staff yet. Add them from the inspection list.",
+    "Изберете оценка от 1 до 10.": "Choose a rating from 1 to 10.", "Просрочена": "Overdue", "Просрочени": "Overdue", "Смяна на статус": "Change status",
+    "Нов срок": "New due date", "Причина (по желание)": "Reason (optional)", "Часове (по желание)": "Hours (optional)", "Запази промяната": "Save change",
+    "Статусът е сменен.": "Status changed.", "Срокът е сменен.": "Due date changed.", "Няма промяна.": "Nothing changed.", "Коментари": "Comments", "Нов коментар": "New comment",
+    "Добави коментар": "Add comment", "Коментарът е добавен.": "Comment added.", "Напишете коментар.": "Write a comment.",
+    "Служителят вижда коментарите и оценката с ПИН-а си.": "The employee sees comments and the rating with their PIN.",
+    "Връщането във „Възложена“ изчиства изпълнението и оценката — старите стойности остават в коментарите.": "Moving back to “Assigned” clears the completion and the rating — the old values stay in the comments.",
+    "Още няма коментари.": "No comments yet.", "Изпълнена със закъснение": "Completed late", "Без оценки": "No ratings", "Няма служители. Добавете ги от списъка за проверки.": "No staff yet. Add them from the inspection list.",
   };
   const t = (s) => (lang === "en" && EN[s]) || s;
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -283,6 +309,9 @@
     return `<div class="person"><span class="avatar" aria-hidden="true">${esc(initials(name))}</span><span>${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ""}</span></div>`; };
   const isoToBg = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? `${m[3]}.${m[2]}.${m[1]}` : ""; };
   const parseBg = (s) => { const m = /(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?/.exec(s || ""); return m ? new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)).getTime() : 0; };
+  const days = (n) => lang === "en" ? `${n} ${n === 1 ? "day" : "days"}` : `${n} ${n === 1 ? "ден" : "дни"}`;
+  const lateBadge = (n) => `<span class="late-badge">${ic("clock")}${t("Просрочена")} · ${days(n)}</span>`;
+  const bgToIso = (s) => { const m = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(s || ""); return m ? `${m[3]}-${m[2]}-${m[1]}` : ""; };
   const newId = () => "TK-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
 
   function msgHtml() { return S.msg ? `<div class="msg ${S.msg.kind}" role="${S.msg.kind === "err" ? "alert" : "status"}">${esc(S.msg.text)}</div>` : ""; }
@@ -313,22 +342,25 @@
   function tasksHtml() {
     if (S.open) return detailHtml(S.tasks.find((x) => x.id === S.open));
     const counts = {}; S.tasks.forEach((x) => { counts[x.status] = (counts[x.status] || 0) + 1; });
-    const chip = (v, label) => `<button class="chip" data-filter="${v}" aria-pressed="${S.filter === v}">${label}${v ? ` · ${counts[v] || 0}` : ` · ${S.tasks.length}`}</button>`;
+    counts.late = S.tasks.filter((x) => x.overdue > 0).length;
+    const chip = (v, label) => `<button class="chip${v === "late" && counts.late ? " late" : ""}" data-filter="${v}" aria-pressed="${S.filter === v}">${label}${v ? ` · ${counts[v] || 0}` : ` · ${S.tasks.length}`}</button>`;
     const q = S.q.toLowerCase();
-    const list = S.tasks.filter((x) => (!S.filter || x.status === S.filter) && (!S.who || x.assignee === S.who)
-      && (!q || [x.title, x.description, x.assignee, x.category, x.id].join(" ").toLowerCase().includes(q)))
-      .sort((a, b) => (a.status === "Изпълнена" ? -1 : 0) - (b.status === "Изпълнена" ? -1 : 0) || parseBg(b.created) - parseBg(a.created));
+    const prio = (x) => x.status === "Изпълнена" ? 0 : x.overdue > 0 ? 1 : 2;
+    const list = S.tasks.filter((x) => (!S.filter || (S.filter === "late" ? x.overdue > 0 : x.status === S.filter)) && (!S.who || x.assignee === S.who)
+      && (!q || [x.title, x.description, x.assignee, x.category, x.id, x.createdBy].join(" ").toLowerCase().includes(q)))
+      .sort((a, b) => prio(a) - prio(b) || (b.overdue || 0) - (a.overdue || 0) || parseBg(b.created) - parseBg(a.created));
     return `<div class="card fade"><div class="card-body">
-      <div class="toolbar"><div class="chips" role="group" aria-label="${t("Статус")}">${chip("", t("Всички"))}${chip("Изпълнена", t("Чака оценка"))}${chip("Възложена", t("Възложена"))}${chip("Оценена", t("Оценена"))}${chip("Отменена", t("Отменена"))}</div></div>
+      <div class="toolbar"><div class="chips" role="group" aria-label="${t("Статус")}">${chip("", t("Всички"))}${chip("Изпълнена", t("Чака оценка"))}${chip("late", t("Просрочени"))}${chip("Възложена", t("Възложена"))}${chip("Оценена", t("Оценена"))}${chip("Отменена", t("Отменена"))}</div></div>
       <div class="toolbar"><div style="flex:2 1 220px"><input type="search" id="q" placeholder="${t("Търси задача…")}" value="${esc(S.q)}" aria-label="${t("Търси задача…")}"></div>
         <div style="flex:1 1 180px"><select id="who" aria-label="${t("Изпълнител")}"><option value="">${t("Всички служители")}</option>${S.staff.map((s) => `<option${s.name === S.who ? " selected" : ""}>${esc(s.name)}</option>`).join("")}</select></div></div>
       ${msgHtml()}
-      ${list.length ? `<table class="tlist"><thead><tr><th class="no">№</th><th>${t("Задача")}</th><th>${t("Изпълнител")}</th><th>${t("Статус")}</th><th class="right">${t("Срок")}</th></tr></thead><tbody>
-        ${list.map((x, i) => `<tr data-open="${esc(x.id)}" tabindex="0" style="animation-delay:${Math.min(i, 12) * 35}ms">
+      ${list.length ? `<table class="tlist"><thead><tr><th class="no">№</th><th>${t("Задача")}</th><th>${t("Изпълнител")}</th><th>${t("Възложил")}</th><th>${t("Статус")}</th><th class="right">${t("Срок")}</th></tr></thead><tbody>
+        ${list.map((x, i) => `<tr data-open="${esc(x.id)}" tabindex="0"${x.overdue ? ' class="late"' : ""} style="animation-delay:${Math.min(i, 12) * 35}ms">
           <td class="no">${i + 1}</td>
           <td><div class="t-title">${esc(x.title)}</div><div class="t-sub">${esc([x.category, t(x.priority)].filter(Boolean).join(" · "))}</div></td>
-          <td>${esc(x.assignee)}</td><td>${badge(x.status)}${x.score ? ` <span class="tag">${esc(x.score)}/10</span>` : ""}</td>
-          <td class="right">${esc(x.due || "—")}</td></tr>`).join("")}</tbody></table>`
+          <td>${esc(x.assignee)}</td><td>${esc(x.createdBy || "—")}</td>
+          <td>${x.overdue ? lateBadge(x.overdue) : badge(x.status)}${x.score ? ` <span class="tag">${esc(x.score)}/10</span>` : ""}</td>
+          <td class="right"${x.overdue ? ' style="color:var(--red);font-weight:800"' : ""}>${esc(x.due || "—")}</td></tr>`).join("")}</tbody></table>`
         : `<div class="empty">${S.busy ? `<span class="spin"></span> ${t("Зарежда…")}` : t("Няма задачи.")}</div>`}
     </div></div>`;
   }
@@ -336,16 +368,18 @@
     if (!x) { S.open = null; return tasksHtml(); }
     const canRate = x.status === "Изпълнена" || x.status === "Оценена";
     const sel = S.score || Number(x.score) || 0;
-    return `<div class="card fade">
+    const st = S.st && S.st.id === x.id ? S.st : (S.st = { id: x.id, to: x.status, due: bgToIso(x.due), note: "", hours: "" });
+    const notes = x.notes || [];
+    return `<div class="card fade${x.overdue ? " is-late" : ""}">
       <div class="card-head"><span class="crumbs"><span>${t("Задачи")}</span><span>${esc(x.title)}</span></span>
         <button class="btn btn-ghost" data-act="close" aria-label="${t("Назад")}">${ic("x")}</button></div>
       <div class="card-body">
         <h1 class="title">${esc(x.title)}</h1>
         ${msgHtml()}
         <div class="meta">
-          <div class="meta-item">${ic("dots")}<div><div class="meta-label">${t("Статус")}</div><div class="meta-val">${badge(x.status)}</div></div></div>
+          <div class="meta-item">${ic("dots")}<div><div class="meta-label">${t("Статус")}</div><div class="meta-val tags">${badge(x.status)}${x.overdue ? lateBadge(x.overdue) : ""}</div></div></div>
           <div class="meta-item">${ic("users")}<div style="min-width:0"><div class="meta-label">${t("Изпълнител")}</div>${person(x.assignee)}</div></div>
-          <div class="meta-item">${ic("cal")}<div><div class="meta-label">${t("Дата")}</div><div class="meta-val" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${esc(x.created)} ${ic("arrow")} ${esc(x.due || t("Без срок"))}</div></div></div>
+          <div class="meta-item">${ic("cal")}<div><div class="meta-label">${t("Дата")}</div><div class="meta-val" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${esc(x.created)} ${ic("arrow")} <span class="${x.overdue ? "due-late" : ""}">${esc(x.due || t("Без срок"))}</span></div></div></div>
           <div class="meta-item">${ic("tag")}<div><div class="meta-label">${t("Етикети")}</div><div class="tags">${x.category ? `<span class="tag">${esc(x.category)}</span>` : ""}${prioTag(x.priority)}</div></div></div>
           <div class="meta-item">${ic("users")}<div><div class="meta-label">${t("Възложил")}</div><div class="meta-val">${esc(x.createdBy || "—")}</div></div></div>
           <div class="meta-item span-2">${ic("text")}<div style="min-width:0"><div class="meta-label">${t("Описание")}</div><div class="desc">${esc(x.description || "—")}</div></div></div>
@@ -355,6 +389,7 @@
             <div><div class="meta-label">${t("Изпълнена на")}</div><div class="meta-val">${esc(x.doneAt)}</div></div>
             <div><div class="meta-label">${t("Часове")}</div><div class="meta-val">${esc(String(x.hours).replace(".", lang === "en" ? "." : ","))} ${t("часа")}</div></div>
           </div>
+          ${x.late ? `<div class="t-sub" style="margin-top:10px;color:var(--red)">${t("Изпълнена със закъснение")} · ${days(x.late)}</div>` : ""}
           ${x.note ? `<div class="meta-label" style="margin-top:14px">${t("Бележка от служителя")}</div><div class="note" style="margin-top:6px">${esc(x.note)}</div>` : ""}</div>` : ""}
         ${canRate ? `<div class="section"><h3>${ic("star")}${t("Оценка")}</h3>
           ${x.status === "Оценена" && !S.editRate ? `<div style="margin-top:14px;display:flex;align-items:center;gap:18px;flex-wrap:wrap"><div class="big-score">${esc(x.score)}<small>/10</small></div><div class="t-sub">${t("Оценил")}: ${esc(x.ratedBy)} · ${esc(x.ratedAt)}</div></div>
@@ -364,7 +399,21 @@
               <div class="field" style="margin-top:14px"><label for="rate-comment">${t("Коментар и препоръки")}</label><textarea id="rate-comment">${esc(S.comment != null ? S.comment : (x.comment || ""))}</textarea></div>
               <button class="btn btn-primary" style="margin-top:14px" data-act="rate"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ""}${t("Запази оценката")}</button>`}
         </div>` : ""}
-        ${x.status === "Възложена" ? `<div class="section"><button class="btn btn-danger" data-act="cancel">${S.confirm === x.id ? t("Сигурни ли сте? Натиснете пак.") : t("Отмени задачата")}</button></div>` : ""}
+        <div class="section"><h3>${ic("text")}${t("Коментари")} <span class="count">${notes.length}</span></h3>
+          ${notes.length ? `<ul class="notes">${notes.map((n) => `<li><small>${esc([n.at, n.by].filter(Boolean).join(" · "))}</small>${esc(n.text)}</li>`).join("")}</ul>` : `<div class="t-sub" style="margin-top:10px">${t("Още няма коментари.")}</div>`}
+          <div class="field" style="margin-top:14px"><label for="nt-text">${t("Нов коментар")}</label><textarea id="nt-text" maxlength="1000" style="min-height:70px">${esc(S.noteText || "")}</textarea></div>
+          <div class="row-actions"><button class="btn" data-act="add-note"${S.busy ? " disabled" : ""}>${ic("plus")}${t("Добави коментар")}</button><span class="t-sub">${t("Служителят вижда коментарите и оценката с ПИН-а си.")}</span></div>
+        </div>
+        <div class="section"><h3>${ic("dots")}${t("Смяна на статус")}</h3>
+          <div class="chips" role="group" aria-label="${t("Статус")}" style="margin-top:14px">${["Възложена", "Изпълнена", "Отменена"].map((v) => `<button class="chip" data-st="${v}" aria-pressed="${st.to === v}">${esc(t(v))}</button>`).join("")}</div>
+          <div class="grid2" style="margin-top:14px">
+            <div class="field"><label for="st-due">${t("Нов срок")}</label><input type="date" id="st-due" value="${esc(st.due)}"></div>
+            ${st.to === "Изпълнена" && !x.doneAt ? `<div class="field"><label for="st-hours">${t("Часове (по желание)")}</label><input type="text" id="st-hours" inputmode="decimal" value="${esc(st.hours)}" placeholder="1,5"></div>` : ""}
+          </div>
+          <div class="field" style="margin-top:14px"><label for="st-note">${t("Причина (по желание)")}</label><input type="text" id="st-note" maxlength="500" value="${esc(st.note)}"></div>
+          ${st.to === "Възложена" && x.status !== "Възложена" ? `<div class="t-sub" style="margin-top:10px">${t("Връщането във „Възложена“ изчиства изпълнението и оценката — старите стойности остават в коментарите.")}</div>` : ""}
+          <div class="row-actions"><button class="btn btn-primary" data-act="set-status"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ""}${t("Запази промяната")}</button></div>
+        </div>
       </div></div>`;
   }
   function newHtml() {
@@ -402,20 +451,20 @@
     const sel = S.histName && by[S.histName] ? S.histName : "";
     const statsOf = (arr) => { const rated = arr.filter((x) => x.score); const hours = arr.reduce((s, x) => s + (Number(x.hours) || 0), 0);
       return { done: arr.filter((x) => x.status === "Изпълнена" || x.status === "Оценена").length, waiting: arr.filter((x) => x.status === "Изпълнена").length,
-        open: arr.filter((x) => x.status === "Възложена").length, avg: rated.length ? (rated.reduce((s, x) => s + Number(x.score), 0) / rated.length) : null, hours }; };
+        open: arr.filter((x) => x.status === "Възложена").length, late: arr.filter((x) => x.overdue > 0).length, avg: rated.length ? (rated.reduce((s, x) => s + Number(x.score), 0) / rated.length) : null, hours }; };
     const fmtN = (n, d) => n == null ? "—" : (lang === "en" ? n.toFixed(d) : n.toFixed(d).replace(".", ","));
     if (!sel) {
       return `<div class="card fade"><div class="card-body">${names.length ? `<table class="tlist"><thead><tr><th>${t("Изпълнител")}</th><th>${t("Изпълнени")}</th><th>${t("Средна оценка")}</th><th class="right">${t("Общо часове")}</th></tr></thead><tbody>
-        ${names.map((n) => { const st = statsOf(by[n]); return `<tr data-hist="${esc(n)}" tabindex="0"><td>${person(n)}</td><td>${st.done}${st.waiting ? ` <span class="t-sub">(${st.waiting} ${t("Чакат оценка").toLowerCase()})</span>` : ""}</td><td>${st.avg == null ? `<span class="t-sub">${t("Без оценки")}</span>` : `<b>${fmtN(st.avg, 1)}</b>/10`}</td><td class="right">${fmtN(st.hours, 1)}</td></tr>`; }).join("")}
+        ${names.map((n) => { const st = statsOf(by[n]); return `<tr data-hist="${esc(n)}" tabindex="0"><td>${person(n)}</td><td>${st.done}${st.waiting ? ` <span class="t-sub">(${st.waiting} ${t("Чакат оценка").toLowerCase()})</span>` : ""}${st.late ? ` <span class="late-badge">${st.late} ${t("Просрочени").toLowerCase()}</span>` : ""}</td><td>${st.avg == null ? `<span class="t-sub">${t("Без оценки")}</span>` : `<b>${fmtN(st.avg, 1)}</b>/10`}</td><td class="right">${fmtN(st.hours, 1)}</td></tr>`; }).join("")}
         </tbody></table>` : `<div class="empty">${t("Няма задачи.")}</div>`}</div></div>`;
     }
     const arr = by[sel].slice().sort((a, b) => parseBg(b.created) - parseBg(a.created)); const st = statsOf(arr);
     return `<div class="card fade"><div class="card-head"><span class="crumbs"><span>${t("История")}</span><span>${esc(sel)}</span></span><button class="btn btn-ghost" data-act="hist-close" aria-label="${t("Назад")}">${ic("x")}</button></div>
       <div class="card-body">${person(sel)}
         <div class="stats" style="margin-top:16px"><div class="stat"><b>${st.done}</b><span>${t("Изпълнени")}</span></div><div class="stat"><b>${st.avg == null ? "—" : fmtN(st.avg, 1)}</b><span>${t("Средна оценка")}</span></div>
-          <div class="stat"><b>${fmtN(st.hours, 1)}</b><span>${t("Общо часове")}</span></div><div class="stat"><b>${st.open}</b><span>${t("Възложени")}</span></div></div>
+          <div class="stat"><b>${fmtN(st.hours, 1)}</b><span>${t("Общо часове")}</span></div><div class="stat"><b>${st.open}</b><span>${t("Възложени")}</span></div>${st.late ? `<div class="stat" style="border-color:var(--red);background:var(--red-soft)"><b style="color:var(--red)">${st.late}</b><span>${t("Просрочени")}</span></div>` : ""}</div>
         <table class="tlist"><thead><tr><th>${t("Задача")}</th><th>${t("Статус")}</th><th>${t("Часове")}</th><th>${t("Оценка")}</th></tr></thead><tbody>
-          ${arr.map((x) => `<tr data-open="${esc(x.id)}" tabindex="0"><td><div class="t-title">${esc(x.title)}</div>${x.comment ? `<div class="t-sub">${esc(x.comment)}</div>` : ""}</td><td>${badge(x.status)}</td><td>${esc(x.hours || "—")}</td><td>${x.score ? `<b>${esc(x.score)}</b>/10` : "—"}</td></tr>`).join("")}
+          ${arr.map((x) => `<tr data-open="${esc(x.id)}" tabindex="0"${x.overdue ? ' class="late"' : ""}><td><div class="t-title">${esc(x.title)}</div>${x.comment ? `<div class="t-sub">${esc(x.comment)}</div>` : ""}</td><td>${x.overdue ? lateBadge(x.overdue) : badge(x.status)}</td><td>${esc(x.hours || "—")}</td><td>${x.score ? `<b>${esc(x.score)}</b>/10` : "—"}</td></tr>`).join("")}
         </tbody></table></div></div>`;
   }
 
@@ -490,14 +539,22 @@
     if (who) who.onchange = () => { S.who = who.value; render(); };
     const rc = document.getElementById("rate-comment");
     if (rc) rc.oninput = () => { S.comment = rc.value; };
+    ["nt-text", "st-due", "st-note", "st-hours"].forEach((id) => { const n = document.getElementById(id); if (n) n.oninput = n.onchange = syncDetail; });
+  }
+  /* Полетата в детайла пазят стойностите си при прерисуване. */
+  function syncDetail() {
+    const v = (id) => { const n = document.getElementById(id); return n ? n.value : null; };
+    if (v("nt-text") != null) S.noteText = v("nt-text");
+    if (S.st) { if (v("st-due") != null) S.st.due = v("st-due"); if (v("st-note") != null) S.st.note = v("st-note"); if (v("st-hours") != null) S.st.hours = v("st-hours"); }
   }
   app.addEventListener("click", async (e) => {
-    const el = e.target.closest("[data-act],[data-tab],[data-filter],[data-open],[data-score],[data-hist]");
+    const el = e.target.closest("[data-act],[data-tab],[data-filter],[data-open],[data-score],[data-hist],[data-st]");
     if (!el) return;
     if (el.dataset.tab) { S.tab = el.dataset.tab; S.open = null; S.msg = null; S.histName = ""; render(); return; }
     if (el.dataset.filter != null && el.classList.contains("chip")) { S.filter = el.dataset.filter; render(); return; }
-    if (el.dataset.open) { S.open = el.dataset.open; S.tab = "tasks"; S.score = 0; S.comment = null; S.editRate = false; S.confirm = ""; S.msg = null; render(); window.scrollTo(0, 0); return; }
+    if (el.dataset.open) { S.open = el.dataset.open; S.tab = "tasks"; S.score = 0; S.comment = null; S.editRate = false; S.confirm = ""; S.st = null; S.noteText = ""; S.msg = null; render(); window.scrollTo(0, 0); return; }
     if (el.dataset.hist) { S.histName = el.dataset.hist; render(); return; }
+    if (el.dataset.st) { syncDetail(); S.st.to = el.dataset.st; render(); return; }
     if (el.dataset.score) { S.score = +el.dataset.score; const rc = document.getElementById("rate-comment"); if (rc) S.comment = rc.value; render(); return; }
     const act = el.dataset.act;
     if (act === "logout") { logout(); return; }
@@ -518,12 +575,35 @@
       } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
       S.busy = false; render(); return;
     }
-    if (act === "cancel") {
-      if (S.confirm !== S.open) { S.confirm = S.open; render(); setTimeout(() => { if (S.confirm) { S.confirm = ""; render(); } }, 5000); return; }
-      S.confirm = "";
-      try { const j = await call("tasksCancel", { id: S.open }); if (!j.success) throw new Error(j.error); S.open = null; await load(); flash("ok", t("Задачата е отменена.")); }
-      catch (err) { if (!err.handled) flash("err", err.message); }
-      return;
+    if (act === "add-note") {
+      syncDetail();
+      const text = (S.noteText || "").trim();
+      if (!text) { flash("err", t("Напишете коментар.")); return; }
+      S.busy = true; render();
+      try {
+        const j = await call("tasksNote", { id: S.open, text });
+        if (!j.success) throw new Error(j.error);
+        S.noteText = ""; S.busy = false; await load(); flash("ok", t("Коментарът е добавен."));
+        return;
+      } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
+      S.busy = false; render(); return;
+    }
+    if (act === "set-status") {
+      syncDetail();
+      const x = S.tasks.find((y) => y.id === S.open), st = S.st;
+      if (!x || !st) return;
+      const due = isoToBg(st.due), body = { id: S.open, status: st.to, note: st.note };
+      if (due !== (x.due || "")) body.due = due;
+      if (st.to === "Изпълнена" && st.hours.trim()) body.hours = st.hours.trim();
+      if (st.to === x.status && body.due == null) { flash("err", t("Няма промяна.")); return; }
+      S.busy = true; render();
+      try {
+        const j = await call("tasksSetStatus", body);
+        if (!j.success) throw new Error(j.error);
+        S.st = null; S.busy = false; await load(); flash("ok", st.to === x.status ? t("Срокът е сменен.") : t("Статусът е сменен."));
+        return;
+      } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
+      S.busy = false; render(); return;
     }
     if (act === "seed") {
       const names = await loadNames();
