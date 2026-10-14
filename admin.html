@@ -164,6 +164,22 @@
   .stat span { font-size: 12.5px; color: var(--muted); }
   .staff-row { display: grid; gap: 10px; grid-template-columns: 1fr; padding: 14px 0; border-bottom: 1px solid var(--border); align-items: end; }
   @media (min-width: 820px) { .staff-row { grid-template-columns: 1.2fr 1fr 1.2fr 1fr auto; } }
+  img.avatar { display: block; object-fit: cover; background: var(--panel-3); }
+  .avatar.adm { background: var(--blue-soft); color: var(--blue); }
+  .avatar.sm { width: 28px; height: 28px; font-size: 11px; }
+  .avatar.lg { width: 40px; height: 40px; font-size: 14px; }
+  .avatar.xl { width: 112px; height: 112px; font-size: 36px; }
+  .photo-pick { position: relative; display: inline-block; cursor: pointer; border-radius: 50%; flex: none; }
+  .photo-pick:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .photo-badge { position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); border: 2px solid var(--panel); }
+  .photo-badge .icon { width: 11px; height: 11px; }
+  .photo-pick.big .photo-badge { width: 32px; height: 32px; right: 2px; bottom: 2px; }
+  .photo-pick.big .photo-badge .icon { width: 16px; height: 16px; }
+  .profile { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .who-btn { all: unset; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border-radius: 999px; padding: 2px 8px 2px 2px; }
+  .who-btn:focus-visible { outline: 2px solid var(--accent); }
+  label.btn { position: relative; }
+  @media (max-width: 440px) { .who-btn .who { display: none; } }
   .confirm-row { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--red-soft); border: 1px solid var(--red); }
   .confirm-row span { flex: 1 1 220px; font-weight: 650; }
   .add-staff { padding-bottom: 18px; border-bottom: 1px solid var(--border); }
@@ -209,6 +225,7 @@
   <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
   <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></symbol>
   <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
 </svg>
 <div class="wrap" id="app" aria-live="polite"></div>
@@ -250,6 +267,9 @@
     "Служителят вижда коментарите и оценката с ПИН-а си.": "The employee sees comments and the rating with their PIN.",
     "Връщането във „Възложена“ изчиства изпълнението и оценката — старите стойности остават в коментарите.": "Moving back to “Assigned” clears the completion and the rating — the old values stay in the comments.",
     "Още няма коментари.": "No comments yet.", "Нов служител": "New employee", "Име и фамилия": "Full name", "Добави служителя": "Add employee",
+    "Профил": "Profile", "Снимка": "Photo", "Качи снимка": "Upload photo", "Махни снимката": "Remove photo", "Снимката е записана.": "Photo saved.",
+    "Файлът не е снимка.": "The file is not an image.", "Снимката е твърде голяма.": "The photo is too large.", "Име, което виждат служителите": "Name shown to employees",
+    "Снимката и името се виждат от служителите до „Възложил“ в задачите.": "Employees see this photo and name next to “Assigned by” in their tasks.",
     "Премахни": "Remove", "Да, премахни": "Yes, remove", "Отказ": "Cancel", "Премахнати служители": "Removed employees", "Върни": "Restore", "Служителят е добавен.": "Employee added.",
     "Служителят е премахнат.": "Employee removed.", "Служителят е върнат.": "Employee restored.", "Името е на кирилица.": "The name must be in Cyrillic.",
     "Премахнатите не се виждат в приложението (проверки, задачи), но историята им остава.": "Removed employees disappear from the app (inspections, tasks), but their history stays.",
@@ -293,8 +313,29 @@
       const j = await call("tasksAdminList");
       if (!j.success) throw new Error(j.error);
       S.tasks = j.tasks || []; S.staff = j.staff || []; S.removed = j.removed || [];
+      if (j.photoVer && (!S.photos || S.photos.ver !== j.photoVer)) await loadPhotos();
     } catch (e) { if (!e.handled) S.msg = { kind: "err", text: e.message || String(e) }; }
     S.busy = false; render();
+  }
+  async function loadPhotos() {
+    try { const p = await call("tasksPhotos"); if (p && p.success) S.photos = { ver: p.ver, staff: p.staff || {}, admins: p.admins || {} }; } catch (_) {}
+  }
+  /* Снимка от телефона/компютъра → квадрат до 160×160 JPEG (≈10 KB). */
+  async function shrinkPhoto(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error(t("Файлът не е снимка."))); i.src = url; });
+      const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height, side = Math.min(w, h);
+      if (!side) throw new Error(t("Файлът не е снимка."));
+      for (const [size, q] of [[160, .82], [128, .72], [96, .62]]) {
+        const c = document.createElement("canvas"); c.width = c.height = size;
+        const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, size, size);
+        g.drawImage(img, (w - side) / 2, (h - side) / 2, side, side, 0, 0, size, size);
+        const d = c.toDataURL("image/jpeg", q);
+        if (d.length <= 44000) return d;
+      }
+      throw new Error(t("Снимката е твърде голяма."));
+    } finally { URL.revokeObjectURL(url); }
   }
   async function loadNames() {
     try {
@@ -312,8 +353,13 @@
   const prioTag = (p) => p ? `<span class="tag ${p === "Висок" ? "p-high" : p === "Спешен" ? "p-urgent" : ""}">${esc(t(p))}</span>` : "";
   const initials = (n) => String(n || "?").trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   const staffOf = (name) => S.staff.find((s) => s.name === name) || { name };
+  const imgOk = (u) => /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(u || "");
+  const avatar = (name, photo, cls) => imgOk(photo) ? `<img class="avatar ${cls || ""}" src="${photo}" alt="" aria-hidden="true">` : `<span class="avatar ${cls || ""}" aria-hidden="true">${esc(initials(name))}</span>`;
+  const staffPhoto = (name) => (S.photos && S.photos.staff[name]) || "";
+  const adminOf = (u) => (S.photos && S.photos.admins[String(u || "").toLowerCase()]) || {};
+  const adminPerson = (u) => u ? `<div class="person">${avatar(adminOf(u).name || u, adminOf(u).photo, "adm")}<span>${esc(adminOf(u).name || u)}</span></div>` : "—";
   const person = (name) => { const s = staffOf(name); const sub = [s.rank, s.position].filter(Boolean).join(" · ");
-    return `<div class="person"><span class="avatar" aria-hidden="true">${esc(initials(name))}</span><span>${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ""}</span></div>`; };
+    return `<div class="person">${avatar(name, staffPhoto(name))}<span>${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ""}</span></div>`; };
   const isoToBg = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? `${m[3]}.${m[2]}.${m[1]}` : ""; };
   const parseBg = (s) => { const m = /(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?/.exec(s || ""); return m ? new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)).getTime() : 0; };
   const days = (n) => lang === "en" ? `${n} ${n === 1 ? "day" : "days"}` : `${n} ${n === 1 ? "ден" : "дни"}`;
@@ -337,14 +383,14 @@
   function topHtml() {
     return `<div class="top">
       <div class="brand"><img src="favicon.svg" alt=""><span>CINE GRAND<small>${t("Задачи")}</small></span></div>
-      <div class="top-right"><span class="who">${esc(S.session.user)}</span>
+      <div class="top-right"><button class="who-btn" data-tab="profile" title="${t("Профил")}">${avatar(adminOf(S.session.user).name || S.session.user, adminOf(S.session.user).photo, "sm")}<span class="who">${esc(adminOf(S.session.user).name || S.session.user)}</span></button>
         <button class="btn" data-act="reload"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ic("refresh")}${t("Обнови")}</button>
         <button class="btn btn-ghost" data-act="logout">${ic("out")}${t("Изход")}</button></div></div>`;
   }
   function tabsHtml() {
     const waiting = S.tasks.filter((x) => x.status === "Изпълнена").length;
     const tab = (id, label, n) => `<button class="tab" role="tab" data-tab="${id}" aria-selected="${S.tab === id}">${label}${n ? ` <span class="count">${n}</span>` : ""}</button>`;
-    return `<div class="tabs" role="tablist">${tab("tasks", t("Задачи"), waiting)}${tab("new", ic("plus") + t("Нова задача"))}${tab("staff", t("Служители"))}${tab("history", t("История"))}</div>`;
+    return `<div class="tabs" role="tablist">${tab("tasks", t("Задачи"), waiting)}${tab("new", ic("plus") + t("Нова задача"))}${tab("staff", t("Служители"))}${tab("history", t("История"))}${tab("profile", t("Профил"))}</div>`;
   }
   function tasksHtml() {
     if (S.open) return detailHtml(S.tasks.find((x) => x.id === S.open));
@@ -365,7 +411,7 @@
         ${list.map((x, i) => `<tr data-open="${esc(x.id)}" tabindex="0"${x.overdue ? ' class="late"' : ""} style="animation-delay:${Math.min(i, 12) * 35}ms">
           <td class="no">${i + 1}</td>
           <td><div class="t-title">${esc(x.title)}</div><div class="t-sub">${esc([x.category, t(x.priority)].filter(Boolean).join(" · "))}</div></td>
-          <td>${esc(x.assignee)}</td><td>${esc(x.createdBy || "—")}</td>
+          <td>${esc(x.assignee)}</td><td>${adminPerson(x.createdBy)}</td>
           <td>${x.overdue ? lateBadge(x.overdue) : badge(x.status)}${x.score ? ` <span class="tag">${esc(x.score)}/10</span>` : ""}</td>
           <td class="right"${x.overdue ? ' style="color:var(--red);font-weight:800"' : ""}>${esc(x.due || "—")}</td></tr>`).join("")}</tbody></table>`
         : `<div class="empty">${S.busy ? `<span class="spin"></span> ${t("Зарежда…")}` : t("Няма задачи.")}</div>`}
@@ -388,7 +434,7 @@
           <div class="meta-item">${ic("users")}<div style="min-width:0"><div class="meta-label">${t("Изпълнител")}</div>${person(x.assignee)}</div></div>
           <div class="meta-item">${ic("cal")}<div><div class="meta-label">${t("Дата")}</div><div class="meta-val" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${esc(x.created)} ${ic("arrow")} <span class="${x.overdue ? "due-late" : ""}">${esc(x.due || t("Без срок"))}</span></div></div></div>
           <div class="meta-item">${ic("tag")}<div><div class="meta-label">${t("Етикети")}</div><div class="tags">${x.category ? `<span class="tag">${esc(x.category)}</span>` : ""}${prioTag(x.priority)}</div></div></div>
-          <div class="meta-item">${ic("users")}<div><div class="meta-label">${t("Възложил")}</div><div class="meta-val">${esc(x.createdBy || "—")}</div></div></div>
+          <div class="meta-item">${ic("users")}<div><div class="meta-label">${t("Възложил")}</div>${adminPerson(x.createdBy)}</div></div>
           <div class="meta-item span-2">${ic("text")}<div style="min-width:0"><div class="meta-label">${t("Описание")}</div><div class="desc">${esc(x.description || "—")}</div></div></div>
         </div>
         ${x.doneAt ? `<div class="section"><h3>${ic("clock")}${t("Изпълнение")}</h3>
@@ -456,11 +502,11 @@
       </form>
       <div class="toolbar" style="margin-top:18px"><button class="btn" data-act="seed">${ic("plus")}${t("Добави имената от списъка за проверки")}</button></div>
       ${S.staff.length ? S.staff.map((s, i) => `<form class="staff-row" data-staff="${i}">
-          <div class="staff-name"><span class="avatar" aria-hidden="true">${esc(initials(s.name))}</span><span>${esc(s.name)}<br><span class="t-sub">${s.hasPin ? t("има ПИН") : t("без ПИН")}</span></span></div>
+          <div class="staff-name"><label class="photo-pick" title="${t("Снимка")}">${avatar(s.name, staffPhoto(s.name), "lg")}<input type="file" accept="image/*" class="sr" data-photo-for="${esc(s.name)}" aria-label="${t("Снимка")}: ${esc(s.name)}"><span class="photo-badge" aria-hidden="true">${ic("camera")}</span></label><span>${esc(s.name)}<br><span class="t-sub">${s.hasPin ? t("има ПИН") : t("без ПИН")}</span></span></div>
           <div class="field"><label for="sr-${i}">${t("Ранг")}</label><input type="text" id="sr-${i}" name="rank" maxlength="60" value="${esc(s.rank)}"></div>
           <div class="field"><label for="sp-${i}">${t("Позиция")}</label><input type="text" id="sp-${i}" name="position" maxlength="80" value="${esc(s.position)}"></div>
           <div class="field"><label for="sn-${i}">${t("ПИН (4–8 цифри)")}</label><input type="password" id="sn-${i}" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" autocomplete="new-password" placeholder="${s.hasPin ? "••••" : ""}"></div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-primary" type="submit">${t("Запази")}</button>${s.hasPin ? `<button class="btn btn-ghost" type="button" data-act="nopin" data-name="${esc(s.name)}">${t("Махни ПИН")}</button>` : ""}
+          <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-primary" type="submit">${t("Запази")}</button>${s.hasPin ? `<button class="btn btn-ghost" type="button" data-act="nopin" data-name="${esc(s.name)}">${t("Махни ПИН")}</button>` : ""}${staffPhoto(s.name) ? `<button class="btn btn-ghost" type="button" data-act="nophoto" data-name="${esc(s.name)}">${t("Махни снимката")}</button>` : ""}
             ${S.rmConfirm === s.name ? "" : `<button class="btn btn-ghost btn-danger" type="button" data-act="rm-staff" data-name="${esc(s.name)}">${t("Премахни")}</button>`}</div>
           ${S.rmConfirm === s.name ? `<div class="confirm-row" role="alert"><span>${esc(S.rmText || (lang === "en" ? `Remove ${s.name}?` : `Да премахна ли ${s.name}?`))}</span>
             <button class="btn btn-danger" type="button" data-act="rm-staff-yes" data-name="${esc(s.name)}">${t("Да, премахни")}</button><button class="btn btn-ghost" type="button" data-act="rm-staff-no">${t("Отказ")}</button></div>` : ""}
@@ -494,9 +540,28 @@
         </tbody></table></div></div>`;
   }
 
+  function profileHtml() {
+    const me = adminOf(S.session.user);
+    const pf = S.prof || (S.prof = { name: me.name || "" });
+    return `<div class="card fade"><div class="card-head"><span class="crumbs"><span>${t("Профил")}</span><span>${esc(S.session.user)}</span></span></div>
+      <div class="card-body">${msgHtml()}
+        <div class="profile">
+          <label class="photo-pick big">${avatar(me.name || S.session.user, me.photo, "xl")}<input type="file" accept="image/*" class="sr" data-photo-for="__me" aria-label="${t("Качи снимка")}"><span class="photo-badge" aria-hidden="true">${ic("camera")}</span></label>
+          <div style="flex:1 1 240px;min-width:0">
+            <div class="field"><label for="pf-name">${t("Име, което виждат служителите")}</label><input type="text" id="pf-name" maxlength="60" value="${esc(pf.name)}" placeholder="${esc(S.session.user)}"></div>
+            <div class="row-actions">
+              <button class="btn btn-primary" data-act="save-profile"${S.busy ? " disabled" : ""}>${t("Запази")}</button>
+              <label class="btn">${ic("camera")}${t("Качи снимка")}<input type="file" accept="image/*" class="sr" data-photo-for="__me"></label>
+              ${me.photo ? `<button class="btn btn-ghost" data-act="nophoto" data-name="__me">${t("Махни снимката")}</button>` : ""}
+            </div>
+            <div class="t-sub" style="margin-top:10px">${t("Снимката и името се виждат от служителите до „Възложил“ в задачите.")}</div>
+          </div>
+        </div>
+      </div></div>`;
+  }
   function render() {
     if (!S.session) { app.innerHTML = loginHtml(); bind(); return; }
-    let body = S.tab === "new" ? newHtml() : S.tab === "staff" ? staffHtml() : S.tab === "history" ? historyHtml() : tasksHtml();
+    let body = S.tab === "new" ? newHtml() : S.tab === "staff" ? staffHtml() : S.tab === "history" ? historyHtml() : S.tab === "profile" ? profileHtml() : tasksHtml();
     /* Плавното появяване — само при смяна на изгледа, не при всяко
        прерисуване (съобщение, зареждане), иначе съдържанието мига. */
     const view = [S.tab, S.open || "", S.histName || ""].join("|");
@@ -585,7 +650,24 @@
     if (who) who.onchange = () => { S.who = who.value; render(); };
     const rc = document.getElementById("rate-comment");
     if (rc) rc.oninput = () => { S.comment = rc.value; };
+    const pn = document.getElementById("pf-name");
+    if (pn) pn.oninput = () => { S.prof.name = pn.value; };
+    document.querySelectorAll("input[data-photo-for]").forEach((inp) => { inp.onchange = () => { const f = inp.files && inp.files[0]; if (f) setPhoto(inp.dataset.photoFor, f); }; });
     ["nt-text", "st-due", "st-note", "st-hours"].forEach((id) => { const n = document.getElementById(id); if (n) n.oninput = n.onchange = syncDetail; });
+  }
+  /* Нова снимка: "__me" = собственият профил, иначе — служител. */
+  async function setPhoto(who, file) {
+    if (S.busy) return;
+    let photo;
+    try { photo = await shrinkPhoto(file); } catch (err) { flash("err", err.message); return; }
+    S.busy = true; render();
+    try {
+      const j = who === "__me" ? await call("tasksProfileSave", { photo }) : await call("tasksStaffPhoto", { name: who, photo });
+      if (!j.success) throw new Error(j.error);
+      S.busy = false; await loadPhotos(); flash("ok", t("Снимката е записана."));
+      return;
+    } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
+    S.busy = false; render();
   }
   /* Полетата в детайла пазят стойностите си при прерисуване. */
   function syncDetail() {
@@ -596,7 +678,7 @@
   app.addEventListener("click", async (e) => {
     const el = e.target.closest("[data-act],[data-tab],[data-filter],[data-open],[data-score],[data-hist],[data-st]");
     if (!el) return;
-    if (el.dataset.tab) { S.tab = el.dataset.tab; S.open = null; S.msg = null; S.histName = ""; render(); return; }
+    if (el.dataset.tab) { S.tab = el.dataset.tab; S.open = null; S.msg = null; S.histName = ""; S.prof = null; render(); return; }
     if (el.dataset.filter != null && el.classList.contains("chip")) { S.filter = el.dataset.filter; render(); return; }
     if (el.dataset.open) { S.open = el.dataset.open; S.tab = "tasks"; S.score = 0; S.comment = null; S.editRate = false; S.confirm = ""; S.st = null; S.noteText = ""; S.msg = null; render(); window.scrollTo(0, 0); return; }
     if (el.dataset.hist) { S.histName = el.dataset.hist; render(); return; }
@@ -676,6 +758,24 @@
     if (act === "restore-staff") {
       try { const j = await call("tasksStaffAdd", { name: el.dataset.name }); if (!j.success) throw new Error(j.error); await load(); flash("ok", t("Служителят е върнат.")); }
       catch (err) { if (!err.handled) flash("err", err.message); }
+      return;
+    }
+    if (act === "save-profile") {
+      S.busy = true; render();
+      try {
+        const j = await call("tasksProfileSave", { name: (S.prof && S.prof.name) || "" });
+        if (!j.success) throw new Error(j.error);
+        S.busy = false; await loadPhotos(); S.prof = null; flash("ok", t("Записано."));
+      } catch (err) { S.busy = false; if (!err.handled) flash("err", err.message); }
+      return;
+    }
+    if (act === "nophoto") {
+      const who = el.dataset.name;
+      try {
+        const j = who === "__me" ? await call("tasksProfileSave", { photo: "" }) : await call("tasksStaffPhoto", { name: who, photo: "" });
+        if (!j.success) throw new Error(j.error);
+        await loadPhotos(); flash("ok", t("Записано."));
+      } catch (err) { if (!err.handled) flash("err", err.message); }
       return;
     }
     if (act === "nopin") {
