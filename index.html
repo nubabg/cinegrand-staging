@@ -4719,37 +4719,65 @@
         </div>`;
       }
 
-      /* ── Allowed inspector names — fetched from /Names.md in the repo ──
-         Поддръжката минава през този файл, не през кода. Празни редове и
-         коментари (#) се игнорират. Първата секция от име до празен ред в
-         края на файла се използва. */
+      /* ── Имена на служителите (проверки, задачи, Lost & Found) ──
+         Основният източник е листът „Служители" — администраторът добавя и
+         премахва хора от admin.html. Names.md в repo-то остава резерва: ползва
+         се, докато листът е празен или ако таблицата не отговаря. Последният
+         успешен списък се пази на устройството, за да е готов веднага. */
       let ALLOWED_NAMES = []; // populated by loadAllowedNames()
       let _namesLoaded = false;
-
+      const CG_NAMES_KEY = "cg_names_v1";
+      const CG_NAME_RE = /^[Ѐ-ӿ][Ѐ-ӿ\s]*$/;
+      function cgSetNames(names, src) {
+        if (!names || !names.length) return false;
+        const same = names.length === ALLOWED_NAMES.length && names.every((n, i) => n === ALLOWED_NAMES[i]);
+        ALLOWED_NAMES = names;
+        _namesLoaded = true;
+        if (src) { try { localStorage.setItem(CG_NAMES_KEY, JSON.stringify({ src, names })); } catch (_) {} }
+        // Re-render any screen that uses the names list
+        if (!same && typeof state !== "undefined" && ["inspection", "tasks", "lost-found"].includes(state.screen)) render();
+        return true;
+      }
+      async function loadNamesFromFile() {
+        const res = await fetchWithTimeout("Names.md?_cb=" + Date.now(), { cache: "no-store" }, 8000);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const text = await res.text();
+        // Take only lines under the "## Списък" section (or fallback: any
+        // line that looks like a name — Cyrillic, optional spaces).
+        let section = text;
+        const m = text.match(/##\s*Списък[\s\S]*$/i);
+        if (m) section = m[0];
+        return section.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith("#") && CG_NAME_RE.test(l));
+      }
+      async function loadNamesFromSheet() {
+        if (!isSheetsConfigured()) return [];
+        const j = await fetchJsonRetry(SHEETS_WEB_APP_URL, {
+          method: "POST", redirect: "follow",
+          headers: { "Content-Type": "text/plain;charset=UTF-8" },
+          body: JSON.stringify({ action: "tasksStaff", _token: SHEETS_SECRET_TOKEN }),
+        }, { timeouts: [15000, 20000], backoffs: [1000] });
+        if (!j || !j.success || !Array.isArray(j.staff)) throw new Error((j && j.error) || "no staff");
+        return j.staff.map((x) => String(x.name || "").trim()).filter((n) => CG_NAME_RE.test(n));
+      }
       async function loadAllowedNames() {
+        let cachedSrc = "";
         try {
-          const res = await fetchWithTimeout("Names.md?_cb=" + Date.now(), { cache: "no-store" }, 8000);
-          if (!res.ok) throw new Error("HTTP " + res.status);
-          const text = await res.text();
-          // Take only lines under the "## Списък" section (or fallback: any
-          // line that looks like a name — Cyrillic, optional spaces).
-          let section = text;
-          const m = text.match(/##\s*Списък[\s\S]*$/i);
-          if (m) section = m[0];
-          const names = section.split(/\r?\n/)
-            .map(l => l.trim())
-            .filter(l => l && !l.startsWith("#") && /^[Ѐ-ӿ][Ѐ-ӿ\s]*$/.test(l));
-          if (names.length > 0) {
-            ALLOWED_NAMES = names;
-            _namesLoaded = true;
-            console.log("[names] loaded " + names.length + " allowed inspector names");
-            // Re-render any screen that uses the names list
-            if (state.screen === "inspection") render();
-          }
-        } catch (err) {
-          console.warn("[names] failed to load Names.md:", err.message);
-          // Без списък оставяме старото поведение (свободно поле) за да не блокираме работата
-        }
+          const c = JSON.parse(localStorage.getItem(CG_NAMES_KEY) || "null");
+          const list = c && Array.isArray(c.names) ? c.names.filter((n) => CG_NAME_RE.test(n)) : [];
+          if (list.length) { ALLOWED_NAMES = list; _namesLoaded = true; cachedSrc = c.src; }
+        } catch (_) {}
+        // Файлът е бърз: ако още няма нищо, показваме го веднага (временно).
+        const file = loadNamesFromFile()
+          .then((names) => { if (!ALLOWED_NAMES.length) cgSetNames(names); return names; })
+          .catch((err) => { console.warn("[names] failed to load Names.md:", err.message); return []; });
+        let sheet = null;
+        try { sheet = await loadNamesFromSheet(); }
+        catch (err) { console.warn("[names] sheet unavailable:", err.message); }
+        if (sheet && sheet.length) { cgSetNames(sheet, "sheet"); console.log("[names] " + sheet.length + " names from the „Служители“ sheet"); return; }
+        // Таблицата не отговаря, а имаме списък от нея → оставаме на него.
+        if (!sheet && cachedSrc === "sheet") return;
+        // Листът е празен (още не е попълнен) → Names.md, както досега.
+        cgSetNames(await file, "file");
       }
 
       // Kick off load early so it's ready by the time inspector renders the form

@@ -150,6 +150,8 @@ function doPost(e) {
     if (data.action === "tasksNote") return handleTasksNote_(data);
     if (data.action === "tasksStaffSeed") return handleTasksStaffSeed_(data);
     if (data.action === "tasksStaffSave") return handleTasksStaffSave_(data);
+    if (data.action === "tasksStaffAdd") return handleTasksStaffAdd_(data);
+    if (data.action === "tasksStaffRemove") return handleTasksStaffRemove_(data);
 
     return handleRecord_(data);
   } catch (error) {
@@ -1611,7 +1613,9 @@ function handleTasksAdminList_(data) {
   var ss = tkOpen_();
   var tasks = tkRows_(tkSheet_(ss, TK_SHEET, TK_HEADERS), TK_HEADERS).filter(function (t) { return t["ID"]; })
     .map(function (t) { return tkPublicTask_(t, true); });
-  return jsonResponse_({ success: true, admin: admin, tasks: tasks, staff: tkStaffPublic_(tkStaff_(ss)),
+  var staffRows = tkStaff_(ss);
+  var removed = staffRows.filter(function (s) { return s["Име"] && s["Активен"] === "не"; }).map(function (s) { return { name: s["Име"], rank: s["Ранг"], position: s["Позиция"] }; });
+  return jsonResponse_({ success: true, admin: admin, tasks: tasks, staff: tkStaffPublic_(staffRows), removed: removed,
     statuses: TK_STATUSES, priorities: TK_PRIORITIES });
 }
 function handleTasksCreate_(data) {
@@ -1738,6 +1742,50 @@ function handleTasksNote_(data) {
     tkWriteRow_(ctx, t._row, { "Бележки": notes, "Обновено": tkNow_() + " · коментар от " + admin });
     return jsonResponse_({ success: true, id: t["ID"], notes: tkNotes_(notes) });
   });
+}
+/* Нов служител от администратора (или връщане на премахнат). Името е на
+   кирилица — същото правило като в списъка за проверки. */
+function handleTasksStaffAdd_(data) {
+  var admin = tkCheckToken_(data.token);
+  if (!admin) return tkDeny_();
+  var name = tkClean_(data.name, 60).replace(/\s+/g, " ");
+  if (!/^[Ѐ-ӿ][Ѐ-ӿ ]{1,59}$/.test(name)) return jsonResponse_({ success: false, code: "BAD_NAME", error: "Името е на кирилица (напр. „Иван Петров“)." });
+  var pin = data.pin == null ? "" : String(data.pin);
+  if (pin && !/^\d{4,8}$/.test(pin)) return jsonResponse_({ success: false, code: "BAD_PIN", error: "ПИН-ът е от 4 до 8 цифри." });
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ctx = tkSheet_(tkOpen_(), TK_STAFF_SHEET, TK_STAFF_HEADERS);
+    var s = tkRows_(ctx, TK_STAFF_HEADERS).filter(function (x) { return x["Име"].toLowerCase() === name.toLowerCase(); })[0];
+    if (s && s["Активен"] !== "не") return jsonResponse_({ success: false, code: "EXISTS", error: "„" + s["Име"] + "“ вече е в списъка." });
+    var obj = { "Име": s ? s["Име"] : name, "Активен": "да" };
+    if (data.rank != null) obj["Ранг"] = tkClean_(data.rank, 60);
+    if (data.position != null) obj["Позиция"] = tkClean_(data.position, 80);
+    if (pin) obj["ПИН"] = tkHashPin_(pin);
+    tkWriteRow_(ctx, s ? s._row : ctx.sheet.getLastRow() + 1, obj);
+    SpreadsheetApp.flush();
+    return jsonResponse_({ success: true, name: obj["Име"], restored: !!s });
+  } finally { lock.releaseLock(); }
+}
+/* Премахване: редът остава (Активен = „не"), за да не се губи историята
+   на задачите и проверките му. Изчезва от списъците в приложението. */
+function handleTasksStaffRemove_(data) {
+  var admin = tkCheckToken_(data.token);
+  if (!admin) return tkDeny_();
+  var name = tkClean_(data.name, 80);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = tkOpen_();
+    var ctx = tkSheet_(ss, TK_STAFF_SHEET, TK_STAFF_HEADERS);
+    var s = tkRows_(ctx, TK_STAFF_HEADERS).filter(function (x) { return x["Име"] === name; })[0];
+    if (!s) return jsonResponse_({ success: false, code: "NOT_FOUND", error: "Няма такъв служител." });
+    var open = tkRows_(tkSheet_(ss, TK_SHEET, TK_HEADERS), TK_HEADERS).filter(function (t) { return t["Възложена на"] === name && t["Статус"] === "Възложена"; }).length;
+    if (open && !data.force) return jsonResponse_({ success: false, code: "HAS_OPEN", open: open, error: name + " има " + open + " отворени задачи." });
+    tkWriteRow_(ctx, s._row, { "Активен": "не" });
+    SpreadsheetApp.flush();
+    return jsonResponse_({ success: true, name: name, open: open });
+  } finally { lock.releaseLock(); }
 }
 /* Добавя имена от списъка за проверките (Names.md), които още ги няма. */
 function handleTasksStaffSeed_(data) {
