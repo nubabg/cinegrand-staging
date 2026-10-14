@@ -164,6 +164,9 @@
   .stat span { font-size: 12.5px; color: var(--muted); }
   .staff-row { display: grid; gap: 10px; grid-template-columns: 1fr; padding: 14px 0; border-bottom: 1px solid var(--border); align-items: end; }
   @media (min-width: 820px) { .staff-row { grid-template-columns: 1.2fr 1fr 1.2fr 1fr auto; } }
+  .confirm-row { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--red-soft); border: 1px solid var(--red); }
+  .confirm-row span { flex: 1 1 220px; font-weight: 650; }
+  .add-staff { padding-bottom: 18px; border-bottom: 1px solid var(--border); }
   .staff-name { font-weight: 700; display: flex; align-items: center; gap: 10px; }
   .row-btn { all: unset; cursor: pointer; }
   .login { max-width: 400px; margin: 8vh auto 0; }
@@ -246,7 +249,11 @@
     "Добави коментар": "Add comment", "Коментарът е добавен.": "Comment added.", "Напишете коментар.": "Write a comment.",
     "Служителят вижда коментарите и оценката с ПИН-а си.": "The employee sees comments and the rating with their PIN.",
     "Връщането във „Възложена“ изчиства изпълнението и оценката — старите стойности остават в коментарите.": "Moving back to “Assigned” clears the completion and the rating — the old values stay in the comments.",
-    "Още няма коментари.": "No comments yet.", "Изпълнена със закъснение": "Completed late", "Без оценки": "No ratings", "Няма служители. Добавете ги от списъка за проверки.": "No staff yet. Add them from the inspection list.",
+    "Още няма коментари.": "No comments yet.", "Нов служител": "New employee", "Име и фамилия": "Full name", "Добави служителя": "Add employee",
+    "Премахни": "Remove", "Да, премахни": "Yes, remove", "Отказ": "Cancel", "Премахнати служители": "Removed employees", "Върни": "Restore", "Служителят е добавен.": "Employee added.",
+    "Служителят е премахнат.": "Employee removed.", "Служителят е върнат.": "Employee restored.", "Името е на кирилица.": "The name must be in Cyrillic.",
+    "Премахнатите не се виждат в приложението (проверки, задачи), но историята им остава.": "Removed employees disappear from the app (inspections, tasks), but their history stays.",
+    "Списъкът тук е и списъкът с имена за проверките в приложението.": "This list is also the list of names for inspections in the app.", "Изпълнена със закъснение": "Completed late", "Без оценки": "No ratings", "Няма служители. Добавете ги от списъка за проверки.": "No staff yet. Add them from the inspection list.",
   };
   const t = (s) => (lang === "en" && EN[s]) || s;
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -285,7 +292,7 @@
     try {
       const j = await call("tasksAdminList");
       if (!j.success) throw new Error(j.error);
-      S.tasks = j.tasks || []; S.staff = j.staff || [];
+      S.tasks = j.tasks || []; S.staff = j.staff || []; S.removed = j.removed || [];
     } catch (e) { if (!e.handled) S.msg = { kind: "err", text: e.message || String(e) }; }
     S.busy = false; render();
   }
@@ -433,15 +440,34 @@
       </div></form>`;
   }
   function staffHtml() {
+    const nf = S.nstaff || (S.nstaff = { name: "", rank: "", position: "", pin: "" });
+    const removed = S.removed || [];
     return `<div class="card fade"><div class="card-body">${msgHtml()}
-      <div class="toolbar"><button class="btn" data-act="seed">${ic("plus")}${t("Добави имената от списъка за проверки")}</button></div>
+      <form id="staff-add" class="add-staff" autocomplete="off">
+        <h3>${ic("plus")}${t("Нов служител")}</h3>
+        <div class="staff-row" style="border:0;padding-top:12px">
+          <div class="field"><label for="ns-name">${t("Име и фамилия")} *</label><input type="text" id="ns-name" maxlength="60" value="${esc(nf.name)}" required></div>
+          <div class="field"><label for="ns-rank">${t("Ранг")}</label><input type="text" id="ns-rank" maxlength="60" value="${esc(nf.rank)}"></div>
+          <div class="field"><label for="ns-pos">${t("Позиция")}</label><input type="text" id="ns-pos" maxlength="80" value="${esc(nf.position)}"></div>
+          <div class="field"><label for="ns-pin">${t("ПИН (4–8 цифри)")}</label><input type="password" id="ns-pin" inputmode="numeric" maxlength="8" autocomplete="new-password" value="${esc(nf.pin)}"></div>
+          <div><button class="btn btn-primary" type="submit"${S.busy ? " disabled" : ""}>${t("Добави служителя")}</button></div>
+        </div>
+        <div class="t-sub">${t("Списъкът тук е и списъкът с имена за проверките в приложението.")}</div>
+      </form>
+      <div class="toolbar" style="margin-top:18px"><button class="btn" data-act="seed">${ic("plus")}${t("Добави имената от списъка за проверки")}</button></div>
       ${S.staff.length ? S.staff.map((s, i) => `<form class="staff-row" data-staff="${i}">
           <div class="staff-name"><span class="avatar" aria-hidden="true">${esc(initials(s.name))}</span><span>${esc(s.name)}<br><span class="t-sub">${s.hasPin ? t("има ПИН") : t("без ПИН")}</span></span></div>
           <div class="field"><label for="sr-${i}">${t("Ранг")}</label><input type="text" id="sr-${i}" name="rank" maxlength="60" value="${esc(s.rank)}"></div>
           <div class="field"><label for="sp-${i}">${t("Позиция")}</label><input type="text" id="sp-${i}" name="position" maxlength="80" value="${esc(s.position)}"></div>
           <div class="field"><label for="sn-${i}">${t("ПИН (4–8 цифри)")}</label><input type="password" id="sn-${i}" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" autocomplete="new-password" placeholder="${s.hasPin ? "••••" : ""}"></div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-primary" type="submit">${t("Запази")}</button>${s.hasPin ? `<button class="btn btn-ghost" type="button" data-act="nopin" data-name="${esc(s.name)}">${t("Махни ПИН")}</button>` : ""}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-primary" type="submit">${t("Запази")}</button>${s.hasPin ? `<button class="btn btn-ghost" type="button" data-act="nopin" data-name="${esc(s.name)}">${t("Махни ПИН")}</button>` : ""}
+            ${S.rmConfirm === s.name ? "" : `<button class="btn btn-ghost btn-danger" type="button" data-act="rm-staff" data-name="${esc(s.name)}">${t("Премахни")}</button>`}</div>
+          ${S.rmConfirm === s.name ? `<div class="confirm-row" role="alert"><span>${esc(S.rmText || (lang === "en" ? `Remove ${s.name}?` : `Да премахна ли ${s.name}?`))}</span>
+            <button class="btn btn-danger" type="button" data-act="rm-staff-yes" data-name="${esc(s.name)}">${t("Да, премахни")}</button><button class="btn btn-ghost" type="button" data-act="rm-staff-no">${t("Отказ")}</button></div>` : ""}
         </form>`).join("") : `<div class="empty">${t("Няма служители. Добавете ги от списъка за проверки.")}</div>`}
+      ${removed.length ? `<div class="section"><h3>${t("Премахнати служители")} <span class="count">${removed.length}</span></h3>
+        <div class="t-sub" style="margin:6px 0 10px">${t("Премахнатите не се виждат в приложението (проверки, задачи), но историята им остава.")}</div>
+        <div class="chips">${removed.map((r) => `<button class="chip" data-act="restore-staff" data-name="${esc(r.name)}">${esc(r.name)} · ${t("Върни")}</button>`).join("")}</div></div>` : ""}
     </div></div>`;
   }
   function historyHtml() {
@@ -521,7 +547,27 @@
         S.busy = false; render();
       };
     }
-    document.querySelectorAll("form.staff-row").forEach((fm) => {
+    const sa = document.getElementById("staff-add");
+    if (sa) {
+      const nf = S.nstaff;
+      const sync = () => { nf.name = sa.querySelector("#ns-name").value; nf.rank = sa.querySelector("#ns-rank").value; nf.position = sa.querySelector("#ns-pos").value; nf.pin = sa.querySelector("#ns-pin").value; };
+      sa.oninput = sync;
+      sa.onsubmit = async (e) => {
+        e.preventDefault(); sync(); if (S.busy) return;
+        const name = nf.name.trim().replace(/\s+/g, " ");
+        if (!/^[\u0400-\u04FF][\u0400-\u04FF ]{1,59}$/.test(name)) { flash("err", t("Името е на кирилица.")); return; }
+        if (nf.pin && !/^\d{4,8}$/.test(nf.pin)) { flash("err", lang === "en" ? "The PIN is 4–8 digits." : "ПИН-ът е от 4 до 8 цифри."); return; }
+        S.busy = true; render();
+        try {
+          const j = await call("tasksStaffAdd", { name, rank: nf.rank, position: nf.position, pin: nf.pin });
+          if (!j.success) throw new Error(j.error);
+          S.nstaff = null; S.busy = false; await load(); flash("ok", t("Служителят е добавен."));
+          return;
+        } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
+        S.busy = false; render();
+      };
+    }
+    document.querySelectorAll("form.staff-row[data-staff]").forEach((fm) => {
       fm.onsubmit = async (e) => {
         e.preventDefault();
         const s = S.staff[+fm.dataset.staff]; const pin = fm.pin.value.trim();
@@ -608,6 +654,27 @@
     if (act === "seed") {
       const names = await loadNames();
       try { const j = await call("tasksStaffSeed", { names }); if (!j.success) throw new Error(j.error); await load(); flash("ok", (lang === "en" ? "Added: " : "Добавени: ") + j.added); }
+      catch (err) { if (!err.handled) flash("err", err.message); }
+      return;
+    }
+    if (act === "rm-staff") { S.rmConfirm = el.dataset.name; S.rmText = ""; S.rmForce = false; render(); return; }
+    if (act === "rm-staff-no") { S.rmConfirm = ""; render(); return; }
+    if (act === "rm-staff-yes") {
+      const name = el.dataset.name;
+      try {
+        const j = await call("tasksStaffRemove", { name, force: S.rmForce });
+        if (!j.success && j.code === "HAS_OPEN") {
+          S.rmForce = true;
+          S.rmText = lang === "en" ? `${name} has ${j.open} open task(s). Remove anyway? The tasks stay.` : `${name} има ${j.open} отворени задачи. Да премахна ли въпреки това? Задачите остават.`;
+          render(); return;
+        }
+        if (!j.success) throw new Error(j.error);
+        S.rmConfirm = ""; await load(); flash("ok", t("Служителят е премахнат."));
+      } catch (err) { S.rmConfirm = ""; if (!err.handled) flash("err", err.message); }
+      return;
+    }
+    if (act === "restore-staff") {
+      try { const j = await call("tasksStaffAdd", { name: el.dataset.name }); if (!j.success) throw new Error(j.error); await load(); flash("ok", t("Служителят е върнат.")); }
       catch (err) { if (!err.handled) flash("err", err.message); }
       return;
     }
