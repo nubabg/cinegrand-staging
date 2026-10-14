@@ -164,6 +164,65 @@
   .stat span { font-size: 12.5px; color: var(--muted); }
   .staff-row { display: grid; gap: 10px; grid-template-columns: 1fr; padding: 14px 0; border-bottom: 1px solid var(--border); align-items: end; }
   @media (min-width: 820px) { .staff-row { grid-template-columns: 1.2fr 1fr 1.2fr 1fr auto; } }
+  /* Обзор */
+  .ov { display: grid; gap: 16px; }
+  .ov-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+  .ov-stats { margin: 0; }
+  .stat.bad { border-color: var(--red); background: var(--red-soft); }
+  .stat.bad b { color: var(--red); }
+  .delta { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); font-weight: 600; }
+  .delta.up { color: var(--green); } .delta.down { color: var(--red); }
+  .ov-grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 900px) { .ov-grid { grid-template-columns: 1fr 1fr; } }
+  .ov .card-head h3 { font-size: 15px; }
+  .recs { list-style: none; margin: 0; padding: 8px; display: grid; gap: 8px; }
+  .rec { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); border-left: 4px solid var(--gray); background: var(--panel-2); }
+  .rec-body { flex: 1 1 260px; min-width: 0; line-height: 1.45; }
+  .rec-sev { display: block; font-size: 11.5px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+  .rec-ic { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--panel-3); color: var(--muted); flex: none; }
+  .rec.high { border-left-color: var(--red); background: var(--red-soft); } .rec.high .rec-sev, .rec.high .rec-ic { color: var(--red); }
+  .rec.mid { border-left-color: var(--amber); } .rec.mid .rec-sev, .rec.mid .rec-ic { color: var(--amber); }
+  .rec.info { border-left-color: var(--blue); } .rec.info .rec-sev, .rec.info .rec-ic { color: var(--blue); }
+  .rec.good { border-left-color: var(--green); } .rec.good .rec-sev, .rec.good .rec-ic { color: var(--green); }
+  .bars { display: flex; align-items: flex-end; gap: 3px; height: 150px; padding-top: 6px; }
+  .bar { flex: 1 1 0; height: 100%; display: flex; align-items: flex-end; min-width: 0; }
+  .bar-in { width: 100%; min-height: 2px; background: var(--green); border-radius: 4px 4px 1px 1px; display: flex; flex-direction: column; overflow: hidden; opacity: .85; }
+  .bar-bad { width: 100%; background: var(--red); margin-top: 0; }
+  .bar:hover .bar-in { opacity: 1; }
+  .bars-x { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .legend { display: flex; gap: 14px; margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .lg-ok { background: var(--green); } .lg-bad { background: var(--red); }
+  .meter { height: 8px; border-radius: 999px; background: var(--panel-3); overflow: hidden; min-width: 60px; margin-bottom: 4px; }
+  .meter i { display: block; height: 100%; background: var(--red); border-radius: inherit; }
+  .hbars { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .hb-top { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; margin-bottom: 4px; }
+  .hbars .meter i { background: var(--amber); }
+  .ov-h4 { margin: 16px 0 8px; font-size: 13px; }
+  .bad-text { color: var(--red) !important; }
+  .mlbl { display: none; color: var(--muted); font-size: 12.5px; }
+  @media (max-width: 700px) { .mlbl { display: inline; } .tlist.static td .t-sub { display: inline; margin-left: 6px; } }
+  .ok-mark { color: var(--green); font-weight: 650; }
+  .tlist.mini td, .tlist.mini th { padding: 8px 10px; }
+  .tlist tr.today td { background: var(--amber-soft); }
+  .tlist.static tbody tr { cursor: default; animation: none; }
+  .tlist.static tbody tr:hover { background: transparent; }
+  img.avatar { display: block; object-fit: cover; background: var(--panel-3); }
+  .avatar.adm { background: var(--blue-soft); color: var(--blue); }
+  .avatar.sm { width: 28px; height: 28px; font-size: 11px; }
+  .avatar.lg { width: 40px; height: 40px; font-size: 14px; }
+  .avatar.xl { width: 112px; height: 112px; font-size: 36px; }
+  .photo-pick { position: relative; display: inline-block; cursor: pointer; border-radius: 50%; flex: none; }
+  .photo-pick:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .photo-badge { position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); border: 2px solid var(--panel); }
+  .photo-badge .icon { width: 11px; height: 11px; }
+  .photo-pick.big .photo-badge { width: 32px; height: 32px; right: 2px; bottom: 2px; }
+  .photo-pick.big .photo-badge .icon { width: 16px; height: 16px; }
+  .profile { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .who-btn { all: unset; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; border-radius: 999px; padding: 2px 8px 2px 2px; }
+  .who-btn:focus-visible { outline: 2px solid var(--accent); }
+  label.btn { position: relative; }
+  @media (max-width: 440px) { .who-btn .who { display: none; } }
   .confirm-row { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--red-soft); border: 1px solid var(--red); }
   .confirm-row span { flex: 1 1 220px; font-weight: 650; }
   .add-staff { padding-bottom: 18px; border-bottom: 1px solid var(--border); }
@@ -209,6 +268,13 @@
   <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
   <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 6-7"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
   <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
 </svg>
 <div class="wrap" id="app" aria-live="polite"></div>
@@ -250,6 +316,9 @@
     "Служителят вижда коментарите и оценката с ПИН-а си.": "The employee sees comments and the rating with their PIN.",
     "Връщането във „Възложена“ изчиства изпълнението и оценката — старите стойности остават в коментарите.": "Moving back to “Assigned” clears the completion and the rating — the old values stay in the comments.",
     "Още няма коментари.": "No comments yet.", "Нов служител": "New employee", "Име и фамилия": "Full name", "Добави служителя": "Add employee",
+    "Профил": "Profile", "Обзор": "Overview", "Снимка": "Photo", "Качи снимка": "Upload photo", "Махни снимката": "Remove photo", "Снимката е записана.": "Photo saved.",
+    "Файлът не е снимка.": "The file is not an image.", "Снимката е твърде голяма.": "The photo is too large.", "Име, което виждат служителите": "Name shown to employees",
+    "Снимката и името се виждат от служителите до „Възложил“ в задачите.": "Employees see this photo and name next to “Assigned by” in their tasks.",
     "Премахни": "Remove", "Да, премахни": "Yes, remove", "Отказ": "Cancel", "Премахнати служители": "Removed employees", "Върни": "Restore", "Служителят е добавен.": "Employee added.",
     "Служителят е премахнат.": "Employee removed.", "Служителят е върнат.": "Employee restored.", "Името е на кирилица.": "The name must be in Cyrillic.",
     "Премахнатите не се виждат в приложението (проверки, задачи), но историята им остава.": "Removed employees disappear from the app (inspections, tasks), but their history stays.",
@@ -261,7 +330,7 @@
   const app = document.getElementById("app");
   document.title = t("Задачи · Администратор");
 
-  const S = { session: null, tasks: [], staff: [], tab: "tasks", filter: "", q: "", who: "", open: null, msg: null, busy: false, score: 0, confirm: "", histName: "" };
+  const S = { session: null, tasks: [], staff: [], tab: "overview", filter: "", q: "", who: "", open: null, msg: null, busy: false, score: 0, confirm: "", histName: "" };
   try { const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null"); if (s && s.exp > Date.now()) S.session = s; } catch (_) {}
 
   /* ── Заявки към Apps Script ── */
@@ -293,8 +362,29 @@
       const j = await call("tasksAdminList");
       if (!j.success) throw new Error(j.error);
       S.tasks = j.tasks || []; S.staff = j.staff || []; S.removed = j.removed || [];
+      if (j.photoVer && (!S.photos || S.photos.ver !== j.photoVer)) await loadPhotos();
     } catch (e) { if (!e.handled) S.msg = { kind: "err", text: e.message || String(e) }; }
     S.busy = false; render();
+  }
+  async function loadPhotos() {
+    try { const p = await call("tasksPhotos"); if (p && p.success) S.photos = { ver: p.ver, staff: p.staff || {}, admins: p.admins || {} }; } catch (_) {}
+  }
+  /* Снимка от телефона/компютъра → квадрат до 160×160 JPEG (≈10 KB). */
+  async function shrinkPhoto(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error(t("Файлът не е снимка."))); i.src = url; });
+      const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height, side = Math.min(w, h);
+      if (!side) throw new Error(t("Файлът не е снимка."));
+      for (const [size, q] of [[160, .82], [128, .72], [96, .62]]) {
+        const c = document.createElement("canvas"); c.width = c.height = size;
+        const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, size, size);
+        g.drawImage(img, (w - side) / 2, (h - side) / 2, side, side, 0, 0, size, size);
+        const d = c.toDataURL("image/jpeg", q);
+        if (d.length <= 44000) return d;
+      }
+      throw new Error(t("Снимката е твърде голяма."));
+    } finally { URL.revokeObjectURL(url); }
   }
   async function loadNames() {
     try {
@@ -312,8 +402,13 @@
   const prioTag = (p) => p ? `<span class="tag ${p === "Висок" ? "p-high" : p === "Спешен" ? "p-urgent" : ""}">${esc(t(p))}</span>` : "";
   const initials = (n) => String(n || "?").trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   const staffOf = (name) => S.staff.find((s) => s.name === name) || { name };
+  const imgOk = (u) => /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(u || "");
+  const avatar = (name, photo, cls) => imgOk(photo) ? `<img class="avatar ${cls || ""}" src="${photo}" alt="" aria-hidden="true">` : `<span class="avatar ${cls || ""}" aria-hidden="true">${esc(initials(name))}</span>`;
+  const staffPhoto = (name) => (S.photos && S.photos.staff[name]) || "";
+  const adminOf = (u) => (S.photos && S.photos.admins[String(u || "").toLowerCase()]) || {};
+  const adminPerson = (u) => u ? `<div class="person">${avatar(adminOf(u).name || u, adminOf(u).photo, "adm")}<span>${esc(adminOf(u).name || u)}</span></div>` : "—";
   const person = (name) => { const s = staffOf(name); const sub = [s.rank, s.position].filter(Boolean).join(" · ");
-    return `<div class="person"><span class="avatar" aria-hidden="true">${esc(initials(name))}</span><span>${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ""}</span></div>`; };
+    return `<div class="person">${avatar(name, staffPhoto(name))}<span>${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ""}</span></div>`; };
   const isoToBg = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? `${m[3]}.${m[2]}.${m[1]}` : ""; };
   const parseBg = (s) => { const m = /(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?/.exec(s || ""); return m ? new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)).getTime() : 0; };
   const days = (n) => lang === "en" ? `${n} ${n === 1 ? "day" : "days"}` : `${n} ${n === 1 ? "ден" : "дни"}`;
@@ -337,14 +432,14 @@
   function topHtml() {
     return `<div class="top">
       <div class="brand"><img src="favicon.svg" alt=""><span>CINE GRAND<small>${t("Задачи")}</small></span></div>
-      <div class="top-right"><span class="who">${esc(S.session.user)}</span>
+      <div class="top-right"><button class="who-btn" data-tab="profile" title="${t("Профил")}">${avatar(adminOf(S.session.user).name || S.session.user, adminOf(S.session.user).photo, "sm")}<span class="who">${esc(adminOf(S.session.user).name || S.session.user)}</span></button>
         <button class="btn" data-act="reload"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ic("refresh")}${t("Обнови")}</button>
         <button class="btn btn-ghost" data-act="logout">${ic("out")}${t("Изход")}</button></div></div>`;
   }
   function tabsHtml() {
     const waiting = S.tasks.filter((x) => x.status === "Изпълнена").length;
     const tab = (id, label, n) => `<button class="tab" role="tab" data-tab="${id}" aria-selected="${S.tab === id}">${label}${n ? ` <span class="count">${n}</span>` : ""}</button>`;
-    return `<div class="tabs" role="tablist">${tab("tasks", t("Задачи"), waiting)}${tab("new", ic("plus") + t("Нова задача"))}${tab("staff", t("Служители"))}${tab("history", t("История"))}</div>`;
+    return `<div class="tabs" role="tablist">${tab("overview", ic("trend") + t("Обзор"))}${tab("tasks", t("Задачи"), waiting)}${tab("new", ic("plus") + t("Нова задача"))}${tab("staff", t("Служители"))}${tab("history", t("История"))}${tab("profile", t("Профил"))}</div>`;
   }
   function tasksHtml() {
     if (S.open) return detailHtml(S.tasks.find((x) => x.id === S.open));
@@ -365,7 +460,7 @@
         ${list.map((x, i) => `<tr data-open="${esc(x.id)}" tabindex="0"${x.overdue ? ' class="late"' : ""} style="animation-delay:${Math.min(i, 12) * 35}ms">
           <td class="no">${i + 1}</td>
           <td><div class="t-title">${esc(x.title)}</div><div class="t-sub">${esc([x.category, t(x.priority)].filter(Boolean).join(" · "))}</div></td>
-          <td>${esc(x.assignee)}</td><td>${esc(x.createdBy || "—")}</td>
+          <td>${esc(x.assignee)}</td><td>${adminPerson(x.createdBy)}</td>
           <td>${x.overdue ? lateBadge(x.overdue) : badge(x.status)}${x.score ? ` <span class="tag">${esc(x.score)}/10</span>` : ""}</td>
           <td class="right"${x.overdue ? ' style="color:var(--red);font-weight:800"' : ""}>${esc(x.due || "—")}</td></tr>`).join("")}</tbody></table>`
         : `<div class="empty">${S.busy ? `<span class="spin"></span> ${t("Зарежда…")}` : t("Няма задачи.")}</div>`}
@@ -388,7 +483,7 @@
           <div class="meta-item">${ic("users")}<div style="min-width:0"><div class="meta-label">${t("Изпълнител")}</div>${person(x.assignee)}</div></div>
           <div class="meta-item">${ic("cal")}<div><div class="meta-label">${t("Дата")}</div><div class="meta-val" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${esc(x.created)} ${ic("arrow")} <span class="${x.overdue ? "due-late" : ""}">${esc(x.due || t("Без срок"))}</span></div></div></div>
           <div class="meta-item">${ic("tag")}<div><div class="meta-label">${t("Етикети")}</div><div class="tags">${x.category ? `<span class="tag">${esc(x.category)}</span>` : ""}${prioTag(x.priority)}</div></div></div>
-          <div class="meta-item">${ic("users")}<div><div class="meta-label">${t("Възложил")}</div><div class="meta-val">${esc(x.createdBy || "—")}</div></div></div>
+          <div class="meta-item">${ic("users")}<div><div class="meta-label">${t("Възложил")}</div>${adminPerson(x.createdBy)}</div></div>
           <div class="meta-item span-2">${ic("text")}<div style="min-width:0"><div class="meta-label">${t("Описание")}</div><div class="desc">${esc(x.description || "—")}</div></div></div>
         </div>
         ${x.doneAt ? `<div class="section"><h3>${ic("clock")}${t("Изпълнение")}</h3>
@@ -456,11 +551,11 @@
       </form>
       <div class="toolbar" style="margin-top:18px"><button class="btn" data-act="seed">${ic("plus")}${t("Добави имената от списъка за проверки")}</button></div>
       ${S.staff.length ? S.staff.map((s, i) => `<form class="staff-row" data-staff="${i}">
-          <div class="staff-name"><span class="avatar" aria-hidden="true">${esc(initials(s.name))}</span><span>${esc(s.name)}<br><span class="t-sub">${s.hasPin ? t("има ПИН") : t("без ПИН")}</span></span></div>
+          <div class="staff-name"><label class="photo-pick" title="${t("Снимка")}">${avatar(s.name, staffPhoto(s.name), "lg")}<input type="file" accept="image/*" class="sr" data-photo-for="${esc(s.name)}" aria-label="${t("Снимка")}: ${esc(s.name)}"><span class="photo-badge" aria-hidden="true">${ic("camera")}</span></label><span>${esc(s.name)}<br><span class="t-sub">${s.hasPin ? t("има ПИН") : t("без ПИН")}</span></span></div>
           <div class="field"><label for="sr-${i}">${t("Ранг")}</label><input type="text" id="sr-${i}" name="rank" maxlength="60" value="${esc(s.rank)}"></div>
           <div class="field"><label for="sp-${i}">${t("Позиция")}</label><input type="text" id="sp-${i}" name="position" maxlength="80" value="${esc(s.position)}"></div>
           <div class="field"><label for="sn-${i}">${t("ПИН (4–8 цифри)")}</label><input type="password" id="sn-${i}" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" autocomplete="new-password" placeholder="${s.hasPin ? "••••" : ""}"></div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-primary" type="submit">${t("Запази")}</button>${s.hasPin ? `<button class="btn btn-ghost" type="button" data-act="nopin" data-name="${esc(s.name)}">${t("Махни ПИН")}</button>` : ""}
+          <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-primary" type="submit">${t("Запази")}</button>${s.hasPin ? `<button class="btn btn-ghost" type="button" data-act="nopin" data-name="${esc(s.name)}">${t("Махни ПИН")}</button>` : ""}${staffPhoto(s.name) ? `<button class="btn btn-ghost" type="button" data-act="nophoto" data-name="${esc(s.name)}">${t("Махни снимката")}</button>` : ""}
             ${S.rmConfirm === s.name ? "" : `<button class="btn btn-ghost btn-danger" type="button" data-act="rm-staff" data-name="${esc(s.name)}">${t("Премахни")}</button>`}</div>
           ${S.rmConfirm === s.name ? `<div class="confirm-row" role="alert"><span>${esc(S.rmText || (lang === "en" ? `Remove ${s.name}?` : `Да премахна ли ${s.name}?`))}</span>
             <button class="btn btn-danger" type="button" data-act="rm-staff-yes" data-name="${esc(s.name)}">${t("Да, премахни")}</button><button class="btn btn-ghost" type="button" data-act="rm-staff-no">${t("Отказ")}</button></div>` : ""}
@@ -494,9 +589,158 @@
         </tbody></table></div></div>`;
   }
 
+  /* ══ Обзор: обобщение от всички листове + препоръки ══
+     Всичко се смята от Apps Script (tasksOverview); тук само се показва и
+     от числата се извеждат препоръки — правила, не догадки. */
+  const L = (bg, en) => lang === "en" ? en : bg;
+  const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+  const plural = (n, one, many, enOne, enMany) => lang === "en" ? `${n} ${n === 1 ? enOne : enMany}` : `${n} ${n === 1 ? one : many}`;
+  const dd = (n) => plural(n, "ден", "дни", "day", "days");
+  const shortD = (s) => String(s || "").slice(0, 5);
+  async function loadOverview(fresh) {
+    if (S.ovBusy) return;
+    S.ovBusy = true; S.ovErr = ""; if (S.tab === "overview") render();
+    try {
+      const j = await call("tasksOverview", fresh ? { fresh: true } : {});
+      if (!j.success) throw new Error(j.error);
+      S.ov = j;
+    } catch (err) { if (!err.handled) S.ovErr = err.message || String(err); }
+    S.ovBusy = false; if (S.tab === "overview") render();
+  }
+  /* Препоръки: sev = high (червено) / mid (жълто) / info / good (зелено).
+     act = бутон „Възложи като задача" с попълнени заглавие, срок и категория. */
+  function recommendations(o) {
+    const out = [], I = o.inspections || {}, R = o.rooms || {}, K = o.tasks || {}, F = o.lostFound || {};
+    const room = (r) => [!r.male && L("мъжка", "men's"), !r.female && L("женска", "women's")].filter(Boolean).join(L(" и ", " and "));
+    // Съблекални: днес / следващо / пропуснати.
+    if (R.found) {
+      const nx = (R.upcoming || [])[0];
+      if (nx && nx.days === 0 && (!nx.male || !nx.female)) out.push({ sev: "high", icon: "clock", text: L(`Днес (${nx.date}) трябва да се почистят съблекалните — още не е отчетена: ${room(nx)}.`, `The changing rooms must be cleaned today (${nx.date}) — not reported yet: ${room(nx)}.`),
+        act: { title: L("Почистване на съблекалните", "Changing room cleaning"), due: nx.date, category: "Почистване", priority: "Висок" } });
+      const next = (R.upcoming || []).find((r) => r.days > 0);
+      if (next) out.push({ sev: "info", icon: "cal", text: L(`Следващо почистване на съблекалните: ${next.date} (след ${dd(next.days)}).`, `Next changing room cleaning: ${next.date} (in ${dd(next.days)}).`),
+        act: { title: L("Почистване на съблекалните", "Changing room cleaning"), due: next.date, category: "Почистване", priority: "Нормален" } });
+      if (!R.upcoming || !R.upcoming.length) out.push({ sev: "mid", icon: "cal", text: L("В листа „Почистване съблекални“ няма бъдещи дати — добавете графика.", "The „Почистване съблекални“ sheet has no future dates — add the schedule.") });
+      if (R.missed && R.missed.length) out.push({ sev: "high", icon: "x", text: L(`Пропуснато почистване на съблекалните (${o.days} дни): `, `Missed changing room cleaning (${o.days} days): `) + R.missed.slice(0, 5).map((m) => `${shortD(m.date)} (${room(m)})`).join(", ") + (R.missed.length > 5 ? "…" : "") });
+    } else out.push({ sev: "info", icon: "cal", text: L("Листът „Почистване съблекални“ липсва — графикът не може да се следи.", "The „Почистване съблекални“ sheet is missing — the schedule can't be tracked.") });
+    // Общ процент проблеми спрямо предишния период.
+    if (I.n >= 5 && I.prevN >= 5) {
+      const now = pct(I.p, I.n), before = pct(I.prevP, I.prevN);
+      if (now - before >= 5) out.push({ sev: "high", icon: "trend", text: L(`Проблемите растат: ${now}% от проверките (преди ${before}%).`, `Problems are rising: ${now}% of inspections (previously ${before}%).`) });
+      else if (before - now >= 5) out.push({ sev: "good", icon: "trend", text: L(`Подобрение: ${now}% от проверките с проблем (преди ${before}%).`, `Improvement: ${now}% of inspections with problems (previously ${before}%).`) });
+    }
+    // Зони с най-много проблеми.
+    (I.locations || []).filter((l) => l.n >= 3 && l.p / l.n >= .3).slice(0, 3).forEach((l) => {
+      const top = (l.top || []).map((x) => `„${x[0]}“`).join(", ");
+      out.push({ sev: l.p / l.n >= .5 ? "high" : "mid", icon: "pin", text: L(`${l.name}: ${pct(l.p, l.n)}% от проверките с проблем (${l.p} от ${l.n}).${top ? " Най-често: " + top + "." : ""} Съсредоточете почистването тук.`,
+        `${l.name}: ${pct(l.p, l.n)}% of inspections with problems (${l.p} of ${l.n}).${top ? " Most often: " + top + "." : ""} Focus cleaning here.`),
+        act: { title: L(`Основно почистване: ${l.name}`, `Deep clean: ${l.name}`), description: top ? L("Най-чести проблеми: ", "Most frequent problems: ") + top : "", category: "Почистване", priority: l.p / l.n >= .5 ? "Висок" : "Нормален" } });
+    });
+    // Непроверявани зони.
+    const stale = (I.locations || []).filter((l) => l.since != null && l.since >= 3).sort((a, b) => b.since - a.since);
+    if (stale.length) out.push({ sev: stale[0].since >= 7 ? "high" : "mid", icon: "eye", text: L("Отдавна непроверявани: ", "Not inspected for a while: ") + stale.slice(0, 4).map((l) => `${l.name} (${dd(l.since)})`).join(", ") + (stale.length > 4 ? "…" : "") + "." });
+    // Растящ проблем + най-честият.
+    const rising = (I.issues || []).find((x) => x.n >= 3 && (x.prev ? x.n >= x.prev * 1.5 : x.n >= 4));
+    if (rising) out.push({ sev: "mid", icon: "trend", text: L(`„${rising.name}“ се среща все по-често: ${rising.n} пъти (преди ${rising.prev}).`, `“${rising.name}” is becoming more frequent: ${rising.n} times (previously ${rising.prev}).`) });
+    const top = (I.issues || [])[0];
+    if (top && top !== rising && top.n >= 3) out.push({ sev: "info", icon: "info", text: L(`Най-честият проблем е „${top.name}“ — ${top.n} пъти за ${o.days} дни. Обсъдете го на инструктажа.`, `The most frequent problem is “${top.name}” — ${top.n} times in ${o.days} days. Bring it up at the briefing.`) });
+    if (I.zeroDays >= 2) out.push({ sev: "mid", icon: "cal", text: L(`${dd(I.zeroDays)} без нито една проверка през последните 2 седмици.`, `${dd(I.zeroDays)} without a single inspection in the last 2 weeks.`) });
+    const ins = (I.inspectors || [])[0];
+    if (ins && I.n >= 10 && ins.n / I.n >= .5) out.push({ sev: "info", icon: "users", text: L(`${ins.name} прави ${pct(ins.n, I.n)}% от проверките — разпределете ги по-равномерно.`, `${ins.name} does ${pct(ins.n, I.n)}% of the inspections — spread them more evenly.`) });
+    // Задачи.
+    if (K.overdue) out.push({ sev: "high", icon: "clock", text: plural(K.overdue, "просрочена задача", "просрочени задачи", "overdue task", "overdue tasks") + (K.late && K.late[0] ? L(` — най-много при ${K.late[0][0]} (${K.late[0][1]}).`, ` — most for ${K.late[0][0]} (${K.late[0][1]}).`) : "."), go: "late" });
+    if (K.waiting) out.push({ sev: "mid", icon: "star", text: plural(K.waiting, "задача чака", "задачи чакат", "task is waiting", "tasks are waiting") + L(" вашата оценка.", " for your rating."), go: "Изпълнена" });
+    if (K.done >= 3 && K.onTime / K.done < .7) out.push({ sev: "mid", icon: "clock", text: L(`Само ${pct(K.onTime, K.done)}% от задачите са изпълнени навреме — по-реалистични срокове или напомняне.`, `Only ${pct(K.onTime, K.done)}% of tasks were done on time — set more realistic due dates or remind people.`) });
+    if (K.avg != null && K.rated >= 3 && K.avg < 6) out.push({ sev: "mid", icon: "star", text: L(`Средната оценка на задачите е ${K.avg}/10 — обсъдете очакванията с екипа.`, `The average task rating is ${K.avg}/10 — discuss expectations with the team.`) });
+    if (F.old) out.push({ sev: "mid", icon: "box", text: plural(F.old, "вещ чака", "вещи чакат", "item has", "items have") + L(" в Lost & Found повече от 30 дни.", " been waiting in Lost & Found for more than 30 days.") });
+    const order = { high: 0, mid: 1, info: 2, good: 3 };
+    out.sort((a, b) => order[a.sev] - order[b.sev]);
+    if (!out.some((x) => x.sev === "high" || x.sev === "mid")) out.push({ sev: "good", icon: "check", text: L("Няма нищо спешно — всичко изглежда наред.", "Nothing urgent — everything looks fine.") });
+    return out;
+  }
+  function overviewHtml() {
+    const o = S.ov;
+    if (!o) return `<div class="card fade"><div class="card-body"><div class="empty">${S.ovErr ? esc(S.ovErr) + `<div style="margin-top:12px"><button class="btn" data-act="ov-reload">${ic("refresh")}${t("Обнови")}</button></div>` : `<span class="spin"></span> ${L("Чете всички листове…", "Reading all sheets…")}`}</div></div></div>`;
+    const I = o.inspections || {}, R = o.rooms || {}, K = o.tasks || {}, F = o.lostFound || {};
+    const rate = pct(I.p, I.n), prevRate = pct(I.prevP, I.prevN);
+    const delta = (a, b, unit, inverse) => { if (b == null) return ""; const d = a - b; if (!d) return `<span class="delta">= ${L("както преди", "same as before")}</span>`;
+      const good = inverse ? d < 0 : d > 0; return `<span class="delta ${good ? "up" : "down"}">${d > 0 ? "▲" : "▼"} ${Math.abs(d)}${unit} ${L("спрямо предишните", "vs previous")} ${o.days} ${L("дни", "days")}</span>`; };
+    const stat = (big, label, extra, cls) => `<div class="stat ${cls || ""}"><b>${big}</b><span>${label}</span>${extra || ""}</div>`;
+    const recs = recommendations(o);
+    const max = Math.max(1, ...(I.daily || []).map((d) => d.n));
+    const sevLabel = { high: L("Спешно", "Urgent"), mid: L("Внимание", "Attention"), info: L("Информация", "Info"), good: L("Добре", "Good") };
+    return `<div class="ov fade">
+      <div class="ov-head"><div><h1 class="title" style="margin:0">${L("Обзор", "Overview")}</h1>
+        <div class="t-sub">${L(`Последните ${o.days} дни · всички листове · обновено ${esc(o.at)}`, `Last ${o.days} days · all sheets · updated ${esc(o.at)}`)}</div></div>
+        <button class="btn" data-act="ov-reload"${S.ovBusy ? " disabled" : ""}>${S.ovBusy ? `<span class="spin"></span>` : ic("refresh")}${t("Обнови")}</button></div>
+      <div class="stats ov-stats">
+        ${stat(I.n || 0, L("проверки", "inspections"), delta(I.n || 0, I.prevN, ""))}
+        ${stat(rate + "%", L("с проблем", "with problems"), I.prevN ? delta(rate, prevRate, L(" т.", " pts"), true) : "", rate >= 30 ? "bad" : "")}
+        ${stat(K.open || 0, L("отворени задачи", "open tasks"), K.overdue ? `<span class="delta down">${K.overdue} ${L("просрочени", "overdue")}</span>` : "", K.overdue ? "bad" : "")}
+        ${stat(K.avg == null ? "—" : String(K.avg).replace(".", lang === "en" ? "." : ","), L("средна оценка на задачите", "average task rating"), K.done ? `<span class="delta">${pct(K.onTime, K.done)}% ${L("навреме", "on time")}</span>` : "")}
+        ${R.found ? stat(`${R.done}/${R.due}`, L("почиствания на съблекални", "changing room cleanings"), R.missed && R.missed.length ? `<span class="delta down">${R.missed.length} ${L("пропуснати", "missed")}</span>` : "", R.missed && R.missed.length ? "bad" : "") : ""}
+        ${F.found ? stat(F.open, L("отворени в Lost & Found", "open in Lost & Found"), F.old ? `<span class="delta down">${F.old} ${L("над 30 дни", "over 30 days")}</span>` : "") : ""}
+      </div>
+      <section class="card"><div class="card-head"><h3>${ic("star")}${L("Препоръки — върху какво да се съсредоточите", "Recommendations — what to focus on")}</h3><span class="count">${recs.length}</span></div>
+        <ul class="recs">${recs.map((r, i) => `<li class="rec ${r.sev}"><span class="rec-ic">${ic(r.icon)}</span><div class="rec-body"><span class="rec-sev">${sevLabel[r.sev]}</span><div>${esc(r.text)}</div></div>
+          ${r.act ? `<button class="btn" data-act="ov-assign" data-i="${i}">${ic("plus")}${L("Възложи като задача", "Assign as task")}</button>` : r.go ? `<button class="btn" data-act="ov-go" data-f="${esc(r.go)}">${L("Виж задачите", "View tasks")}</button>` : ""}</li>`).join("")}</ul></section>
+      <div class="ov-grid">
+        <section class="card"><div class="card-head"><h3>${ic("cal")}${L("Съблекални — график", "Changing rooms — schedule")}</h3></div><div class="card-body">
+          ${!R.found ? `<div class="t-sub">${L("Листът „Почистване съблекални“ липсва.", "The „Почистване съблекални“ sheet is missing.")}</div>` : `
+          <table class="tlist static mini"><thead><tr><th>${L("Дата", "Date")}</th><th>${L("Мъжка", "Men's")}</th><th>${L("Женска", "Women's")}</th></tr></thead><tbody>
+            ${(R.upcoming || []).map((r) => `<tr${r.days === 0 ? ' class="today"' : ""}><td><b>${esc(r.date)}</b><div class="t-sub">${r.days === 0 ? L("днес", "today") : r.days === 1 ? L("утре", "tomorrow") : L("след ", "in ") + dd(r.days)}</div></td>
+              <td><span class="mlbl">${L("Мъжка", "Men's")}: </span>${r.male ? `<span class="ok-mark">✓ ${esc(r.male)}</span>` : `<span class="t-sub">${L("не е отчетена", "not reported")}</span>`}</td><td><span class="mlbl">${L("Женска", "Women's")}: </span>${r.female ? `<span class="ok-mark">✓ ${esc(r.female)}</span>` : `<span class="t-sub">${L("не е отчетена", "not reported")}</span>`}</td></tr>`).join("") || `<tr><td colspan="3" class="t-sub">${L("Няма бъдещи дати в графика.", "No future dates in the schedule.")}</td></tr>`}
+          </tbody></table>
+          ${R.missed && R.missed.length ? `<h4 class="ov-h4 bad-text">${L("Пропуснати", "Missed")} (${R.missed.length})</h4><div class="chips">${R.missed.map((m) => `<span class="chip late">${esc(shortD(m.date))} · ${esc([!m.male && L("мъжка", "men's"), !m.female && L("женска", "women's")].filter(Boolean).join(" + "))}</span>`).join("")}</div>` : ""}`}
+        </div></section>
+        <section class="card"><div class="card-head"><h3>${ic("trend")}${L("Проверки по дни", "Inspections by day")}</h3></div><div class="card-body">
+          <div class="bars" role="img" aria-label="${L(`${I.n} проверки за ${o.days} дни, ${I.p} с проблем`, `${I.n} inspections in ${o.days} days, ${I.p} with problems`)}">
+            ${(I.daily || []).map((d) => `<div class="bar" title="${esc(d.date)}: ${d.n} ${L("проверки", "inspections")}, ${d.p} ${L("с проблем", "with problems")}"><div class="bar-in" style="height:${Math.round(d.n / max * 100)}%"><div class="bar-bad" style="height:${d.n ? Math.round(d.p / d.n * 100) : 0}%"></div></div></div>`).join("")}
+          </div>
+          <div class="bars-x"><span>${esc(shortD((I.daily || [])[0] && I.daily[0].date))}</span><span>${esc(shortD((I.daily || []).length && I.daily[I.daily.length - 1].date))}</span></div>
+          <div class="legend"><span><i class="lg-ok"></i>${L("чисто", "clean")}</span><span><i class="lg-bad"></i>${L("с проблем", "with problems")}</span></div>
+        </div></section>
+      </div>
+      <section class="card"><div class="card-head"><h3>${ic("pin")}${L("Зони — къде има най-много проблеми", "Areas — where most problems are")}</h3></div><div class="card-body">
+        ${(I.locations || []).length ? `<table class="tlist static"><thead><tr><th>${L("Зона", "Area")}</th><th>${L("Проверки", "Inspections")}</th><th>${L("С проблем", "With problems")}</th><th>${L("Последна проверка", "Last inspection")}</th><th>${L("Най-чести проблеми", "Most frequent problems")}</th></tr></thead><tbody>
+          ${I.locations.map((l) => `<tr${l.n >= 3 && l.p / l.n >= .5 ? ' class="late"' : ""}><td><b>${esc(l.name)}</b></td><td><span class="mlbl">${L("Проверки", "Inspections")}: </span>${l.n}</td>
+            <td><div class="meter" aria-hidden="true"><i style="width:${pct(l.p, l.n)}%"></i></div><span class="t-sub">${pct(l.p, l.n)}% (${l.p})</span></td>
+            <td><span class="mlbl">${L("Последна", "Last")}: </span>${esc(l.last || "—")}${l.since != null ? `<div class="t-sub${l.since >= 3 ? " bad-text" : ""}">${l.since === 0 ? L("днес", "today") : L("преди ", "") + dd(l.since) + L("", " ago")}</div>` : ""}</td>
+            <td class="t-sub">${(l.top || []).map((x) => `${esc(x[0])} (${x[1]})`).join(", ") || "—"}</td></tr>`).join("")}</tbody></table>` : `<div class="t-sub">${L("Още няма проверки.", "No inspections yet.")}</div>`}
+      </div></section>
+      <div class="ov-grid">
+        <section class="card"><div class="card-head"><h3>${ic("x")}${L("Най-чести проблеми", "Most frequent problems")}</h3></div><div class="card-body">
+          ${(I.issues || []).length ? `<ul class="hbars">${I.issues.map((x) => `<li><div class="hb-top"><span>${esc(x.name)}</span><b>${x.n}${x.prev ? `<span class="t-sub"> / ${L("преди", "before")} ${x.prev}</span>` : ""}</b></div><div class="meter"><i style="width:${Math.round(x.n / I.issues[0].n * 100)}%"></i></div></li>`).join("")}</ul>` : `<div class="t-sub">${L("Няма отбелязани проблеми. 👍", "No problems reported. 👍")}</div>`}
+        </div></section>
+        <section class="card"><div class="card-head"><h3>${ic("users")}${L("Проверяващи", "Inspectors")}</h3></div><div class="card-body">
+          ${(I.inspectors || []).length ? `<table class="tlist static mini"><thead><tr><th>${L("Служител", "Employee")}</th><th>${L("Проверки", "Inspections")}</th><th class="right">${L("Открити проблеми", "Problems found")}</th></tr></thead><tbody>
+            ${I.inspectors.map((w) => `<tr><td>${person(w.name)}</td><td><span class="mlbl">${L("Проверки", "Inspections")}: </span>${w.n}</td><td class="right"><span class="mlbl">${L("Открити проблеми", "Problems found")}: </span>${w.p}</td></tr>`).join("")}</tbody></table>` : `<div class="t-sub">—</div>`}
+        </div></section>
+      </div>
+    </div>`;
+  }
+  function profileHtml() {
+    const me = adminOf(S.session.user);
+    const pf = S.prof || (S.prof = { name: me.name || "" });
+    return `<div class="card fade"><div class="card-head"><span class="crumbs"><span>${t("Профил")}</span><span>${esc(S.session.user)}</span></span></div>
+      <div class="card-body">${msgHtml()}
+        <div class="profile">
+          <label class="photo-pick big">${avatar(me.name || S.session.user, me.photo, "xl")}<input type="file" accept="image/*" class="sr" data-photo-for="__me" aria-label="${t("Качи снимка")}"><span class="photo-badge" aria-hidden="true">${ic("camera")}</span></label>
+          <div style="flex:1 1 240px;min-width:0">
+            <div class="field"><label for="pf-name">${t("Име, което виждат служителите")}</label><input type="text" id="pf-name" maxlength="60" value="${esc(pf.name)}" placeholder="${esc(S.session.user)}"></div>
+            <div class="row-actions">
+              <button class="btn btn-primary" data-act="save-profile"${S.busy ? " disabled" : ""}>${t("Запази")}</button>
+              <label class="btn">${ic("camera")}${t("Качи снимка")}<input type="file" accept="image/*" class="sr" data-photo-for="__me"></label>
+              ${me.photo ? `<button class="btn btn-ghost" data-act="nophoto" data-name="__me">${t("Махни снимката")}</button>` : ""}
+            </div>
+            <div class="t-sub" style="margin-top:10px">${t("Снимката и името се виждат от служителите до „Възложил“ в задачите.")}</div>
+          </div>
+        </div>
+      </div></div>`;
+  }
   function render() {
     if (!S.session) { app.innerHTML = loginHtml(); bind(); return; }
-    let body = S.tab === "new" ? newHtml() : S.tab === "staff" ? staffHtml() : S.tab === "history" ? historyHtml() : tasksHtml();
+    let body = S.tab === "new" ? newHtml() : S.tab === "staff" ? staffHtml() : S.tab === "history" ? historyHtml() : S.tab === "profile" ? profileHtml() : S.tab === "overview" ? overviewHtml() : tasksHtml();
     /* Плавното появяване — само при смяна на изгледа, не при всяко
        прерисуване (съобщение, зареждане), иначе съдържанието мига. */
     const view = [S.tab, S.open || "", S.histName || ""].join("|");
@@ -521,7 +765,7 @@
           if (!j.success) throw new Error(j.error);
           S.session = { user: j.user, token: j.token, exp: Date.now() + (j.hours || 12) * 3600e3 - 60e3 };
           try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(S.session)); } catch (_) {}
-          S.busy = false; S.msg = null; await load(); return;
+          S.busy = false; S.msg = null; loadOverview(); await load(); return;
         } catch (err) { S.msg = { kind: "err", text: err.message || String(err) }; }
         S.busy = false; render();
       };
@@ -585,7 +829,24 @@
     if (who) who.onchange = () => { S.who = who.value; render(); };
     const rc = document.getElementById("rate-comment");
     if (rc) rc.oninput = () => { S.comment = rc.value; };
+    const pn = document.getElementById("pf-name");
+    if (pn) pn.oninput = () => { S.prof.name = pn.value; };
+    document.querySelectorAll("input[data-photo-for]").forEach((inp) => { inp.onchange = () => { const f = inp.files && inp.files[0]; if (f) setPhoto(inp.dataset.photoFor, f); }; });
     ["nt-text", "st-due", "st-note", "st-hours"].forEach((id) => { const n = document.getElementById(id); if (n) n.oninput = n.onchange = syncDetail; });
+  }
+  /* Нова снимка: "__me" = собственият профил, иначе — служител. */
+  async function setPhoto(who, file) {
+    if (S.busy) return;
+    let photo;
+    try { photo = await shrinkPhoto(file); } catch (err) { flash("err", err.message); return; }
+    S.busy = true; render();
+    try {
+      const j = who === "__me" ? await call("tasksProfileSave", { photo }) : await call("tasksStaffPhoto", { name: who, photo });
+      if (!j.success) throw new Error(j.error);
+      S.busy = false; await loadPhotos(); flash("ok", t("Снимката е записана."));
+      return;
+    } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
+    S.busy = false; render();
   }
   /* Полетата в детайла пазят стойностите си при прерисуване. */
   function syncDetail() {
@@ -596,7 +857,8 @@
   app.addEventListener("click", async (e) => {
     const el = e.target.closest("[data-act],[data-tab],[data-filter],[data-open],[data-score],[data-hist],[data-st]");
     if (!el) return;
-    if (el.dataset.tab) { S.tab = el.dataset.tab; S.open = null; S.msg = null; S.histName = ""; render(); return; }
+    if (el.dataset.tab === "overview" && !S.ov) loadOverview();
+    if (el.dataset.tab) { S.tab = el.dataset.tab; S.open = null; S.msg = null; S.histName = ""; S.prof = null; render(); return; }
     if (el.dataset.filter != null && el.classList.contains("chip")) { S.filter = el.dataset.filter; render(); return; }
     if (el.dataset.open) { S.open = el.dataset.open; S.tab = "tasks"; S.score = 0; S.comment = null; S.editRate = false; S.confirm = ""; S.st = null; S.noteText = ""; S.msg = null; render(); window.scrollTo(0, 0); return; }
     if (el.dataset.hist) { S.histName = el.dataset.hist; render(); return; }
@@ -604,7 +866,15 @@
     if (el.dataset.score) { S.score = +el.dataset.score; const rc = document.getElementById("rate-comment"); if (rc) S.comment = rc.value; render(); return; }
     const act = el.dataset.act;
     if (act === "logout") { logout(); return; }
-    if (act === "reload") { S.msg = null; load(); return; }
+    if (act === "reload") { S.msg = null; load(); if (S.tab === "overview") loadOverview(true); return; }
+    if (act === "ov-reload") { loadOverview(true); return; }
+    if (act === "ov-go") { S.tab = "tasks"; S.filter = el.dataset.f; S.open = null; render(); window.scrollTo(0, 0); return; }
+    if (act === "ov-assign") {
+      const r = recommendations(S.ov)[+el.dataset.i]; if (!r || !r.act) return;
+      const a = r.act, m = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(a.due || "");
+      S.form = { title: a.title, description: a.description || "", category: a.category || "", priority: a.priority || "Нормален", assignee: "", due: m ? `${m[3]}-${m[2]}-${m[1]}` : "" };
+      S.tab = "new"; S.msg = null; render(); window.scrollTo(0, 0); return;
+    }
     if (act === "close") { S.open = null; S.msg = null; render(); return; }
     if (act === "hist-close") { S.histName = ""; render(); return; }
     if (act === "edit-rate") { S.editRate = true; render(); return; }
@@ -678,6 +948,24 @@
       catch (err) { if (!err.handled) flash("err", err.message); }
       return;
     }
+    if (act === "save-profile") {
+      S.busy = true; render();
+      try {
+        const j = await call("tasksProfileSave", { name: (S.prof && S.prof.name) || "" });
+        if (!j.success) throw new Error(j.error);
+        S.busy = false; await loadPhotos(); S.prof = null; flash("ok", t("Записано."));
+      } catch (err) { S.busy = false; if (!err.handled) flash("err", err.message); }
+      return;
+    }
+    if (act === "nophoto") {
+      const who = el.dataset.name;
+      try {
+        const j = who === "__me" ? await call("tasksProfileSave", { photo: "" }) : await call("tasksStaffPhoto", { name: who, photo: "" });
+        if (!j.success) throw new Error(j.error);
+        await loadPhotos(); flash("ok", t("Записано."));
+      } catch (err) { if (!err.handled) flash("err", err.message); }
+      return;
+    }
     if (act === "nopin") {
       const s = S.staff.find((y) => y.name === el.dataset.name);
       try { const j = await call("tasksStaffSave", { name: s.name, rank: s.rank, position: s.position, pin: "" }); if (!j.success) throw new Error(j.error); await load(); flash("ok", t("Записано.")); }
@@ -689,7 +977,7 @@
   });
 
   render();
-  if (S.session) load();
+  if (S.session) { load(); loadOverview(); }
 })();
 </script>
 </body>
