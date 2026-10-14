@@ -2842,7 +2842,7 @@
       const CG_PERF_MAX = 400;
       /* Версия на кода — всяко измерване я помни, за да се вижда кое е
          отпреди и кое отслед промяна. */
-      const CG_BUILD = "2026-10-14b";
+      const CG_BUILD = "2026-10-15a";
       const CG_PERF_METRICS = [
         ["boot.html",      "Сваляне и стартиране на страницата", "От отваряне на адреса до готов код (без проверка на достъпа).", "Page download and start-up", "From opening the address until the code is ready (before the access check)."],
         ["boot.ip",        "IP проверка", "Външна услуга казва IP адреса; сравнява се със списъка на киното.", "IP check", "An external service reports the IP address; it is compared with the cinema list."],
@@ -2853,7 +2853,8 @@
         ["sheets.ping",    "Събуждане на сървъра", "Празна заявка към Apps Script; дълга = сървърът е „спал“.", "Server wake-up", "Empty request to Apps Script; long = the server was asleep."],
         ["sheets.recent",  "Четене: последните 600 проверки", "Началният екран; на всеки 3 минути.", "Read: last 600 inspections", "Home screen; every 3 minutes."],
         ["data.fresh",     "Отваряне → свежи данни на екрана", "Докато дойдат, се виждат данните от предишния път.", "Open → fresh data on screen", "Until it arrives, the data from last time is shown."],
-        ["sheets.full",    "Четене: цялата история („Данни“)", "Расте с броя на проверките.", "Read: full history (Data)", "Grows with the number of inspections."],
+        ["charts.ready",   "„Данни“ → актуални данни", "От отваряне на „Данни“ до „✓ Актуално“.", "Data → up-to-date data", "From opening Data until “✓ Up to date”."],
+        ["sheets.full",    "Четене: цялата история („Данни“)", "Расте с броя на проверките; след първия път — най-много веднъж на 24 ч, отзад.", "Read: full history (Data)", "Grows with the number of inspections; after the first time — at most once a day, in the background."],
         ["sheets.lf",      "Четене: Lost & Found", "", "Read: Lost & Found", ""],
         ["insp.write",     "Нова проверка → записана в таблицата", "От „Запази“ до потвърждение от Google Sheets.", "New inspection → saved in the sheet", "From “Save” until Google Sheets confirms."],
         ["insp.visible",   "Нова проверка → вижда се в данните", "От „Запази“ до момента, в който тя идва обратно от таблицата.", "New inspection → visible in the data", "From “Save” until it comes back from the sheet."],
@@ -4024,8 +4025,8 @@
           (m, n, l) => `${n} inspection${n === "1" ? "" : "s"} waiting to be sent (${l}). Kept on this device and sent automatically.`],
         [/^Показани са данните от (.+)\. Обновява се от таблицата…$/, "Showing data from $1. Refreshing from the sheet…"],
         [/^✓ Актуално · (\d+) (?:вещ|вещи) в регистъра · заредено в (.+)$/, (m, n, t) => `✓ Up to date · ${n} item${n === "1" ? "" : "s"} in the register · loaded at ${t}`],
-        [/^✓ Актуално · (\d+) записа от таблицата · заредено в (.+?)(?: · (\d+) без разчетима дата \(не влизат в графиките по дни и часове\))?$/,
-          (m, n, t, nd) => `✓ Up to date · ${n} records from the sheet · loaded at ${t}${nd ? ` · ${nd} without a readable date (left out of the day and hour charts)` : ""}`],
+        [/^✓ Актуално · (\d+) записа от таблицата · заредено в (.+?)(?: · по-старите от пълно зареждане (.+?))?(?: · (\d+) без разчетима дата \(не влизат в графиките по дни и часове\))?$/,
+          (m, n, t, full, nd) => `✓ Up to date · ${n} records from the sheet · loaded at ${t}${full ? ` · older ones from the full load ${full}` : ""}${nd ? ` · ${nd} without a readable date (left out of the day and hour charts)` : ""}`],
         [/^⚠ Дойдоха (\d+) от (\d+) записа\. Натисни „Обнови“\.$/, "⚠ Received $1 of $2 records. Press “Refresh”."],
         [/^Последното опресняване не успя \((.+)\)\. Показани са данните от (.+)\.$/, "The last refresh failed ($1). Showing data from $2."],
         [/^Не успях да обновя данните \((.+)\)\. Показана е пълната история от (.+) — (\d+) записа; по-новите проверки липсват\.$/,
@@ -6630,6 +6631,9 @@
       let _rowsFetchedAt = 0;
       let _rowsServerTotal = null;
       let _rowsRawCount = 0;
+      /* Кога е дошла последната ЦЯЛА история (по-старата част от данните на
+         „Данни" е оттогава, ако след това са сливани само скорошни редове). */
+      let _rowsFullAt = 0;
       /* Последната пълна история от диска ({at, rows, total}) или null. */
       let _diskFull = null;
       let _diskFullLoaded = false;
@@ -6688,7 +6692,10 @@
            по-щедро за пълната история, по-кратко за скорошните редове. */
         const json = await fetchJsonRetry(url, { cache: "no-store" }, limit > 0
           ? { timeouts: [15000, 25000], backoffs: [800] }
-          : { timeouts: [30000, 50000], backoffs: [1500] });
+          /* Целият лист отнема над 30 с в Apps Script. Прекъсване на 30 с и
+             нов опит само започваше работата отначало (35–75 с общо), затова:
+             един дълъг опит; повторен — само при мрежова грешка. */
+          : { timeouts: [90000, 90000], backoffs: [1500], attempts: 2 });
         if (!json || !json.success) {
           const e = new Error((json && json.error) || 'Error');
           e.reason = (json && json.error) ? 'таблицата върна грешка: ' + json.error : 'невалиден отговор от таблицата';
@@ -6741,12 +6748,13 @@
               _rowsArePartial = partial;
               _rowsFetchedAt = Date.now();
               _rowsServerTotal = partial ? null : total;
+              if (!partial) _rowsFullAt = Date.now();
               _rowsRawCount = rawCount;
             }
             /* Пълната история се пази в браузъра — следващото отваряне на
                „Данни" я показва веднага, докато свежата идва. */
             if (!partial) {
-              _diskFull = { at: Date.now(), rows, total };
+              _diskFull = { at: Date.now(), fullAt: Date.now(), rows, total };
               idbSet("info_full", _diskFull);
             }
             /* Кешът служи само на началния екран и се пази отрязан, така че
@@ -7465,6 +7473,39 @@
           </div>`;
       }
 
+      /* ── „Данни" без пълно четене всеки път ──
+         Целият лист е бавен (над 30 с в Apps Script), а последните 600
+         проверки идват за ~3 с. Историята е в браузъра (IndexedDB), затова:
+         по-старата част от нея + последните 600 от таблицата, слети по „№".
+         Цялата история се тегли наново отзад най-много веднъж на 24 ч. */
+      const CG_FULL_REFRESH_MS = 24 * 60 * 60 * 1000;
+      function cgRowNo(r) { const v = String(colVal(r, "№") || "").trim(); return /^\d+$/.test(v) ? +v : null; }
+      /* null = не може да се слее надеждно → трябва цялата история. */
+      function cgMergeRecent(full, recent) {
+        if (!Array.isArray(full) || !full.length || !Array.isArray(recent) || !recent.length) return null;
+        const nums = recent.map(cgRowNo).filter((n) => n != null);
+        if (!nums.length) return null;
+        const minNo = Math.min(...nums);
+        const fullNums = full.map(cgRowNo).filter((n) => n != null);
+        /* Кешът трябва да стига поне до началото на скорошните редове —
+           иначе между тях липсват проверки. */
+        if (!fullNums.length || Math.max(...fullNums) < minNo - 1) return null;
+        let cut = full.findIndex((r) => { const n = cgRowNo(r); return n != null && n >= minNo; });
+        if (cut < 0) cut = full.length;
+        return full.slice(0, cut).concat(recent);
+      }
+      let _fullBgBusy = false;
+      function cgBackgroundFull() {
+        if (_fullBgBusy) return;
+        _fullBgBusy = true;
+        fetchSheetsRows(true).then(() => {
+          if (state.screen === "charts" && !_chartsLoading && !_rowsArePartial) {
+            const c = document.getElementById("charts-container");
+            if (c) { buildChartsFromData(c, _cachedChartRows); setChartsFresh("ok"); }
+          }
+        }).catch(() => {}).finally(() => { _fullBgBusy = false; });
+      }
+
       async function initChartsScreen(skipFetch, force) {
         if (_chartsLoading && !skipFetch) return;
         const container = document.getElementById('charts-container');
@@ -7495,7 +7536,48 @@
 
         _chartsLoading = true;
         const thisVersion = ++_chartsFetchVersion;
+        const openT0 = performance.now();
         console.log('[Charts] Fetching data (v' + thisVersion + ')…');
+
+        /* Бърз път: има история (в паметта или на диска) → показва се веднага,
+           а от таблицата идват само последните 600 и се сливат с нея. */
+        const memFull = _cachedChartRows && !_rowsArePartial ? { rows: _cachedChartRows, at: _rowsFetchedAt, fullAt: _rowsFullAt || _rowsFetchedAt } : null;
+        const base = memFull || await loadDiskFull();
+        if (base && base.rows && base.rows.length && cgMergeRecent(base.rows, base.rows.slice(-1)) !== null) {
+          const baseFullAt = base.fullAt || base.at;
+          const c0 = document.getElementById('charts-container');
+          if (c0 && state.screen === "charts" && thisVersion === _chartsFetchVersion) {
+            buildChartsFromData(c0, base.rows);
+            _chartsShown = { rows: base.rows, at: base.at };
+            setChartsFresh("loading", base.at);
+          }
+          let recent = null, err = null;
+          try { recent = await fetchSheetsRows(false); } catch (e) { err = e; }
+          const merged = recent ? cgMergeRecent(base.rows, recent) : null;
+          if (merged) {
+            _chartsLoading = false; _chartsShown = null; _chartsFail = null;
+            if (thisVersion !== _chartsFetchVersion) return;
+            _cachedChartRows = merged; _rowsArePartial = false;
+            _rowsFetchedAt = Date.now(); _rowsFullAt = baseFullAt; _rowsServerTotal = null;
+            _diskFull = { at: Date.now(), fullAt: baseFullAt, rows: merged };
+            idbSet("info_full", _diskFull);
+            const c2 = document.getElementById('charts-container');
+            if (c2 && state.screen === "charts") { buildChartsFromData(c2, merged); setChartsFresh("ok"); }
+            cgPerf.add("charts.ready", performance.now() - openT0, { ok: true, how: "merge" });
+            if (force || Date.now() - baseFullAt > CG_FULL_REFRESH_MS) cgBackgroundFull();
+            return;
+          }
+          if (err) {
+            _chartsLoading = false; _chartsShown = null;
+            if (thisVersion !== _chartsFetchVersion) return;
+            _chartsFail = { at: Date.now(), err };
+            const c2 = document.getElementById('charts-container');
+            if (c2 && state.screen === "charts") showChartsFallback(c2, err);
+            cgPerf.add("charts.ready", performance.now() - openT0, { ok: false, how: "merge" });
+            return;
+          }
+          /* Не може да се слее (кешът е твърде стар) — към цялата история. */
+        }
 
         /* Докато таблицата отговори: пълната история от последното отваряне,
            ясно надписана с часа си. Заявката тръгва веднага, не чака диска. */
@@ -7560,6 +7642,7 @@
           buildChartsFromData(c2, _cachedChartRows && !_rowsArePartial ? _cachedChartRows : rows);
           setChartsFresh("ok");
         }
+        cgPerf.add("charts.ready", performance.now() - openT0, { ok: true, how: "full" });
       }
 
       const chartsWhen = (t) => {
@@ -7580,6 +7663,9 @@
           const st = _chartsLastStats || {};
           const n = (_cachedChartRows || []).length;
           let txt = `✓ Актуално · ${n} записа от таблицата · заредено в ${chartsWhen(_rowsFetchedAt)}`;
+          /* Слети данни: последните 600 са от сега, по-старите — от пълното
+             зареждане. Казва се, за да е ясно откъде е всяка част. */
+          if (_rowsFullAt && _rowsFetchedAt - _rowsFullAt > 60000) txt += ` · по-старите от пълно зареждане ${chartsWhen(_rowsFullAt)}`;
           /* Сървърът брои непразните редове сам — ако бройките се разминават,
              нещо не е дошло и трябва да се каже. */
           if (_rowsServerTotal != null && _rowsServerTotal !== _rowsRawCount) {
