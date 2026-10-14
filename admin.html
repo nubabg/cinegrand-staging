@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Задачи · Администратор</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<style>
+  /* Цветове по темата от основното приложение (cg_theme). Пет теми —
+     две основи (тъмна/светла) с различен акцент. */
+  :root {
+    --bg: #090E14; --panel: #111A24; --panel-2: #16212D; --panel-3: #1c2a38;
+    --text: #ffffff; --muted: #B7C2D0; --muted-2: #94A2B4;
+    --border: rgba(255,255,255,.08); --border-strong: rgba(255,255,255,.16);
+    --accent: #E0A93F; --accent-ink: #1a1203; --accent-soft: rgba(224,169,63,.14);
+    --blue: #6aa8ff; --blue-soft: rgba(106,168,255,.14);
+    --amber: #f2bd52; --amber-soft: rgba(242,189,82,.14);
+    --green: #4fd18b; --green-soft: rgba(79,209,139,.14);
+    --red: #ff7a7a; --red-soft: rgba(255,122,122,.14);
+    --gray: #aab4c2; --gray-soft: rgba(170,180,194,.12);
+    --shadow: 0 24px 60px rgba(0,0,0,.45);
+    color-scheme: dark;
+  }
+  :root[data-theme="special-dark"] {
+    --bg: #0c151b; --panel: #14232b; --panel-2: #1a2d36; --panel-3: #213844;
+    --text: #f4fafb; --muted: #bdcdd3; --muted-2: #9fb3bb; --border: #2a3e47; --border-strong: #3a535e;
+    --accent: #34d3a6; --accent-ink: #062018; --accent-soft: rgba(52,211,166,.14);
+  }
+  :root[data-theme="light"], :root[data-theme="orange"], :root[data-theme="special-light"] {
+    --bg: #f4f6f8; --panel: #ffffff; --panel-2: #eef1f5; --panel-3: #e4e9ef;
+    --text: #1d2430; --muted: #56606e; --muted-2: #5f6a78;
+    --border: #dfe4ea; --border-strong: #c8d0da;
+    --accent: #8f5a00; --accent-ink: #ffffff; --accent-soft: rgba(143,90,0,.10);
+    --blue: #1d4ed8; --blue-soft: rgba(29,78,216,.09);
+    --amber: #92400e; --amber-soft: rgba(217,119,6,.13);
+    --green: #166534; --green-soft: rgba(22,101,52,.10);
+    --red: #b91c1c; --red-soft: rgba(185,28,28,.09);
+    --gray: #4b5563; --gray-soft: rgba(75,85,99,.10);
+    --shadow: 0 20px 48px rgba(15,23,42,.10), 0 3px 10px rgba(15,23,42,.05);
+    color-scheme: light;
+  }
+  :root[data-theme="orange"] { --accent: #b33f0a; --accent-soft: rgba(179,63,10,.10); }
+  :root[data-theme="special-light"] { --bg: #edf3f8; --panel-2: #f1f6fa; --border: #dfe8f0; --accent: #00785b; --accent-soft: rgba(0,120,91,.10); }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 15px/1.5 "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: .04em; }
+  .brand img { width: 30px; height: 30px; }
+  .brand small { display: block; font-weight: 600; letter-spacing: .12em; font-size: 11px; color: var(--muted); text-transform: uppercase; }
+  .top-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .who { font-size: 13px; color: var(--muted); }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 14px; border-radius: 10px;
+    border: 1px solid var(--border-strong); background: var(--panel-2); color: var(--text); font-weight: 650; cursor: pointer; transition: background .15s, border-color .15s, transform .1s; }
+  .btn:hover { background: var(--panel-3); }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible, .chip:focus-visible, .tab:focus-visible, .score:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .row-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn-primary:hover { background: var(--accent); filter: brightness(1.06); }
+  .btn-ghost { background: transparent; border-color: transparent; }
+  .btn-danger { color: var(--red); }
+  .btn[disabled] { opacity: .55; cursor: default; }
+  .icon { width: 18px; height: 18px; flex: none; }
+
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+  .card-head { padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--panel-2); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .crumbs { font-size: 13px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .crumbs span + span::before { content: "/"; margin: 0 8px; color: var(--muted-2); }
+  .card-body { padding: 22px; }
+  @media (min-width: 760px) { .card-body { padding: 30px; } }
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tab { border: 1px solid var(--border); background: var(--panel); color: var(--muted); padding: 9px 14px; border-radius: 999px; font-weight: 650; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
+  .tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .count { font-size: 12px; padding: 1px 7px; border-radius: 999px; background: var(--panel-3); color: var(--text); }
+  .tab[aria-selected="true"] .count { background: rgba(0,0,0,.18); color: inherit; }
+
+  h1.title { margin: 0 0 22px; font-size: clamp(22px, 4vw, 30px); line-height: 1.2; letter-spacing: -.01em; }
+  h3 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+  .meta { display: grid; grid-template-columns: 1fr; gap: 20px; font-size: 14px; }
+  @media (min-width: 640px) { .meta { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 960px) { .meta { grid-template-columns: 1fr 1fr 1fr; } }
+  .meta-item { display: flex; gap: 12px; align-items: flex-start; min-width: 0; }
+  .meta-item .icon { color: var(--muted-2); margin-top: 2px; }
+  .meta-label { color: var(--muted); font-size: 13px; }
+  .meta-val { margin-top: 4px; font-weight: 600; }
+  .span-2 { grid-column: 1 / -1; }
+  @media (min-width: 960px) { .span-2 { grid-column: span 2; } }
+  .desc { margin-top: 4px; color: var(--text); opacity: .9; white-space: pre-wrap; font-weight: 400; }
+  .section { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--border); }
+
+  .badge { display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; border: 1px solid transparent; padding: 3px 10px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+  .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .badge.pulse .dot { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+  .s-assigned { color: var(--blue); background: var(--blue-soft); border-color: color-mix(in srgb, var(--blue) 30%, transparent); }
+  .s-done { color: var(--amber); background: var(--amber-soft); border-color: color-mix(in srgb, var(--amber) 35%, transparent); }
+  .s-rated { color: var(--green); background: var(--green-soft); border-color: color-mix(in srgb, var(--green) 30%, transparent); }
+  .s-cancel { color: var(--gray); background: var(--gray-soft); border-color: color-mix(in srgb, var(--gray) 25%, transparent); }
+  .tag { display: inline-flex; border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-weight: 650; background: var(--panel-3); color: var(--text); }
+  .tag.p-high { background: var(--amber-soft); color: var(--amber); }
+  .tag.p-urgent { background: var(--red-soft); color: var(--red); }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+
+  .person { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 800; background: var(--accent-soft); color: var(--accent); flex: none; }
+  :root[data-theme="light"] .avatar, :root[data-theme="orange"] .avatar, :root[data-theme="special-light"] .avatar { color: var(--accent); }
+  .person small { display: block; color: var(--muted); font-weight: 500; font-size: 12.5px; }
+
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .toolbar input, .toolbar select { min-height: 40px; }
+  input[type=text], input[type=password], input[type=date], input[type=number], input[type=search], select, textarea {
+    width: 100%; min-width: 0; background: var(--panel-2); border: 1px solid var(--border-strong); border-radius: 10px; padding: 9px 12px; color: var(--text); }
+  textarea { min-height: 96px; resize: vertical; }
+  .field { display: grid; gap: 6px; min-width: 0; }
+  .field label { font-size: 13px; font-weight: 650; color: var(--muted); }
+  .grid2 { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 640px) { .grid2 { grid-template-columns: 1fr 1fr; } }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { border: 1px solid var(--border-strong); background: var(--panel); padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 650; cursor: pointer; color: var(--text); }
+  .chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+
+  /* Таблица със задачите; на телефон — карти. */
+  .tlist { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .tlist th { text-align: left; font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--muted); padding: 10px 12px; border-bottom: 1px solid var(--border); text-transform: uppercase; }
+  .tlist td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .tlist tbody tr { cursor: pointer; transition: background .15s; animation: rise .35s cubic-bezier(.22,1,.36,1) both; }
+  .tlist tbody tr:hover { background: var(--panel-2); }
+  .tlist.still tbody tr { animation: none; }
+  .tlist .no { color: var(--muted); width: 44px; }
+  .tlist .right { text-align: right; white-space: nowrap; color: var(--muted); }
+  .t-title { font-weight: 650; }
+  .t-sub { font-size: 12.5px; color: var(--muted); }
+  @media (max-width: 700px) {
+    .tlist thead { display: none; }
+    .tlist, .tlist tbody, .tlist tr, .tlist td { display: block; width: 100%; }
+    .tlist tr { border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; padding: 8px 4px; background: var(--panel); }
+    .tlist td { border: 0; padding: 4px 12px; }
+    .tlist .no { display: none; }
+    .tlist .right { text-align: left; }
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .fade { animation: rise .4s cubic-bezier(.22,1,.36,1) both; }
+  @media (prefers-reduced-motion: reduce) { .fade, .tlist tbody tr { animation: none; } .badge.pulse .dot { animation: none; } }
+
+  .scores { display: flex; gap: 6px; flex-wrap: wrap; }
+  .score { width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--panel-2); font-weight: 800; cursor: pointer; color: var(--text); }
+  .score[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .big-score { font-size: 34px; font-weight: 800; line-height: 1; }
+  .big-score small { font-size: 15px; color: var(--muted); font-weight: 600; }
+  .note { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; white-space: pre-wrap; }
+  .msg { padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; font-size: 14px; }
+  .msg.err { background: var(--red-soft); color: var(--red); }
+  .msg.ok { background: var(--green-soft); color: var(--green); }
+  .empty { text-align: center; color: var(--muted); padding: 40px 16px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 6px 0 18px; }
+  .stat { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+  .stat b { display: block; font-size: 22px; }
+  .stat span { font-size: 12.5px; color: var(--muted); }
+  .staff-row { display: grid; gap: 10px; grid-template-columns: 1fr; padding: 14px 0; border-bottom: 1px solid var(--border); align-items: end; }
+  @media (min-width: 820px) { .staff-row { grid-template-columns: 1.2fr 1fr 1.2fr 1fr auto; } }
+  .staff-name { font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .row-btn { all: unset; cursor: pointer; }
+  .login { max-width: 400px; margin: 8vh auto 0; }
+  .spin { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border-strong); border-top-color: var(--accent); animation: spin .8s linear infinite; display: inline-block; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- lucide иконки -->
+  <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h5M16 13H8M16 17H8M10 9H8"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+</svg>
+<div class="wrap" id="app" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+  /* Същият Apps Script и същата таблица като основното приложение. */
+  const SHEETS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxq3eE1B1UvvqDAJ-jHarX6IYRh3aZnKuzJOMdPszvWvQ-FG3cyiUJZP6MZ3nelSnfyVA/exec";
+  const SHEETS_SECRET_TOKEN = "cg-2025-secret-token";
+  const SESSION_KEY = "cg_tasks_admin";
+  const CATEGORIES = ["Почистване", "Зали", "Склад", "Бар", "Каса", "Фоайе", "Поддръжка", "Обучение", "Друго"];
+
+  /* Тема и език — от основното приложение. */
+  let theme = "dark", lang = "bg";
+  try { theme = localStorage.getItem("cg_theme") || "dark"; lang = localStorage.getItem("cg_lang") || "bg"; } catch (_) {}
+  if (theme !== "dark") document.documentElement.setAttribute("data-theme", theme);
+  document.documentElement.lang = lang === "en" ? "en" : "bg";
+
+  const EN = {
+    "Задачи · Администратор": "Tasks · Admin", "Вход за администратор": "Administrator sign-in", "Потребител": "Username", "Парола": "Password",
+    "Влез": "Sign in", "Изход": "Sign out", "Задачи": "Tasks", "Нова задача": "New task", "Служители": "Staff", "История": "History",
+    "Всички": "All", "Възложена": "Assigned", "Изпълнена": "Done", "Оценена": "Rated", "Отменена": "Cancelled", "Чака оценка": "Awaiting rating",
+    "Търси задача…": "Search tasks…", "Всички служители": "All staff", "Обнови": "Refresh", "Задача": "Task", "Изпълнител": "Assignee",
+    "Категория": "Category", "Статус": "Status", "Срок": "Due", "Няма задачи.": "No tasks.", "Заглавие": "Title", "Описание": "Description",
+    "Приоритет": "Priority", "Възложи на": "Assign to", "Избери служител…": "Choose a person…", "Възложи задачата": "Assign task",
+    "Дата": "Date", "Етикети": "Tags", "Изпълнение": "Completion", "Изпълнена на": "Completed on", "Часове": "Hours", "Бележка от служителя": "Note from the employee",
+    "Оценка": "Rating", "Коментар и препоръки": "Comment and recommendations", "Запази оценката": "Save rating", "Промени оценката": "Change rating",
+    "Отмени задачата": "Cancel task", "Сигурни ли сте? Натиснете пак.": "Are you sure? Tap again.", "Назад": "Back", "Ранг": "Rank", "Позиция": "Position",
+    "ПИН (4–8 цифри)": "PIN (4–8 digits)", "Запази": "Save", "Махни ПИН": "Remove PIN", "има ПИН": "has PIN", "без ПИН": "no PIN",
+    "Добави имената от списъка за проверки": "Add the names from the inspection list", "Изпълнени": "Completed", "Средна оценка": "Average rating",
+    "Общо часове": "Total hours", "Чакат оценка": "Awaiting rating", "Възложени": "Assigned", "Зарежда…": "Loading…",
+    "Задачата е възложена.": "Task assigned.", "Оценката е записана.": "Rating saved.", "Записано.": "Saved.", "Задачата е отменена.": "Task cancelled.",
+    "Възложил": "Assigned by", "Оценил": "Rated by", "Без срок": "No due date", "часа": "hours", "Нисък": "Low", "Нормален": "Normal", "Висок": "High", "Спешен": "Urgent",
+    "Изберете оценка от 1 до 10.": "Choose a rating from 1 to 10.", "Без оценки": "No ratings", "Няма служители. Добавете ги от списъка за проверки.": "No staff yet. Add them from the inspection list.",
+  };
+  const t = (s) => (lang === "en" && EN[s]) || s;
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const ic = (id, cls) => `<svg class="icon ${cls || ""}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+  const app = document.getElementById("app");
+  document.title = t("Задачи · Администратор");
+
+  const S = { session: null, tasks: [], staff: [], tab: "tasks", filter: "", q: "", who: "", open: null, msg: null, busy: false, score: 0, confirm: "", histName: "" };
+  try { const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null"); if (s && s.exp > Date.now()) S.session = s; } catch (_) {}
+
+  /* ── Заявки към Apps Script ── */
+  async function call(action, body) {
+    const payload = JSON.stringify(Object.assign({ action, _token: SHEETS_SECRET_TOKEN }, body || {}, S.session ? { token: S.session.token } : {}));
+    let last;
+    for (let i = 0; i < 2; i++) {
+      const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 30000);
+      try {
+        const r = await fetch(SHEETS_WEB_APP_URL, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=UTF-8" }, body: payload, signal: ctl.signal });
+        const j = JSON.parse(await r.text());
+        if (j && j.code === "AUTH") { logout(t(j.error)); throw Object.assign(new Error(j.error), { handled: true }); }
+        if (j && /Unknown action|TypeError|of undefined/i.test(String(j.error || ""))) throw new Error(lang === "en" ? "Apps Script is not updated yet — deploy the new Code.gs." : "Apps Script още не е обновен — направете нов deploy с новия Code.gs.");
+        return j;
+      } catch (e) { last = e; if (e.handled) throw e; } finally { clearTimeout(tm); }
+      await new Promise((r) => setTimeout(r, 1200));
+    }
+    throw last;
+  }
+  function logout(msg) {
+    S.session = null; S.tasks = []; S.open = null;
+    try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+    S.msg = msg ? { kind: "err", text: msg } : null;
+    render();
+  }
+  async function load() {
+    S.busy = true; render();
+    try {
+      const j = await call("tasksAdminList");
+      if (!j.success) throw new Error(j.error);
+      S.tasks = j.tasks || []; S.staff = j.staff || [];
+    } catch (e) { if (!e.handled) S.msg = { kind: "err", text: e.message || String(e) }; }
+    S.busy = false; render();
+  }
+  async function loadNames() {
+    try {
+      const r = await fetch("Names.md?_cb=" + Date.now(), { cache: "no-store" });
+      const text = await r.text();
+      const m = text.match(/##\s*Списък[\s\S]*$/i);
+      return (m ? m[0] : text).split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith("#") && /^[Ѐ-ӿ][Ѐ-ӿ\s]*$/.test(l));
+    } catch (_) { return []; }
+  }
+
+  /* ── Помощни ── */
+  const STATUS_CLASS = { "Възложена": "s-assigned", "Изпълнена": "s-done", "Оценена": "s-rated", "Отменена": "s-cancel" };
+  const statusLabel = (s) => s === "Изпълнена" ? t("Чака оценка") : t(s);
+  const badge = (s) => `<span class="badge ${STATUS_CLASS[s] || "s-cancel"}${s === "Изпълнена" || s === "Възложена" ? " pulse" : ""}"><span class="dot"></span>${esc(statusLabel(s))}</span>`;
+  const prioTag = (p) => p ? `<span class="tag ${p === "Висок" ? "p-high" : p === "Спешен" ? "p-urgent" : ""}">${esc(t(p))}</span>` : "";
+  const initials = (n) => String(n || "?").trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const staffOf = (name) => S.staff.find((s) => s.name === name) || { name };
+  const person = (name) => { const s = staffOf(name); const sub = [s.rank, s.position].filter(Boolean).join(" · ");
+    return `<div class="person"><span class="avatar" aria-hidden="true">${esc(initials(name))}</span><span>${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ""}</span></div>`; };
+  const isoToBg = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? `${m[3]}.${m[2]}.${m[1]}` : ""; };
+  const parseBg = (s) => { const m = /(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?/.exec(s || ""); return m ? new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)).getTime() : 0; };
+  const newId = () => "TK-" + Date.now().toString(36).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+
+  function msgHtml() { return S.msg ? `<div class="msg ${S.msg.kind}" role="${S.msg.kind === "err" ? "alert" : "status"}">${esc(S.msg.text)}</div>` : ""; }
+
+  /* ── Екрани ── */
+  function loginHtml() {
+    return `<div class="login card fade"><div class="card-head"><span class="crumbs"><span>CineGrand</span><span>${t("Задачи")}</span></span></div>
+      <form class="card-body" id="login-form" autocomplete="on">
+        <h1 class="title" style="margin-bottom:18px">${t("Вход за администратор")}</h1>
+        ${msgHtml()}
+        <div class="field" style="margin-bottom:12px"><label for="lg-user">${t("Потребител")}</label><input type="text" id="lg-user" autocomplete="username" required></div>
+        <div class="field" style="margin-bottom:18px"><label for="lg-pass">${t("Парола")}</label><input type="password" id="lg-pass" autocomplete="current-password" required></div>
+        <button class="btn btn-primary" style="width:100%" type="submit"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ""}${t("Влез")}</button>
+      </form></div>`;
+  }
+  function topHtml() {
+    return `<div class="top">
+      <div class="brand"><img src="favicon.svg" alt=""><span>CINE GRAND<small>${t("Задачи")}</small></span></div>
+      <div class="top-right"><span class="who">${esc(S.session.user)}</span>
+        <button class="btn" data-act="reload"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ic("refresh")}${t("Обнови")}</button>
+        <button class="btn btn-ghost" data-act="logout">${ic("out")}${t("Изход")}</button></div></div>`;
+  }
+  function tabsHtml() {
+    const waiting = S.tasks.filter((x) => x.status === "Изпълнена").length;
+    const tab = (id, label, n) => `<button class="tab" role="tab" data-tab="${id}" aria-selected="${S.tab === id}">${label}${n ? ` <span class="count">${n}</span>` : ""}</button>`;
+    return `<div class="tabs" role="tablist">${tab("tasks", t("Задачи"), waiting)}${tab("new", ic("plus") + t("Нова задача"))}${tab("staff", t("Служители"))}${tab("history", t("История"))}</div>`;
+  }
+  function tasksHtml() {
+    if (S.open) return detailHtml(S.tasks.find((x) => x.id === S.open));
+    const counts = {}; S.tasks.forEach((x) => { counts[x.status] = (counts[x.status] || 0) + 1; });
+    const chip = (v, label) => `<button class="chip" data-filter="${v}" aria-pressed="${S.filter === v}">${label}${v ? ` · ${counts[v] || 0}` : ` · ${S.tasks.length}`}</button>`;
+    const q = S.q.toLowerCase();
+    const list = S.tasks.filter((x) => (!S.filter || x.status === S.filter) && (!S.who || x.assignee === S.who)
+      && (!q || [x.title, x.description, x.assignee, x.category, x.id].join(" ").toLowerCase().includes(q)))
+      .sort((a, b) => (a.status === "Изпълнена" ? -1 : 0) - (b.status === "Изпълнена" ? -1 : 0) || parseBg(b.created) - parseBg(a.created));
+    return `<div class="card fade"><div class="card-body">
+      <div class="toolbar"><div class="chips" role="group" aria-label="${t("Статус")}">${chip("", t("Всички"))}${chip("Изпълнена", t("Чака оценка"))}${chip("Възложена", t("Възложена"))}${chip("Оценена", t("Оценена"))}${chip("Отменена", t("Отменена"))}</div></div>
+      <div class="toolbar"><div style="flex:2 1 220px"><input type="search" id="q" placeholder="${t("Търси задача…")}" value="${esc(S.q)}" aria-label="${t("Търси задача…")}"></div>
+        <div style="flex:1 1 180px"><select id="who" aria-label="${t("Изпълнител")}"><option value="">${t("Всички служители")}</option>${S.staff.map((s) => `<option${s.name === S.who ? " selected" : ""}>${esc(s.name)}</option>`).join("")}</select></div></div>
+      ${msgHtml()}
+      ${list.length ? `<table class="tlist"><thead><tr><th class="no">№</th><th>${t("Задача")}</th><th>${t("Изпълнител")}</th><th>${t("Статус")}</th><th class="right">${t("Срок")}</th></tr></thead><tbody>
+        ${list.map((x, i) => `<tr data-open="${esc(x.id)}" tabindex="0" style="animation-delay:${Math.min(i, 12) * 35}ms">
+          <td class="no">${i + 1}</td>
+          <td><div class="t-title">${esc(x.title)}</div><div class="t-sub">${esc([x.category, t(x.priority)].filter(Boolean).join(" · "))}</div></td>
+          <td>${esc(x.assignee)}</td><td>${badge(x.status)}${x.score ? ` <span class="tag">${esc(x.score)}/10</span>` : ""}</td>
+          <td class="right">${esc(x.due || "—")}</td></tr>`).join("")}</tbody></table>`
+        : `<div class="empty">${S.busy ? `<span class="spin"></span> ${t("Зарежда…")}` : t("Няма задачи.")}</div>`}
+    </div></div>`;
+  }
+  function detailHtml(x) {
+    if (!x) { S.open = null; return tasksHtml(); }
+    const canRate = x.status === "Изпълнена" || x.status === "Оценена";
+    const sel = S.score || Number(x.score) || 0;
+    return `<div class="card fade">
+      <div class="card-head"><span class="crumbs"><span>${t("Задачи")}</span><span>${esc(x.title)}</span></span>
+        <button class="btn btn-ghost" data-act="close" aria-label="${t("Назад")}">${ic("x")}</button></div>
+      <div class="card-body">
+        <h1 class="title">${esc(x.title)}</h1>
+        ${msgHtml()}
+        <div class="meta">
+          <div class="meta-item">${ic("dots")}<div><div class="meta-label">${t("Статус")}</div><div class="meta-val">${badge(x.status)}</div></div></div>
+          <div class="meta-item">${ic("users")}<div style="min-width:0"><div class="meta-label">${t("Изпълнител")}</div>${person(x.assignee)}</div></div>
+          <div class="meta-item">${ic("cal")}<div><div class="meta-label">${t("Дата")}</div><div class="meta-val" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${esc(x.created)} ${ic("arrow")} ${esc(x.due || t("Без срок"))}</div></div></div>
+          <div class="meta-item">${ic("tag")}<div><div class="meta-label">${t("Етикети")}</div><div class="tags">${x.category ? `<span class="tag">${esc(x.category)}</span>` : ""}${prioTag(x.priority)}</div></div></div>
+          <div class="meta-item">${ic("users")}<div><div class="meta-label">${t("Възложил")}</div><div class="meta-val">${esc(x.createdBy || "—")}</div></div></div>
+          <div class="meta-item span-2">${ic("text")}<div style="min-width:0"><div class="meta-label">${t("Описание")}</div><div class="desc">${esc(x.description || "—")}</div></div></div>
+        </div>
+        ${x.doneAt ? `<div class="section"><h3>${ic("clock")}${t("Изпълнение")}</h3>
+          <div class="meta" style="margin-top:14px">
+            <div><div class="meta-label">${t("Изпълнена на")}</div><div class="meta-val">${esc(x.doneAt)}</div></div>
+            <div><div class="meta-label">${t("Часове")}</div><div class="meta-val">${esc(String(x.hours).replace(".", lang === "en" ? "." : ","))} ${t("часа")}</div></div>
+          </div>
+          ${x.note ? `<div class="meta-label" style="margin-top:14px">${t("Бележка от служителя")}</div><div class="note" style="margin-top:6px">${esc(x.note)}</div>` : ""}</div>` : ""}
+        ${canRate ? `<div class="section"><h3>${ic("star")}${t("Оценка")}</h3>
+          ${x.status === "Оценена" && !S.editRate ? `<div style="margin-top:14px;display:flex;align-items:center;gap:18px;flex-wrap:wrap"><div class="big-score">${esc(x.score)}<small>/10</small></div><div class="t-sub">${t("Оценил")}: ${esc(x.ratedBy)} · ${esc(x.ratedAt)}</div></div>
+              ${x.comment ? `<div class="note" style="margin-top:12px">${esc(x.comment)}</div>` : ""}
+              <button class="btn" style="margin-top:14px" data-act="edit-rate">${t("Промени оценката")}</button>`
+            : `<div class="scores" role="group" aria-label="${t("Оценка")}" style="margin-top:14px">${Array.from({ length: 10 }, (_, i) => `<button class="score" data-score="${i + 1}" aria-pressed="${sel === i + 1}">${i + 1}</button>`).join("")}</div>
+              <div class="field" style="margin-top:14px"><label for="rate-comment">${t("Коментар и препоръки")}</label><textarea id="rate-comment">${esc(S.comment != null ? S.comment : (x.comment || ""))}</textarea></div>
+              <button class="btn btn-primary" style="margin-top:14px" data-act="rate"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ""}${t("Запази оценката")}</button>`}
+        </div>` : ""}
+        ${x.status === "Възложена" ? `<div class="section"><button class="btn btn-danger" data-act="cancel">${S.confirm === x.id ? t("Сигурни ли сте? Натиснете пак.") : t("Отмени задачата")}</button></div>` : ""}
+      </div></div>`;
+  }
+  function newHtml() {
+    const f = S.form || (S.form = { title: "", description: "", category: "", priority: "Нормален", assignee: "", due: "" });
+    return `<form class="card fade" id="new-form"><div class="card-head"><span class="crumbs"><span>${t("Задачи")}</span><span>${t("Нова задача")}</span></span></div>
+      <div class="card-body">${msgHtml()}
+        <div class="field" style="margin-bottom:14px"><label for="nf-title">${t("Заглавие")} *</label><input type="text" id="nf-title" maxlength="200" value="${esc(f.title)}" required></div>
+        <div class="field" style="margin-bottom:14px"><label for="nf-desc">${t("Описание")}</label><textarea id="nf-desc" maxlength="3000">${esc(f.description)}</textarea></div>
+        <div class="grid2">
+          <div class="field"><label for="nf-who">${t("Възложи на")} *</label><select id="nf-who" required><option value="">${t("Избери служител…")}</option>
+            ${S.staff.map((s) => `<option value="${esc(s.name)}"${s.name === f.assignee ? " selected" : ""}>${esc(s.name)}${s.rank || s.position ? " — " + esc([s.rank, s.position].filter(Boolean).join(", ")) : ""}</option>`).join("")}</select></div>
+          <div class="field"><label for="nf-due">${t("Срок")}</label><input type="date" id="nf-due" value="${esc(f.due)}"></div>
+          <div class="field"><label for="nf-cat">${t("Категория")}</label><input type="text" id="nf-cat" list="nf-cats" maxlength="60" value="${esc(f.category)}"><datalist id="nf-cats">${CATEGORIES.map((c) => `<option value="${esc(c)}">`).join("")}</datalist></div>
+          <div class="field"><label for="nf-prio">${t("Приоритет")}</label><select id="nf-prio">${["Нисък", "Нормален", "Висок", "Спешен"].map((p) => `<option value="${p}"${p === f.priority ? " selected" : ""}>${t(p)}</option>`).join("")}</select></div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:20px" type="submit"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ic("plus")}${t("Възложи задачата")}</button>
+      </div></form>`;
+  }
+  function staffHtml() {
+    return `<div class="card fade"><div class="card-body">${msgHtml()}
+      <div class="toolbar"><button class="btn" data-act="seed">${ic("plus")}${t("Добави имената от списъка за проверки")}</button></div>
+      ${S.staff.length ? S.staff.map((s, i) => `<form class="staff-row" data-staff="${i}">
+          <div class="staff-name"><span class="avatar" aria-hidden="true">${esc(initials(s.name))}</span><span>${esc(s.name)}<br><span class="t-sub">${s.hasPin ? t("има ПИН") : t("без ПИН")}</span></span></div>
+          <div class="field"><label for="sr-${i}">${t("Ранг")}</label><input type="text" id="sr-${i}" name="rank" maxlength="60" value="${esc(s.rank)}"></div>
+          <div class="field"><label for="sp-${i}">${t("Позиция")}</label><input type="text" id="sp-${i}" name="position" maxlength="80" value="${esc(s.position)}"></div>
+          <div class="field"><label for="sn-${i}">${t("ПИН (4–8 цифри)")}</label><input type="password" id="sn-${i}" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" autocomplete="new-password" placeholder="${s.hasPin ? "••••" : ""}"></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-primary" type="submit">${t("Запази")}</button>${s.hasPin ? `<button class="btn btn-ghost" type="button" data-act="nopin" data-name="${esc(s.name)}">${t("Махни ПИН")}</button>` : ""}</div>
+        </form>`).join("") : `<div class="empty">${t("Няма служители. Добавете ги от списъка за проверки.")}</div>`}
+    </div></div>`;
+  }
+  function historyHtml() {
+    const by = {};
+    S.tasks.forEach((x) => { (by[x.assignee] = by[x.assignee] || []).push(x); });
+    const names = S.staff.map((s) => s.name).filter((n) => by[n]).concat(Object.keys(by).filter((n) => !S.staff.some((s) => s.name === n)));
+    const sel = S.histName && by[S.histName] ? S.histName : "";
+    const statsOf = (arr) => { const rated = arr.filter((x) => x.score); const hours = arr.reduce((s, x) => s + (Number(x.hours) || 0), 0);
+      return { done: arr.filter((x) => x.status === "Изпълнена" || x.status === "Оценена").length, waiting: arr.filter((x) => x.status === "Изпълнена").length,
+        open: arr.filter((x) => x.status === "Възложена").length, avg: rated.length ? (rated.reduce((s, x) => s + Number(x.score), 0) / rated.length) : null, hours }; };
+    const fmtN = (n, d) => n == null ? "—" : (lang === "en" ? n.toFixed(d) : n.toFixed(d).replace(".", ","));
+    if (!sel) {
+      return `<div class="card fade"><div class="card-body">${names.length ? `<table class="tlist"><thead><tr><th>${t("Изпълнител")}</th><th>${t("Изпълнени")}</th><th>${t("Средна оценка")}</th><th class="right">${t("Общо часове")}</th></tr></thead><tbody>
+        ${names.map((n) => { const st = statsOf(by[n]); return `<tr data-hist="${esc(n)}" tabindex="0"><td>${person(n)}</td><td>${st.done}${st.waiting ? ` <span class="t-sub">(${st.waiting} ${t("Чакат оценка").toLowerCase()})</span>` : ""}</td><td>${st.avg == null ? `<span class="t-sub">${t("Без оценки")}</span>` : `<b>${fmtN(st.avg, 1)}</b>/10`}</td><td class="right">${fmtN(st.hours, 1)}</td></tr>`; }).join("")}
+        </tbody></table>` : `<div class="empty">${t("Няма задачи.")}</div>`}</div></div>`;
+    }
+    const arr = by[sel].slice().sort((a, b) => parseBg(b.created) - parseBg(a.created)); const st = statsOf(arr);
+    return `<div class="card fade"><div class="card-head"><span class="crumbs"><span>${t("История")}</span><span>${esc(sel)}</span></span><button class="btn btn-ghost" data-act="hist-close" aria-label="${t("Назад")}">${ic("x")}</button></div>
+      <div class="card-body">${person(sel)}
+        <div class="stats" style="margin-top:16px"><div class="stat"><b>${st.done}</b><span>${t("Изпълнени")}</span></div><div class="stat"><b>${st.avg == null ? "—" : fmtN(st.avg, 1)}</b><span>${t("Средна оценка")}</span></div>
+          <div class="stat"><b>${fmtN(st.hours, 1)}</b><span>${t("Общо часове")}</span></div><div class="stat"><b>${st.open}</b><span>${t("Възложени")}</span></div></div>
+        <table class="tlist"><thead><tr><th>${t("Задача")}</th><th>${t("Статус")}</th><th>${t("Часове")}</th><th>${t("Оценка")}</th></tr></thead><tbody>
+          ${arr.map((x) => `<tr data-open="${esc(x.id)}" tabindex="0"><td><div class="t-title">${esc(x.title)}</div>${x.comment ? `<div class="t-sub">${esc(x.comment)}</div>` : ""}</td><td>${badge(x.status)}</td><td>${esc(x.hours || "—")}</td><td>${x.score ? `<b>${esc(x.score)}</b>/10` : "—"}</td></tr>`).join("")}
+        </tbody></table></div></div>`;
+  }
+
+  function render() {
+    if (!S.session) { app.innerHTML = loginHtml(); bind(); return; }
+    let body = S.tab === "new" ? newHtml() : S.tab === "staff" ? staffHtml() : S.tab === "history" ? historyHtml() : tasksHtml();
+    /* Плавното появяване — само при смяна на изгледа, не при всяко
+       прерисуване (съобщение, зареждане), иначе съдържанието мига. */
+    const view = [S.tab, S.open || "", S.histName || ""].join("|");
+    if (view === S.view) body = body.replace(/ fade"/g, '"').replace(/class="tlist"/g, 'class="tlist still"');
+    S.view = view;
+    app.innerHTML = topHtml() + tabsHtml() + body;
+    bind();
+  }
+  function flash(kind, text) { S.msg = { kind, text }; render(); if (kind === "ok") setTimeout(() => { if (S.msg && S.msg.text === text) { S.msg = null; render(); } }, 3500); }
+
+  /* ── Събития ── */
+  function bind() {
+    const lf = document.getElementById("login-form");
+    if (lf) {
+      lf.onsubmit = async (e) => {
+        e.preventDefault(); if (S.busy) return;
+        /* Стойностите се четат преди прерисуването (и при автоматично попълване). */
+        const user = document.getElementById("lg-user").value.trim(), pass = document.getElementById("lg-pass").value;
+        S.busy = true; S.msg = null; render();
+        try {
+          const j = await call("tasksLogin", { user, pass });
+          if (!j.success) throw new Error(j.error);
+          S.session = { user: j.user, token: j.token, exp: Date.now() + (j.hours || 12) * 3600e3 - 60e3 };
+          try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(S.session)); } catch (_) {}
+          S.busy = false; S.msg = null; await load(); return;
+        } catch (err) { S.msg = { kind: "err", text: err.message || String(err) }; }
+        S.busy = false; render();
+      };
+      if (!S.busy) document.getElementById("lg-user").focus();
+    }
+    const nf = document.getElementById("new-form");
+    if (nf) {
+      const f = S.form;
+      const sync = () => { f.title = nf.querySelector("#nf-title").value; f.description = nf.querySelector("#nf-desc").value; f.assignee = nf.querySelector("#nf-who").value;
+        f.due = nf.querySelector("#nf-due").value; f.category = nf.querySelector("#nf-cat").value; f.priority = nf.querySelector("#nf-prio").value; };
+      nf.oninput = sync; nf.onchange = sync;
+      nf.onsubmit = async (e) => {
+        e.preventDefault(); sync(); if (S.busy) return;
+        if (!f.title.trim() || !f.assignee) { flash("err", lang === "en" ? "Fill in the title and the assignee." : "Попълнете заглавие и на кого е задачата."); return; }
+        S.busy = true; render();
+        try {
+          f.id = f.id || newId();
+          const j = await call("tasksCreate", { id: f.id, task: { title: f.title, description: f.description, category: f.category, priority: f.priority, assignee: f.assignee, due: isoToBg(f.due) } });
+          if (!j.success) throw new Error(j.error);
+          S.form = null; S.busy = false; S.tab = "tasks"; S.filter = ""; await load(); flash("ok", t("Задачата е възложена."));
+          return;
+        } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
+        S.busy = false; render();
+      };
+    }
+    document.querySelectorAll("form.staff-row").forEach((fm) => {
+      fm.onsubmit = async (e) => {
+        e.preventDefault();
+        const s = S.staff[+fm.dataset.staff]; const pin = fm.pin.value.trim();
+        if (pin && !/^\d{4,8}$/.test(pin)) { flash("err", lang === "en" ? "The PIN is 4–8 digits." : "ПИН-ът е от 4 до 8 цифри."); return; }
+        try {
+          const j = await call("tasksStaffSave", Object.assign({ name: s.name, rank: fm.rank.value, position: fm.position.value }, pin ? { pin } : {}));
+          if (!j.success) throw new Error(j.error);
+          await load(); flash("ok", t("Записано."));
+        } catch (err) { if (!err.handled) flash("err", err.message); }
+      };
+    });
+    const q = document.getElementById("q");
+    if (q) q.oninput = () => { S.q = q.value; const pos = q.selectionStart; render(); const n = document.getElementById("q"); n.focus(); n.setSelectionRange(pos, pos); };
+    const who = document.getElementById("who");
+    if (who) who.onchange = () => { S.who = who.value; render(); };
+    const rc = document.getElementById("rate-comment");
+    if (rc) rc.oninput = () => { S.comment = rc.value; };
+  }
+  app.addEventListener("click", async (e) => {
+    const el = e.target.closest("[data-act],[data-tab],[data-filter],[data-open],[data-score],[data-hist]");
+    if (!el) return;
+    if (el.dataset.tab) { S.tab = el.dataset.tab; S.open = null; S.msg = null; S.histName = ""; render(); return; }
+    if (el.dataset.filter != null && el.classList.contains("chip")) { S.filter = el.dataset.filter; render(); return; }
+    if (el.dataset.open) { S.open = el.dataset.open; S.tab = "tasks"; S.score = 0; S.comment = null; S.editRate = false; S.confirm = ""; S.msg = null; render(); window.scrollTo(0, 0); return; }
+    if (el.dataset.hist) { S.histName = el.dataset.hist; render(); return; }
+    if (el.dataset.score) { S.score = +el.dataset.score; const rc = document.getElementById("rate-comment"); if (rc) S.comment = rc.value; render(); return; }
+    const act = el.dataset.act;
+    if (act === "logout") { logout(); return; }
+    if (act === "reload") { S.msg = null; load(); return; }
+    if (act === "close") { S.open = null; S.msg = null; render(); return; }
+    if (act === "hist-close") { S.histName = ""; render(); return; }
+    if (act === "edit-rate") { S.editRate = true; render(); return; }
+    if (act === "rate") {
+      const x = S.tasks.find((y) => y.id === S.open); const score = S.score || Number(x && x.score) || 0;
+      if (!score) { flash("err", t("Изберете оценка от 1 до 10.")); return; }
+      const rc = document.getElementById("rate-comment"); const comment = rc ? rc.value : "";
+      S.busy = true; render();
+      try {
+        const j = await call("tasksRate", { id: S.open, score, comment });
+        if (!j.success) throw new Error(j.error);
+        S.editRate = false; S.score = 0; S.comment = null; S.busy = false; await load(); flash("ok", t("Оценката е записана."));
+        return;
+      } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
+      S.busy = false; render(); return;
+    }
+    if (act === "cancel") {
+      if (S.confirm !== S.open) { S.confirm = S.open; render(); setTimeout(() => { if (S.confirm) { S.confirm = ""; render(); } }, 5000); return; }
+      S.confirm = "";
+      try { const j = await call("tasksCancel", { id: S.open }); if (!j.success) throw new Error(j.error); S.open = null; await load(); flash("ok", t("Задачата е отменена.")); }
+      catch (err) { if (!err.handled) flash("err", err.message); }
+      return;
+    }
+    if (act === "seed") {
+      const names = await loadNames();
+      try { const j = await call("tasksStaffSeed", { names }); if (!j.success) throw new Error(j.error); await load(); flash("ok", (lang === "en" ? "Added: " : "Добавени: ") + j.added); }
+      catch (err) { if (!err.handled) flash("err", err.message); }
+      return;
+    }
+    if (act === "nopin") {
+      const s = S.staff.find((y) => y.name === el.dataset.name);
+      try { const j = await call("tasksStaffSave", { name: s.name, rank: s.rank, position: s.position, pin: "" }); if (!j.success) throw new Error(j.error); await load(); flash("ok", t("Записано.")); }
+      catch (err) { if (!err.handled) flash("err", err.message); }
+    }
+  });
+  app.addEventListener("keydown", (e) => {
+    if ((e.key === "Enter" || e.key === " ") && e.target.matches("tr[data-open],tr[data-hist]")) { e.preventDefault(); e.target.click(); }
+  });
+
+  render();
+  if (S.session) load();
+})();
+</script>
+</body>
+</html>
