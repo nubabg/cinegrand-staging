@@ -2032,11 +2032,27 @@
       .cg-lc-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
       /* ── Екран „Скорост на системата" ── */
       .cg-sp-btns { display: flex; gap: var(--s2); flex-wrap: wrap; }
-      .cg-sp-table th[scope="row"] { text-align: left; font-weight: 600; min-width: 170px; }
-      .cg-sp-label { color: var(--text); }
-      .cg-sp-hint { margin-top: 2px; font-size: var(--fs-micro); font-weight: 400; color: var(--muted); line-height: 1.4; }
-      .cg-sp-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-      .cg-sp-table thead small { font-weight: 400; color: var(--muted); }
+      .cg-sp-mode { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; margin-bottom: var(--s4); }
+      .cg-sp-mode .settings-text { flex: 1 1 260px; min-width: 0; }
+      .cg-sp-list { padding: 0; overflow: hidden; }
+      .cg-sp-head, .cg-sp-row { display: grid; grid-template-columns: minmax(200px, 1fr) repeat(var(--cg-sp-cols), minmax(78px, 104px)); gap: var(--s3); align-items: center; padding: 12px var(--s4); }
+      .cg-sp-head { font-size: var(--fs-micro); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); }
+      .cg-sp-head span:not(:first-child) { text-align: right; }
+      .cg-sp-row + .cg-sp-row { border-top: 1px solid var(--border); }
+      .cg-sp-name { min-width: 0; }
+      .cg-sp-label { font-weight: 600; color: var(--text); }
+      .cg-sp-hint { margin-top: 2px; font-size: var(--fs-micro); color: var(--muted); line-height: 1.4; }
+      .cg-sp-val { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .cg-sp-val b { font-weight: 700; color: var(--text); }
+      .cg-sp-val.is-prev b { color: var(--muted); font-weight: 600; }
+      .cg-sp-k { display: none; }
+      @media (max-width: 720px) {
+        .cg-sp-head { display: none; }
+        .cg-sp-row { grid-template-columns: repeat(var(--cg-sp-cols), minmax(0, 1fr)); gap: 8px 10px; }
+        .cg-sp-name { grid-column: 1 / -1; }
+        .cg-sp-val { text-align: left; white-space: normal; }
+        .cg-sp-k { display: block; font-size: var(--fs-micro); color: var(--muted); margin-bottom: 1px; }
+      }
       .cg-sp-fail { color: var(--amber-2); font-size: var(--fs-micro); }
       .cg-sp-note { margin: var(--s3) 0 0; font-size: var(--fs-meta); color: var(--muted); line-height: 1.55; }
       .cg-sp-empty { color: var(--muted); }
@@ -2733,7 +2749,6 @@
       const ACCESS_ATTEMPTS_KEY = "cg_access_attempts";
       const ACCESS_MAX_ATTEMPTS = 5;
       const ACCESS_BLOCK_DURATION_MS = 60 * 60 * 1000; /* 1 час реално блокиране */
-      const ACCESS_BLOCK_DISPLAY_MIN = 5; /* показва "5 минути" на потребителя */
 
       function getAccessBlock() {
         try {
@@ -2762,13 +2777,21 @@
         } catch (_) { return false; }
       }
 
+      /* Колко минути реално остават до края на блокирането. */
+      function cgBlockMinutesLeft() {
+        try {
+          const b = JSON.parse(localStorage.getItem(ACCESS_BLOCK_KEY) || "null");
+          if (b && b.blockedAt) return Math.max(1, Math.ceil((ACCESS_BLOCK_DURATION_MS - (Date.now() - b.blockedAt)) / 60000));
+        } catch (_) {}
+        return Math.round(ACCESS_BLOCK_DURATION_MS / 60000);
+      }
       function showAccessBlocked() {
         document.getElementById("app").innerHTML = `
           <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
             <div style="text-align:center;max-width:400px;">
               <div style="width:72px;height:72px;border-radius:50%;background:var(--red-soft);border:1px solid rgba(var(--red-rgb),.42);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:28px;">&#9940;</div>
-              <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;color:var(--red-2);">ДОСТЪПЪТ Е БЛОКИРАН</div>
-              <div style="color:var(--muted);font-size:var(--fs-body);line-height:1.6;">Твърде много неуспешни опити за достъп.<br>Опитайте отново след <strong style="color:var(--text);">${ACCESS_BLOCK_DISPLAY_MIN} минути</strong>.</div>
+              <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;color:var(--red-2);">${currentLang === "en" ? "ACCESS BLOCKED" : "ДОСТЪПЪТ Е БЛОКИРАН"}</div>
+              <div style="color:var(--muted);font-size:var(--fs-body);line-height:1.6;">${currentLang === "en" ? "Too many failed access attempts." : "Твърде много неуспешни опити за достъп."}<br>${currentLang === "en" ? "Try again in" : "Опитайте отново след"} <strong style="color:var(--text);">${cgBlockMinutesLeft()} ${currentLang === "en" ? "min" : "минути"}</strong>.</div>
             </div>
           </div>`;
       }
@@ -2819,7 +2842,7 @@
       const CG_PERF_MAX = 400;
       /* Версия на кода — всяко измерване я помни, за да се вижда кое е
          отпреди и кое отслед промяна. */
-      const CG_BUILD = "2026-10-14a";
+      const CG_BUILD = "2026-10-14b";
       const CG_PERF_METRICS = [
         ["boot.html",      "Сваляне и стартиране на страницата", "От отваряне на адреса до готов код (без проверка на достъпа).", "Page download and start-up", "From opening the address until the code is ready (before the access check)."],
         ["boot.ip",        "IP проверка", "Външна услуга казва IP адреса; сравнява се със списъка на киното.", "IP check", "An external service reports the IP address; it is compared with the cinema list."],
@@ -2845,7 +2868,7 @@
           try {
             const a = cgPerf.list();
             const c = navigator.connection || {};
-            a.push(Object.assign({ k, ms: Math.round(ms), t: Date.now(), v: CG_BUILD,
+            a.push(Object.assign({ k, ms: Math.round(ms), t: Date.now(), v: CG_BUILD + (cgLegacy() ? " · стар режим" : ""),
               net: c.effectiveType || "", dev: /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? "phone" : "desktop" }, extra || {}));
             localStorage.setItem(CG_PERF_KEY, JSON.stringify(a.slice(-CG_PERF_MAX)));
           } catch (_) { /* пълна квота — измерването е по избор */ }
@@ -3167,16 +3190,40 @@
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       }
 
-      function getGeolocation() {
-        const t0 = performance.now();
+      /* Една заявка за позиция → {lat, lng, acc} или {error: код}
+         (1 = отказ, 2 = няма сигнал, 3 = изтекло време). */
+      function cgGeoOnce(opts) {
         return new Promise((resolve) => {
-          if (!navigator.geolocation) { resolve(null); return; }
+          if (!navigator.geolocation) { resolve({ error: 2 }); return; }
           navigator.geolocation.getCurrentPosition(
-            (pos) => { cgPerf.add("boot.geo", performance.now() - t0, { ok: true, acc: Math.round(pos.coords.accuracy) }); resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
-            (err) => { cgPerf.add("boot.geo", performance.now() - t0, { ok: false, err: err && err.code }); resolve(null); },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-          );
+            (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }),
+            (err) => resolve({ error: (err && err.code) || 2 }),
+            opts);
         });
+      }
+      /* Позицията за QR. Бързо: позиция до 2 мин назад или бърза (Wi-Fi /
+         клетки) — приема се САМО ако е ясно в киното (≤200 м, точност
+         ≤100 м). Иначе — точен GPS, както досега. Бързата никога не
+         отхвърля сама: отказ идва само от точния GPS. */
+      const CG_GEO_FAST_ACC_M = 100;
+      async function getGeolocation() {
+        const t0 = performance.now();
+        const done = (r, how) => { cgPerf.add("boot.geo", performance.now() - t0, { ok: !r.error, err: r.error, acc: r.acc ? Math.round(r.acc) : undefined, how }); return r; };
+        if (cgLegacy()) return done(await cgGeoOnce({ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }), "legacy");
+        const quick = await cgGeoOnce({ enableHighAccuracy: false, timeout: 4000, maximumAge: 2 * 60 * 1000 });
+        if (quick.error === 1) return done(quick, "quick");          // отказ — няма смисъл да питаме пак
+        if (!quick.error && quick.acc <= CG_GEO_FAST_ACC_M && isNearCinema(quick.lat, quick.lng)) return done(quick, "quick");
+        return done(await cgGeoOnce({ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }), "precise");
+      }
+      /* Ако разрешението вече е дадено, позицията тръгва веднага (без въпрос
+         към служителя). Иначе — null, и се пита по стария ред. */
+      async function cgGeoEarly() {
+        if (cgLegacy()) return null;
+        try {
+          if (!navigator.permissions || !navigator.permissions.query) return null;
+          const st = await navigator.permissions.query({ name: "geolocation" });
+          return st && st.state === "granted" ? getGeolocation() : null;
+        } catch (_) { return null; }
       }
 
       function isNearCinema(lat, lng) {
@@ -3192,6 +3239,45 @@
               <div style="color:var(--muted);font-size:var(--fs-body);line-height:1.6;">Сканирайте QR кода на Вашата локация, за да влезете в системата.</div>
             </div>
           </div>`;
+      }
+
+      function cgAccessScreen(icon, title, text, extra) {
+        document.getElementById("app").innerHTML = `
+          <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+            <div style="text-align:center;max-width:420px;">
+              <div style="width:72px;height:72px;border-radius:50%;background:var(--amber-soft);border:1px solid var(--amber);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:28px;">${icon}</div>
+              <div style="font-family:'Oswald',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;margin-bottom:12px;">${title}</div>
+              <div style="color:var(--muted);font-size:var(--fs-body);line-height:1.6;">${text}</div>
+              ${extra || ""}
+              <button type="button" class="btn btn-gold" style="margin-top:22px;min-width:180px;" onclick="location.reload()">${currentLang === "en" ? "Try again" : "Опитай пак"}</button>
+            </div>
+          </div>`;
+      }
+      /* Местоположението е отказано или телефонът не го намери. Без
+         позиция няма достъп от чужда мрежа (правилото не се променя), но
+         това не е опит отвън и не води до блокиране. */
+      function showLocationNeeded(kind) {
+        const en = currentLang === "en";
+        if (kind === "geo-denied") {
+          cgAccessScreen("📍", en ? "LOCATION ACCESS NEEDED" : "НУЖЕН Е ДОСТЪП ДО МЕСТОПОЛОЖЕНИЕТО",
+            en ? "From a network outside the cinema the system checks that you are in <strong style=\"color:var(--text);\">Cine Grand Park Center</strong>. Location access is blocked for this site."
+               : "От мрежа извън киното системата проверява, че сте в <strong style=\"color:var(--text);\">Cine Grand Park Center</strong>. Достъпът до местоположението е спрян за този сайт.",
+            `<ol style="text-align:left;color:var(--muted);font-size:var(--fs-body);line-height:1.6;margin:16px auto 0;max-width:360px;padding-left:20px;">
+              ${en ? "<li>Tap the icon next to the address (🔒 or ⓘ).</li><li>Open <b>Location</b> (Site settings → Location) and choose <b>Allow</b>.</li><li>On iPhone: Settings → Safari/Chrome → Location → While Using.</li><li>Then tap “Try again”.</li>"
+                   : "<li>Натиснете иконата до адреса (🔒 или ⓘ).</li><li>Отворете <b>Местоположение</b> (Настройки на сайта → Местоположение) и изберете <b>Разреши</b>.</li><li>На iPhone: Настройки → Safari/Chrome → Местоположение → „Докато се използва“.</li><li>После натиснете „Опитай пак“.</li>"}
+            </ol>`);
+        } else {
+          cgAccessScreen("📡", en ? "LOCATION NOT FOUND" : "МЕСТОПОЛОЖЕНИЕТО НЕ Е ОТКРИТО",
+            en ? "The phone could not determine its location in time. Turn on Location (GPS), move near a window if possible and try again."
+               : "Телефонът не успя да определи местоположението навреме. Включете „Местоположение“ (GPS), ако може — по-близо до прозорец, и опитайте пак.");
+        }
+      }
+      /* Нито една IP услуга не отговори — мрежата е неизвестна, не чужда. */
+      function showNetworkCheckFailed() {
+        const en = currentLang === "en";
+        cgAccessScreen("🌐", en ? "COULD NOT CHECK THE NETWORK" : "МРЕЖАТА НЕ МОЖЕ ДА СЕ ПРОВЕРИ",
+          en ? "The service that tells us which network you are on did not respond. Check the internet connection and try again, or scan the QR code of your location."
+             : "Услугата, която казва в коя мрежа сте, не отговори. Проверете връзката с интернет и опитайте пак или сканирайте QR кода на локацията си.");
       }
 
       function showAccessLoading() {
@@ -3220,35 +3306,79 @@
           </div>`;
       }
 
+      /* ── IP проверка ──
+         Пита се външна услуга кой е IP адресът и той се сравнява с адресите
+         на киното. Двете услуги се питат едновременно (досега: една след
+         друга, до 6 + 6 с). Положителен отговор се помни CG_IP_MEMORY_MS на
+         това устройство — следващите отваряния не чакат; паметта се
+         подновява отзад, докато устройството е в мрежата на киното, и се
+         трие, щом излезе. Отрицателен отговор НЕ се помни — проверява се
+         всеки път, така че никой не е ограничен повече от досега. */
+      const CG_IP_MEMORY_MS = 30 * 60 * 1000;
+      const CG_IP_OK_KEY = "cg_ip_ok_v1";
+      function cgLegacy() { try { return localStorage.getItem("cg_perf_legacy") === "1"; } catch (_) { return false; } }
+      async function cgLookupIp() {
+        const ask = (url) => fetchWithTimeout(url, { cache: "no-store" }, 6000)
+          .then((r) => r.json()).then((d) => { if (!d || !d.ip) throw new Error("no ip"); return String(d.ip); });
+        const urls = ["https://api.ipify.org?format=json", "https://api.my-ip.io/v2/ip.json"];
+        if (cgLegacy()) {
+          for (const u of urls) { try { return await ask(u); } catch (_) {} }
+          return null;
+        }
+        /* Първият отговорил печели. */
+        return new Promise((resolve) => {
+          let left = urls.length;
+          urls.forEach((u) => ask(u).then(resolve, () => { if (--left === 0) resolve(null); }));
+        });
+      }
+      async function cgCheckIp() {
+        let mem = null;
+        try { mem = JSON.parse(localStorage.getItem(CG_IP_OK_KEY) || "null"); } catch (_) {}
+        const fresh = mem && Date.now() - mem.at < CG_IP_MEMORY_MS && !cgLegacy();
+        const check = async () => {
+          const ip = await cgLookupIp();
+          const wl = !!ip && ACCESS_ALLOWED_IPS.includes(ip);
+          try {
+            if (wl) localStorage.setItem(CG_IP_OK_KEY, JSON.stringify({ at: Date.now() }));
+            else if (ip) localStorage.removeItem(CG_IP_OK_KEY);   // вече не е в мрежата на киното
+          } catch (_) {}
+          return { known: !!ip, whitelisted: wl };
+        };
+        if (fresh) {
+          check().catch(() => {});                                // подновява / трие паметта отзад
+          return { known: true, whitelisted: true, fromMemory: true };
+        }
+        return check();
+      }
+
       async function checkAccess() {
         /* IP проверка — whitelisted IP-та имат достъп отвсякъде */
-        let isWhitelistedIP = false;
-        const ipT0 = performance.now();
-        let ipKnown = false;
-        try {
-          const res = await fetchWithTimeout("https://api.ipify.org?format=json", {}, 6000);
-          const { ip } = await res.json();
-          isWhitelistedIP = ACCESS_ALLOWED_IPS.includes(ip);
-          ipKnown = !!ip;
-        } catch (_) {
-          /* Fallback: опитай втори IP сервис ако първият не отговори */
-          try {
-            const res2 = await fetchWithTimeout("https://api.my-ip.io/v2/ip.json", {}, 6000);
-            const data2 = await res2.json();
-            if (data2 && data2.ip) { isWhitelistedIP = ACCESS_ALLOWED_IPS.includes(data2.ip); ipKnown = true; }
-          } catch (_2) {}
-        }
-        sessionStorage.setItem(LOCK_WHITELISTED_KEY, isWhitelistedIP ? "1" : "0");
-        cgPerf.add("boot.ip", performance.now() - ipT0, { ok: ipKnown, wl: isWhitelistedIP });
-
         const params = new URLSearchParams(window.location.search || (window.location.hash.startsWith("#") ? window.location.hash.slice(1) : ""));
+        /* QR линк с вече дадено разрешение за местоположение: позицията се
+           търси успоредно с IP проверката, не след нея. Без разрешение не се
+           пита предварително — служител в мрежата на киното не вижда въпрос. */
+        const wantsGeo = params.get("phonephoto") === "1" || params.get("open") === "inspection" || !!sessionStorage.getItem(QR_SESSION_KEY);
+        const geoEarly = wantsGeo ? cgGeoEarly() : Promise.resolve(null);
+        const getGeo = async () => (await geoEarly) || getGeolocation();
+
+        const ipT0 = performance.now();
+        const ipRes = await cgCheckIp();
+        const isWhitelistedIP = ipRes.whitelisted;
+        sessionStorage.setItem(LOCK_WHITELISTED_KEY, isWhitelistedIP ? "1" : "0");
+        cgPerf.add("boot.ip", performance.now() - ipT0, { ok: ipRes.known, wl: isWhitelistedIP, mem: ipRes.fromMemory || undefined });
+        /* Отговорът на позицията → решение. Отказ или липса на сигнал не са
+           „извън киното" — показват се отделно и не водят до блокиране. */
+        const geoVerdict = (pos) => !pos || pos.error ? (pos && pos.error === 1 ? "geo-denied" : "geo-fail")
+          : (isNearCinema(pos.lat, pos.lng) ? true : "outside");
+        /* Не знаем мрежата (IP услугите не отговориха) — не е отказ. */
+        const noNet = () => ipRes.known ? false : "ip-fail";
         /* Phone-photo flow — отделна страница за качване на снимки от телефон чрез QR.
            Без IP/cooldown/lock проверки; гео-проверката важи за не-whitelisted IP. */
         if (params.get("phonephoto") === "1") {
           if (!isWhitelistedIP) {
             updateLoadingText("Проверка на локация…");
-            const pos = await getGeolocation();
-            if (!pos || !isNearCinema(pos.lat, pos.lng)) return "outside";
+            const v = geoVerdict(await getGeo());
+            if (v !== true) return v;
           }
           return true;
         }
@@ -3261,8 +3391,8 @@
           if (!isWhitelistedIP) {
             /* Геолокация — трябва да е в киното (само за не-whitelisted IP) */
             updateLoadingText("Проверка на локация…");
-            const pos = await getGeolocation();
-            if (!pos || !isNearCinema(pos.lat, pos.lng)) return "outside";
+            const v = geoVerdict(await getGeo());
+            if (v !== true) return v;
           }
           sessionStorage.setItem(QR_SESSION_KEY, String(Date.now()));
           sessionStorage.setItem(QR_MODE_KEY, "1");
@@ -3277,8 +3407,8 @@
             if (!isWhitelistedIP) {
               /* Геолокация при reload на QR сесия (само за не-whitelisted IP) */
               updateLoadingText("Проверка на локация…");
-              const pos = await getGeolocation();
-              if (!pos || !isNearCinema(pos.lat, pos.lng)) return "outside";
+              const v = geoVerdict(await getGeo());
+              if (v !== true) return v;
             }
             return true;
           }
@@ -3289,7 +3419,7 @@
         }
         /* Whitelisted IP без QR — пълен достъп */
         if (isWhitelistedIP) return true;
-        return false;
+        return noNet();
       }
 
       /* Само тези локации се показват в QR модала */
@@ -8309,11 +8439,16 @@
         all.forEach((x) => { if (!order.includes(x.v)) order.push(x.v); });
         return order;
       }
+      const cgPerfGroupName = (g) => currentLang === "en" ? String(g || "").replace(" · стар режим", " · old mode") : String(g || "");
       function cgPerfModel() {
         const all = cgPerf.list();
         const en = currentLang === "en";
         const groups = cgPerfGroups(all);
-        const cur = CG_BUILD, prev = groups.filter((g) => g !== cur).pop() || null;
+        /* „Сега" е текущата версия в текущия режим; „Преди" — стар режим на
+           същата версия, ако е мерено, иначе предишната версия. */
+        const cur = CG_BUILD + (cgLegacy() ? " · стар режим" : "");
+        const legacyKey = CG_BUILD + " · стар режим";
+        const prev = (!cgLegacy() && groups.includes(legacyKey)) ? legacyKey : (groups.filter((g) => g !== cur && g !== CG_BUILD).pop() || null);
         const rows = CG_PERF_METRICS.map(([k, bg, bgH, enL, enH]) => {
           const mine = all.filter((x) => x.k === k);
           return { k, label: en ? enL : bg, hint: en ? enH : bgH,
@@ -8324,22 +8459,26 @@
       function cgPerfBodyHtml() {
         const m = cgPerfModel(), en = m.en;
         const T = (bg, e) => en ? e : bg;
-        const cell = (v) => `<td class="cg-sp-num">${cgPerfFmt(v)}</td>`;
         const has = m.rows.filter((r) => r.cur.n || (r.prev && r.prev.n));
-        const table = has.length ? `<div class="table-wrap"><table class="cg-sp-table">
-            <thead><tr><th>${T("Показател", "Metric")}</th>${m.prev ? `<th class="cg-sp-num">${T("Преди", "Before")}<br><small>${escapeHtml(m.prev)}</small></th>` : ""}
-              <th class="cg-sp-num">${T("Медиана", "Median")}</th><th class="cg-sp-num">90%</th><th class="cg-sp-num">${T("Последно", "Last")}</th><th class="cg-sp-num">${T("Брой", "Count")}</th></tr></thead>
-            <tbody>${has.map((r) => `<tr>
-              <th scope="row"><div class="cg-sp-label">${escapeHtml(r.label)}</div>${r.hint ? `<div class="cg-sp-hint">${escapeHtml(r.hint)}</div>` : ""}</th>
-              ${m.prev ? cell(r.prev && r.prev.med) : ""}
-              ${cell(r.cur.med)}${cell(r.cur.p90)}${cell(r.cur.last)}
-              <td class="cg-sp-num">${r.cur.n}${r.cur.fail ? ` <span class="cg-sp-fail">(${r.cur.fail} ${T("неусп.", "failed")})</span>` : ""}</td>
-            </tr>`).join("")}</tbody></table></div>`
+        /* Списък вместо <table>: на телефон всеки показател е карта с
+           числата под името, на широк екран — колони. */
+        const heads = [...(m.prev ? [T("Преди", "Before")] : []), T("Медиана", "Median"), "90%", T("Последно", "Last"), T("Брой", "Count")];
+        const val = (k, v, cls) => `<div class="cg-sp-val${cls ? " " + cls : ""}" role="cell"><span class="cg-sp-k">${k}</span><b>${v}</b></div>`;
+        const table = has.length ? `<div class="panel cg-sp-list" role="table" style="--cg-sp-cols:${heads.length}">
+            <div class="cg-sp-head" role="row"><span role="columnheader">${T("Показател", "Metric")}</span>${heads.map((h) => `<span role="columnheader">${h}</span>`).join("")}</div>
+            ${has.map((r) => `<div class="cg-sp-row" role="row">
+              <div class="cg-sp-name" role="rowheader"><div class="cg-sp-label">${escapeHtml(r.label)}</div>${r.hint ? `<div class="cg-sp-hint">${escapeHtml(r.hint)}</div>` : ""}</div>
+              ${m.prev ? val(T("Преди", "Before"), cgPerfFmt(r.prev && r.prev.med), "is-prev") : ""}
+              ${val(T("Медиана", "Median"), cgPerfFmt(r.cur.med))}${val("90%", cgPerfFmt(r.cur.p90))}${val(T("Последно", "Last"), cgPerfFmt(r.cur.last))}
+              ${val(T("Брой", "Count"), r.cur.n + (r.cur.fail ? ` <span class="cg-sp-fail">(${r.cur.fail} ${T("неусп.", "failed")})</span>` : ""))}
+            </div>`).join("")}
+          </div>
+          ${m.prev ? `<p class="cg-sp-note">${T("„Преди“", "“Before”")} = ${escapeHtml(cgPerfGroupName(m.prev))}</p>` : ""}`
           : `<div class="panel cg-sp-empty">${T("Още няма измервания. Те се събират сами при работа: отваряне, четене от таблицата, нови проверки.", "No measurements yet. They are collected automatically while you work: opening, reading from the sheet, new inspections.")}</div>`;
         return `${table}
           <p class="cg-sp-note">${T("Медиана — обичайното време. 90% — 9 от 10 пъти е по-бързо от това. Измерванията са само от това устройство; другите устройства виждат нова проверка при следващото си опресняване (до 3 минути на началния екран).",
             "Median — the typical time. 90% — 9 out of 10 times it is faster than this. Measurements are from this device only; other devices see a new inspection on their next refresh (up to 3 minutes on the home screen).")}</p>
-          <p class="cg-sp-note">${T("Версия", "Version")}: <b>${escapeHtml(m.cur)}</b> · ${T("измервания", "measurements")}: ${m.all.length}</p>`;
+          <p class="cg-sp-note">${T("Версия", "Version")}: <b>${escapeHtml(cgPerfGroupName(m.cur))}</b> · ${T("измервания", "measurements")}: ${m.all.length}</p>`;
       }
       function cgPerfRefresh() {
         const el = document.getElementById("speed-body");
@@ -8361,14 +8500,25 @@
               <button type="button" class="btn btn-outline" data-action="go-home">${en ? "← Home" : "← Начало"}</button>
             </div>
           </div>
+          <div class="panel cg-sp-mode">
+            <div class="settings-text">
+              <div class="settings-label">${en ? "Comparison mode" : "Режим за сравнение"}</div>
+              <div class="settings-hint">${en ? "“Old” uses the previous IP and location checks, so before/after can be measured on the same phone. Leave it on “New” for everyday work."
+                : "„Стар“ ползва предишните IP и GPS проверки, за да се измери „преди“ и „след“ на същия телефон. За ежедневна работа оставете „Нов“."}</div>
+            </div>
+            <div class="seg" role="group" aria-label="${en ? "Comparison mode" : "Режим за сравнение"}">
+              <button type="button" class="seg-btn${cgLegacy() ? "" : " active"}" data-action="speed-mode" data-mode="new" aria-pressed="${!cgLegacy()}">${en ? "New" : "Нов"}</button>
+              <button type="button" class="seg-btn${cgLegacy() ? " active" : ""}" data-action="speed-mode" data-mode="old" aria-pressed="${cgLegacy()}">${en ? "Old" : "Стар"}</button>
+            </div>
+          </div>
           <div id="speed-body">${cgPerfBodyHtml()}</div>
         </div>`;
       }
       /* Таблицата като текст — за изпращане в чат или имейл. */
       function cgPerfCopy() {
         const m = cgPerfModel();
-        const lines = [`CineGrand — ${m.en ? "speed" : "скорост"} · ${m.cur} · ${/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? "phone" : "desktop"} · ${new Date().toLocaleString()}`,
-          [m.en ? "Metric" : "Показател", ...(m.prev ? [(m.en ? "Before " : "Преди ") + m.prev] : []), m.en ? "Median" : "Медиана", "90%", m.en ? "Last" : "Последно", m.en ? "Count" : "Брой"].join("\t")];
+        const lines = [`CineGrand — ${m.en ? "speed" : "скорост"} · ${cgPerfGroupName(m.cur)} · ${/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? "phone" : "desktop"} · ${new Date().toLocaleString()}`,
+          [m.en ? "Metric" : "Показател", ...(m.prev ? [(m.en ? "Before " : "Преди ") + cgPerfGroupName(m.prev)] : []), m.en ? "Median" : "Медиана", "90%", m.en ? "Last" : "Последно", m.en ? "Count" : "Брой"].join("\t")];
         m.rows.filter((r) => r.cur.n || (r.prev && r.prev.n)).forEach((r) => {
           lines.push([r.label, ...(m.prev ? [cgPerfFmt(r.prev && r.prev.med)] : []), cgPerfFmt(r.cur.med), cgPerfFmt(r.cur.p90), cgPerfFmt(r.cur.last), r.cur.n].join("\t"));
         });
@@ -9414,6 +9564,10 @@
         if (action === "go-lost-found") { state.screen = "lost-found"; render(); lfLoad(); return; }
         if (action === "open-speed") { state.showSettingsModal = false; state.screen = "speed"; render(); return; }
         if (action === "speed-copy") { cgPerfCopy(); return; }
+        if (action === "speed-mode") {
+          try { if (btn.dataset.mode === "old") localStorage.setItem("cg_perf_legacy", "1"); else localStorage.removeItem("cg_perf_legacy"); } catch (_) {}
+          render(); return;
+        }
         if (action === "speed-clear") {
           if (btn.dataset.confirm !== "1") { btn.dataset.confirm = "1"; btn.textContent = currentLang === "en" ? "Tap again to clear" : "Натисни пак за изчистване"; setTimeout(() => cgPerfRefresh(), 4000); return; }
           cgPerf.clear(); cgPerfRefresh(); return;
@@ -9709,6 +9863,9 @@
           if (nav && nav.domContentLoadedEventEnd > 0) cgPerf.add("boot.html", nav.domContentLoadedEventEnd);
         } catch (_) {}
         if (allowed === "outside") { recordFailedAttempt(); showOutsideCinema(); return; }
+        /* Без вина на служителя — съобщение и „Опитай пак", без блокиране. */
+        if (allowed === "geo-denied" || allowed === "geo-fail") { showLocationNeeded(allowed); return; }
+        if (allowed === "ip-fail") { showNetworkCheckFailed(); return; }
         if (!allowed) { const blocked = recordFailedAttempt(); if (blocked) { showAccessBlocked(); return; } showAccessDenied(); return; }
         /* Кешът от миналото зареждане рисува началния екран веднага, вместо
            да стои „зареждам…", докато мрежата отговори. Веднага след това
@@ -9890,7 +10047,7 @@
           if (sessionStorage.getItem(QR_MODE_KEY) !== "1") return;
           if (sessionStorage.getItem(LOCK_WHITELISTED_KEY) === "1") return;
           const pos = await getGeolocation();
-          if (!pos || !isNearCinema(pos.lat, pos.lng)) {
+          if (!pos || pos.error || !isNearCinema(pos.lat, pos.lng)) {
             const sid = state.currentSessionId || sessionStorage.getItem(LOCK_SESSION_KEY);
             if (sid) releaseLockBeacon(sid);
             state.currentSessionId = null;
