@@ -2030,6 +2030,16 @@
       .cg-lc-ax-sub { color: var(--muted-2); }
       .cg-lc-ax.is-mark, .cg-lc-ax.is-mark .cg-lc-ax-sub { color: var(--text); font-weight: 700; }
       .cg-lc-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+      /* ── Екран „Скорост на системата" ── */
+      .cg-sp-btns { display: flex; gap: var(--s2); flex-wrap: wrap; }
+      .cg-sp-table th[scope="row"] { text-align: left; font-weight: 600; min-width: 170px; }
+      .cg-sp-label { color: var(--text); }
+      .cg-sp-hint { margin-top: 2px; font-size: var(--fs-micro); font-weight: 400; color: var(--muted); line-height: 1.4; }
+      .cg-sp-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+      .cg-sp-table thead small { font-weight: 400; color: var(--muted); }
+      .cg-sp-fail { color: var(--amber-2); font-size: var(--fs-micro); }
+      .cg-sp-note { margin: var(--s3) 0 0; font-size: var(--fs-meta); color: var(--muted); line-height: 1.55; }
+      .cg-sp-empty { color: var(--muted); }
       /* ── СЛЕДВАЩА прожекция — открояване по контур ── */
       .cg-next-card { border-color: var(--gold-line) !important; }
       .cg-next-pill { /* статичен; открояването е в цвета на бàджа */ }
@@ -2798,6 +2808,84 @@
         return _lockAcquiredAt > 0 && (Date.now() - _lockAcquiredAt >= LOCK_TIMEOUT_MS);
       }
 
+      /* ══════════════════════════════════════════════════════════════
+         ИЗМЕРВАНЕ НА СКОРОСТТА
+         Всяко устройство пази последните ~400 измервания при себе си
+         (localStorage) — нищо не се праща никъде и таблицата не се пипа.
+         Екранът „Скорост на системата" (Настройки) ги показва като
+         медиана / 90% / последно, за да се сравнява „преди" и „след".
+         ══════════════════════════════════════════════════════════════ */
+      const CG_PERF_KEY = "cg_perf_v1";
+      const CG_PERF_MAX = 400;
+      /* Версия на кода — всяко измерване я помни, за да се вижда кое е
+         отпреди и кое отслед промяна. */
+      const CG_BUILD = "2026-10-14a";
+      const CG_PERF_METRICS = [
+        ["boot.html",      "Сваляне и стартиране на страницата", "От отваряне на адреса до готов код (без проверка на достъпа).", "Page download and start-up", "From opening the address until the code is ready (before the access check)."],
+        ["boot.ip",        "IP проверка", "Външна услуга казва IP адреса; сравнява се със списъка на киното.", "IP check", "An external service reports the IP address; it is compared with the cinema list."],
+        ["boot.geo",       "Местоположение (GPS)", "Само при QR от непозната мрежа: телефонът дава позиция.", "Location (GPS)", "Only for QR from an unknown network: the phone reports its position."],
+        ["boot.access",    "Проверка на достъпа — общо", "IP + местоположение, преди да се покаже каквото и да е.", "Access check — total", "IP + location, before anything is shown."],
+        ["boot.ready",     "Първо зареждане — до екрана", "От отваряне на адреса до видим начален екран (без QR).", "First load — until the screen", "From opening the address until the home screen is visible (not QR)."],
+        ["qr.form",        "QR сканиране → форма за проверка", "Включва достъпа и заключването на залата.", "QR scan → inspection form", "Includes the access check and locking the hall."],
+        ["sheets.ping",    "Събуждане на сървъра", "Празна заявка към Apps Script; дълга = сървърът е „спал“.", "Server wake-up", "Empty request to Apps Script; long = the server was asleep."],
+        ["sheets.recent",  "Четене: последните 600 проверки", "Началният екран; на всеки 3 минути.", "Read: last 600 inspections", "Home screen; every 3 minutes."],
+        ["data.fresh",     "Отваряне → свежи данни на екрана", "Докато дойдат, се виждат данните от предишния път.", "Open → fresh data on screen", "Until it arrives, the data from last time is shown."],
+        ["sheets.full",    "Четене: цялата история („Данни“)", "Расте с броя на проверките.", "Read: full history (Data)", "Grows with the number of inspections."],
+        ["sheets.lf",      "Четене: Lost & Found", "", "Read: Lost & Found", ""],
+        ["insp.write",     "Нова проверка → записана в таблицата", "От „Запази“ до потвърждение от Google Sheets.", "New inspection → saved in the sheet", "From “Save” until Google Sheets confirms."],
+        ["insp.visible",   "Нова проверка → вижда се в данните", "От „Запази“ до момента, в който тя идва обратно от таблицата.", "New inspection → visible in the data", "From “Save” until it comes back from the sheet."],
+      ];
+      const cgPerf = {
+        list() {
+          try { const a = JSON.parse(localStorage.getItem(CG_PERF_KEY) || "[]"); return Array.isArray(a) ? a : []; }
+          catch (_) { return []; }
+        },
+        add(k, ms, extra) {
+          if (!(ms >= 0) || !isFinite(ms)) return;
+          try {
+            const a = cgPerf.list();
+            const c = navigator.connection || {};
+            a.push(Object.assign({ k, ms: Math.round(ms), t: Date.now(), v: CG_BUILD,
+              net: c.effectiveType || "", dev: /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? "phone" : "desktop" }, extra || {}));
+            localStorage.setItem(CG_PERF_KEY, JSON.stringify(a.slice(-CG_PERF_MAX)));
+          } catch (_) { /* пълна квота — измерването е по избор */ }
+          if (state && state.screen === "speed") cgPerfRefresh();
+        },
+        clear() { try { localStorage.removeItem(CG_PERF_KEY); } catch (_) {} },
+        /* Кое Apps Script действие е тази заявка — за таблицата. */
+        label(url, options) {
+          if (typeof url !== "string" || url.indexOf(SHEETS_WEB_APP_URL) !== 0) return null;
+          if (options && options.method === "POST") {
+            let b = {}; try { b = JSON.parse(options.body || "{}"); } catch (_) {}
+            if (b.action === "lfList") return "sheets.lf";
+            if (!b.action && b.record) return "sheets.write";
+            return "sheets.post." + (b.action || "?");
+          }
+          if (/[?&]action=ping/.test(url)) return "sheets.ping";
+          if (/[?&]action=getInfo/.test(url)) return /[?&]limit=/.test(url) ? "sheets.recent" : "sheets.full";
+          return "sheets.get";
+        },
+      };
+      /* След запис: колко време минава, докато проверката дойде обратно в
+         данните от таблицата (същото четене като на началния екран). Номерът
+         на реда идва от сървъра; без него (стара версия) не се мери. */
+      function cgPerfVisible(recordNumber, t0, tries) {
+        if (recordNumber == null) return;
+        tries = tries || 0;
+        fetchSheetsRows(false).then((rows) => {
+          const hit = (rows || []).some((r) => String(colVal(r, "№")).trim() === String(recordNumber));
+          if (hit) { cgPerf.add("insp.visible", performance.now() - t0, { ok: true }); if (state.screen === "home") render(); return; }
+          if (tries < 3) setTimeout(() => cgPerfVisible(recordNumber, t0, tries + 1), 4000);
+          else cgPerf.add("insp.visible", performance.now() - t0, { ok: false });
+        }).catch(() => { if (tries < 3) setTimeout(() => cgPerfVisible(recordNumber, t0, tries + 1), 4000); });
+      }
+      const cgPerfOnce = new Set();
+      function cgPerfMark(k, extra) {
+        if (cgPerfOnce.has(k)) return;
+        cgPerfOnce.add(k);
+        cgPerf.add(k, performance.now(), extra);
+      }
+
       /* fetch с твърд timeout — пази UI-а от увисване при бавен/мъртъв backend.
          Хвърля грешка с name "AbortError" при изтичане. */
       async function fetchWithTimeout(url, options, timeoutMs) {
@@ -2822,6 +2910,8 @@
         const backoffs = cfg.backoffs || [700, 1800];
         const attempts = cfg.attempts || timeouts.length;
         let lastErr = null;
+        const perfK = cgPerf.label(url, options), perfT = performance.now();
+        const perfDone = (ok, n, bytes) => { if (perfK) cgPerf.add(perfK, performance.now() - perfT, { ok, n, kb: bytes ? Math.round(bytes / 1024) : undefined }); };
 
         for (let i = 0; i < attempts; i++) {
           try {
@@ -2834,7 +2924,9 @@
             }
             const text = await res.text();
             try {
-              return JSON.parse(text);
+              const parsed = JSON.parse(text);
+              perfDone(!(parsed && parsed.success === false), i + 1, text.length);
+              return parsed;
             } catch (_) {
               /* Apps Script връща HTML (login/quota/error страница) вместо JSON */
               const e = new Error("Non-JSON response");
@@ -2856,6 +2948,7 @@
             await new Promise((r) => setTimeout(r, backoffs[Math.min(i, backoffs.length - 1)]));
           }
         }
+        perfDone(false, attempts);
         throw lastErr || new Error("Request failed");
       }
 
@@ -2871,7 +2964,10 @@
            на Apps Script още не го поддържа, връща "Unknown action" — което
            също е достатъчно, за да е топъл backend-ът. */
         const url = SHEETS_WEB_APP_URL + "?action=ping&_token=" + encodeURIComponent(SHEETS_SECRET_TOKEN) + "&_warm=1&_cb=" + now;
-        fetchWithTimeout(url, { cache: "no-store" }, 20000).catch(() => {});
+        const t0 = performance.now();
+        fetchWithTimeout(url, { cache: "no-store" }, 20000)
+          .then((r) => r.text().then(() => cgPerf.add("sheets.ping", performance.now() - t0, { ok: r.ok })))
+          .catch(() => cgPerf.add("sheets.ping", performance.now() - t0, { ok: false }));
       }
 
       /* ══════════════════════════════════════════════════════════════
@@ -3072,11 +3168,12 @@
       }
 
       function getGeolocation() {
+        const t0 = performance.now();
         return new Promise((resolve) => {
           if (!navigator.geolocation) { resolve(null); return; }
           navigator.geolocation.getCurrentPosition(
-            (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-            () => resolve(null),
+            (pos) => { cgPerf.add("boot.geo", performance.now() - t0, { ok: true, acc: Math.round(pos.coords.accuracy) }); resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
+            (err) => { cgPerf.add("boot.geo", performance.now() - t0, { ok: false, err: err && err.code }); resolve(null); },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
           );
         });
@@ -3126,19 +3223,23 @@
       async function checkAccess() {
         /* IP проверка — whitelisted IP-та имат достъп отвсякъде */
         let isWhitelistedIP = false;
+        const ipT0 = performance.now();
+        let ipKnown = false;
         try {
           const res = await fetchWithTimeout("https://api.ipify.org?format=json", {}, 6000);
           const { ip } = await res.json();
           isWhitelistedIP = ACCESS_ALLOWED_IPS.includes(ip);
+          ipKnown = !!ip;
         } catch (_) {
           /* Fallback: опитай втори IP сервис ако първият не отговори */
           try {
             const res2 = await fetchWithTimeout("https://api.my-ip.io/v2/ip.json", {}, 6000);
             const data2 = await res2.json();
-            if (data2 && data2.ip) isWhitelistedIP = ACCESS_ALLOWED_IPS.includes(data2.ip);
+            if (data2 && data2.ip) { isWhitelistedIP = ACCESS_ALLOWED_IPS.includes(data2.ip); ipKnown = true; }
           } catch (_2) {}
         }
         sessionStorage.setItem(LOCK_WHITELISTED_KEY, isWhitelistedIP ? "1" : "0");
+        cgPerf.add("boot.ip", performance.now() - ipT0, { ok: ipKnown, wl: isWhitelistedIP });
 
         const params = new URLSearchParams(window.location.search || (window.location.hash.startsWith("#") ? window.location.hash.slice(1) : ""));
         /* Phone-photo flow — отделна страница за качване на снимки от телефон чрез QR.
@@ -3404,7 +3505,7 @@
             headers: { "Content-Type": "text/plain;charset=UTF-8" },
             body: JSON.stringify({ record, _token: SHEETS_SECRET_TOKEN }),
           }, { timeouts: [25000, 35000, 45000], backoffs: [1500, 4000] });
-          if (json && json.success === true) return { success: true, verified: true, duplicate: !!json.duplicate };
+          if (json && json.success === true) return { success: true, verified: true, duplicate: !!json.duplicate, recordNumber: json.recordNumber };
           return { success: false, error: (json && json.error) || "\u043d\u0435\u043f\u043e\u0437\u043d\u0430\u0442 \u043e\u0442\u0433\u043e\u0432\u043e\u0440" };
         } catch (err) {
           return { success: false, error: (err && (err.reason || err.message)) || "\u043d\u044f\u043c\u0430 \u0432\u0440\u044a\u0437\u043a\u0430" };
@@ -3746,6 +3847,9 @@
         "✓ Синхронизирано с Google Sheets.": "✓ Synced with Google Sheets.",
         "Проверки по дни": "Inspections by day", "Днес": "Today", "7 дни": "7 days",
         "Дневна активност · последните 7 дни": "Daily activity · last 7 days",
+        "Скорост на системата": "System speed",
+        "Отвори": "Open",
+        "Измервания от това устройство: зареждане, четене и запис": "Measurements from this device: loading, reading and saving",
         "Изпрати сега": "Send now", "Изпраща се към Google Sheets…": "Sending to Google Sheets…",
         "Обновява се от таблицата…": "Refreshing from the sheet…",
         "Зарежда цялата история от таблицата…": "Loading the full history from the sheet…",
@@ -5483,6 +5587,7 @@
         if (ALLOWED_NAMES.length && !ALLOWED_NAMES.includes(state.inspector.trim())) { showToast(`Името „${state.inspector.trim()}" не е в списъка. Избери от падащото меню.`, "error"); render(); return; }
         if (!allFilled) { showToast("Всички точки трябва да бъдат попълнени.", "error"); render(); return; }
         _submitBusy = true;
+        const perfT0 = performance.now();
         try {
           // Upload photos if present
           let localUrls = [];
@@ -5530,6 +5635,7 @@
             state.submitSending = true;
             render();
             const res = await syncRecord(record);
+            if (res.success) cgPerf.add("insp.write", performance.now() - perfT0, { ok: true, qr: true });
             state.submitSending = false;
             if (res.success) {
               showToast(`\u2713 \u201e${where}\u201c \u0435 \u0437\u0430\u043f\u0438\u0441\u0430\u043d\u0430 \u0432 Google Sheets.`);
@@ -5566,6 +5672,8 @@
                докъде е стигнало, а неуспешното остава в опашката. */
             showToast(`\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430\u0442\u0430 \u043d\u0430 \u201e${where}\u201c \u0435 \u0437\u0430\u043f\u0430\u0437\u0435\u043d\u0430. \u0418\u0437\u043f\u0440\u0430\u0449\u0430 \u0441\u0435 \u043a\u044a\u043c Google Sheets\u2026`);
             syncRecord(record).then((res) => {
+              cgPerf.add("insp.write", performance.now() - perfT0, { ok: !!res.success });
+              if (res.success) cgPerfVisible(res.recordNumber, perfT0);
               if (res.success) {
                 showToast(`\u2713 \u201e${where}\u201c \u0435 \u0437\u0430\u043f\u0438\u0441\u0430\u043d\u0430 \u0432 Google Sheets.`);
                 flushOutbox();
@@ -8183,6 +8291,100 @@
       }
 
       /* ── Настройки: език и тема на интерфейса ── */
+      /* ── Екран „Скорост на системата" ── */
+      function cgPerfFmt(ms) {
+        if (ms == null) return "—";
+        if (ms < 1000) return Math.round(ms) + (currentLang === "en" ? " ms" : " мс");
+        const v = (ms / 1000).toFixed(ms < 10000 ? 1 : 0);
+        return (currentLang === "en" ? v : v.replace(".", ",")) + (currentLang === "en" ? " s" : " с");
+      }
+      function cgPerfStats(arr) {
+        const ok = arr.filter((x) => x.ok !== false).map((x) => x.ms).sort((a, b) => a - b);
+        const q = (p) => ok.length ? ok[Math.min(ok.length - 1, Math.floor(p * (ok.length - 1) + .5))] : null;
+        return { n: arr.length, fail: arr.filter((x) => x.ok === false).length, med: q(.5), p90: q(.9), last: arr.length ? arr[arr.length - 1].ms : null };
+      }
+      /* Групи за сравнение „преди / след": по версия на кода. */
+      function cgPerfGroups(all) {
+        const order = [];
+        all.forEach((x) => { if (!order.includes(x.v)) order.push(x.v); });
+        return order;
+      }
+      function cgPerfModel() {
+        const all = cgPerf.list();
+        const en = currentLang === "en";
+        const groups = cgPerfGroups(all);
+        const cur = CG_BUILD, prev = groups.filter((g) => g !== cur).pop() || null;
+        const rows = CG_PERF_METRICS.map(([k, bg, bgH, enL, enH]) => {
+          const mine = all.filter((x) => x.k === k);
+          return { k, label: en ? enL : bg, hint: en ? enH : bgH,
+            cur: cgPerfStats(mine.filter((x) => x.v === cur)), prev: prev ? cgPerfStats(mine.filter((x) => x.v === prev)) : null };
+        });
+        return { all, rows, cur, prev, en };
+      }
+      function cgPerfBodyHtml() {
+        const m = cgPerfModel(), en = m.en;
+        const T = (bg, e) => en ? e : bg;
+        const cell = (v) => `<td class="cg-sp-num">${cgPerfFmt(v)}</td>`;
+        const has = m.rows.filter((r) => r.cur.n || (r.prev && r.prev.n));
+        const table = has.length ? `<div class="table-wrap"><table class="cg-sp-table">
+            <thead><tr><th>${T("Показател", "Metric")}</th>${m.prev ? `<th class="cg-sp-num">${T("Преди", "Before")}<br><small>${escapeHtml(m.prev)}</small></th>` : ""}
+              <th class="cg-sp-num">${T("Медиана", "Median")}</th><th class="cg-sp-num">90%</th><th class="cg-sp-num">${T("Последно", "Last")}</th><th class="cg-sp-num">${T("Брой", "Count")}</th></tr></thead>
+            <tbody>${has.map((r) => `<tr>
+              <th scope="row"><div class="cg-sp-label">${escapeHtml(r.label)}</div>${r.hint ? `<div class="cg-sp-hint">${escapeHtml(r.hint)}</div>` : ""}</th>
+              ${m.prev ? cell(r.prev && r.prev.med) : ""}
+              ${cell(r.cur.med)}${cell(r.cur.p90)}${cell(r.cur.last)}
+              <td class="cg-sp-num">${r.cur.n}${r.cur.fail ? ` <span class="cg-sp-fail">(${r.cur.fail} ${T("неусп.", "failed")})</span>` : ""}</td>
+            </tr>`).join("")}</tbody></table></div>`
+          : `<div class="panel cg-sp-empty">${T("Още няма измервания. Те се събират сами при работа: отваряне, четене от таблицата, нови проверки.", "No measurements yet. They are collected automatically while you work: opening, reading from the sheet, new inspections.")}</div>`;
+        return `${table}
+          <p class="cg-sp-note">${T("Медиана — обичайното време. 90% — 9 от 10 пъти е по-бързо от това. Измерванията са само от това устройство; другите устройства виждат нова проверка при следващото си опресняване (до 3 минути на началния екран).",
+            "Median — the typical time. 90% — 9 out of 10 times it is faster than this. Measurements are from this device only; other devices see a new inspection on their next refresh (up to 3 minutes on the home screen).")}</p>
+          <p class="cg-sp-note">${T("Версия", "Version")}: <b>${escapeHtml(m.cur)}</b> · ${T("измервания", "measurements")}: ${m.all.length}</p>`;
+      }
+      function cgPerfRefresh() {
+        const el = document.getElementById("speed-body");
+        if (!el) return;
+        el.innerHTML = cgPerfBodyHtml();
+        applyTranslation(el);
+      }
+      function renderSpeedScreen() {
+        const en = currentLang === "en";
+        return `<div class="page cg-speed">
+          <div class="toolbar">
+            <div>
+              <h1 class="hero-title">${en ? "System speed" : "Скорост на системата"}</h1>
+              <div class="muted">${en ? "How long opening, reading and saving take on this device" : "Колко време отнема отварянето, четенето и записът на това устройство"}</div>
+            </div>
+            <div class="cg-sp-btns">
+              <button type="button" class="btn btn-outline" data-action="speed-copy">${en ? "Copy table" : "Копирай таблицата"}</button>
+              <button type="button" class="btn btn-outline" data-action="speed-clear">${en ? "Clear" : "Изчисти"}</button>
+              <button type="button" class="btn btn-outline" data-action="go-home">${en ? "← Home" : "← Начало"}</button>
+            </div>
+          </div>
+          <div id="speed-body">${cgPerfBodyHtml()}</div>
+        </div>`;
+      }
+      /* Таблицата като текст — за изпращане в чат или имейл. */
+      function cgPerfCopy() {
+        const m = cgPerfModel();
+        const lines = [`CineGrand — ${m.en ? "speed" : "скорост"} · ${m.cur} · ${/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? "phone" : "desktop"} · ${new Date().toLocaleString()}`,
+          [m.en ? "Metric" : "Показател", ...(m.prev ? [(m.en ? "Before " : "Преди ") + m.prev] : []), m.en ? "Median" : "Медиана", "90%", m.en ? "Last" : "Последно", m.en ? "Count" : "Брой"].join("\t")];
+        m.rows.filter((r) => r.cur.n || (r.prev && r.prev.n)).forEach((r) => {
+          lines.push([r.label, ...(m.prev ? [cgPerfFmt(r.prev && r.prev.med)] : []), cgPerfFmt(r.cur.med), cgPerfFmt(r.cur.p90), cgPerfFmt(r.cur.last), r.cur.n].join("\t"));
+        });
+        const text = lines.join("\n");
+        const done = () => showToast(m.en ? "Table copied." : "Таблицата е копирана.");
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => cgPerfCopyFallback(text, done));
+        else cgPerfCopyFallback(text, done);
+      }
+      function cgPerfCopyFallback(text, done) {
+        const ta = document.createElement("textarea");
+        ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand("copy"); done(); } catch (_) {}
+        ta.remove();
+      }
+
       function renderSettingsModal() {
         const theme = currentTheme();
         const lowPerf = localStorage.getItem(PERF_KEY) === "1";
@@ -8238,6 +8440,14 @@
                 ${seg("set-perf", "perf", "on", "Вкл", !lowPerf)}
                 ${seg("set-perf", "perf", "off", "Изкл", lowPerf)}
               </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-text">
+                <div class="settings-label">Скорост на системата</div>
+                <div class="settings-hint">Измервания от това устройство: зареждане, четене и запис</div>
+              </div>
+              <button type="button" class="btn btn-outline" data-action="open-speed">Отвори</button>
             </div>
           </div>
         </div>`;
@@ -8796,6 +9006,7 @@
           state.screen === "halls" ? renderHallsScreen() :
           state.screen === "rules" ? renderRulesScreen() :
           state.screen === "lost-found" ? renderLostFoundScreen() :
+          state.screen === "speed" ? renderSpeedScreen() :
           state.screen === "select-cr" ? renderChangingRoomSelect() :
           state.screen === "cr-detail" ? renderChangingRoomDetail() :
           state.screen === "phone-photo-upload" ? renderPhonePhotoUpload() :
@@ -9201,6 +9412,12 @@
         if (action === "go-rules") { state.screen = "rules"; if (RULES_MD === null) loadRules(); render(); return; }
         /* ── Lost & Found ── */
         if (action === "go-lost-found") { state.screen = "lost-found"; render(); lfLoad(); return; }
+        if (action === "open-speed") { state.showSettingsModal = false; state.screen = "speed"; render(); return; }
+        if (action === "speed-copy") { cgPerfCopy(); return; }
+        if (action === "speed-clear") {
+          if (btn.dataset.confirm !== "1") { btn.dataset.confirm = "1"; btn.textContent = currentLang === "en" ? "Tap again to clear" : "Натисни пак за изчистване"; setTimeout(() => cgPerfRefresh(), 4000); return; }
+          cgPerf.clear(); cgPerfRefresh(); return;
+        }
         if (action === "lf-toggle-form") { lf.formOpen = true; lf.formErr = ""; if (!lf.form) lf.form = lfBlankForm(); render();
           const first = document.getElementById("lf-f-category"); if (first) first.focus(); return; }
         if (action === "lf-cancel") { lf.formOpen = false; lf.form = null; lf.photo = null; lf.formErr = ""; render(); return; }
@@ -9484,7 +9701,13 @@
          успоредно с проверката за достъп, за да не се чака последователно:
          ping не чете листове и не връща данни. */
       warmUpBackend();
+      const accessT0 = performance.now();
       checkAccess().then(async (allowed) => {
+        cgPerf.add("boot.access", performance.now() - accessT0, { ok: allowed === true });
+        try {
+          const nav = performance.getEntriesByType("navigation")[0];
+          if (nav && nav.domContentLoadedEventEnd > 0) cgPerf.add("boot.html", nav.domContentLoadedEventEnd);
+        } catch (_) {}
         if (allowed === "outside") { recordFailedAttempt(); showOutsideCinema(); return; }
         if (!allowed) { const blocked = recordFailedAttempt(); if (blocked) { showAccessBlocked(); return; } showAccessDenied(); return; }
         /* Кешът от миналото зареждане рисува началния екран веднага, вместо
@@ -9508,6 +9731,7 @@
         /* Preload при зареждане на страницата (F5). Началният екран иска само
            скорошните редове — цялата история се дърпа чак при „Данни". */
         fetchSheetsRows(false).then(() => {
+          cgPerfMark("data.fresh");
           /* Рисуваме приетия кеш, не отговора на тази заявка: ако междувременно
              „Данни" е заредил пълната история, закъснелият отрязан отговор не
              бива да подменя графиките. */
@@ -9623,6 +9847,8 @@
           Object.assign(state, { inspectionType: savedType, location: resolvedLoc, inspector: "", itemState: {}, notes: "", showValidation: false, screen: "inspection" });
         }
         render();
+        if (state.openedFromQR && state.screen === "inspection") cgPerfMark("qr.form");
+        else cgPerfMark("boot.ready", { screen: state.screen });
         /* Периодична проверка за изтекла QR сесия (всяка минута) */
         setInterval(function() {
           if (sessionStorage.getItem(QR_MODE_KEY) !== "1") return;
