@@ -3977,9 +3977,6 @@
         "✓ Синхронизирано с Google Sheets.": "✓ Synced with Google Sheets.",
         "Проверки по дни": "Inspections by day", "Днес": "Today", "7 дни": "7 days",
         "Дневна активност · последните 7 дни": "Daily activity · last 7 days",
-        "Скорост на системата": "System speed",
-        "Отвори": "Open",
-        "Измервания от това устройство: зареждане, четене и запис": "Measurements from this device: loading, reading and saving",
         "Изпрати сега": "Send now", "Изпраща се към Google Sheets…": "Sending to Google Sheets…",
         "Обновява се от таблицата…": "Refreshing from the sheet…",
         "Зарежда цялата история от таблицата…": "Loading the full history from the sheet…",
@@ -8591,14 +8588,6 @@
                 ${seg("set-perf", "perf", "off", "Изкл", lowPerf)}
               </div>
             </div>
-
-            <div class="settings-row">
-              <div class="settings-text">
-                <div class="settings-label">Скорост на системата</div>
-                <div class="settings-hint">Измервания от това устройство: зареждане, четене и запис</div>
-              </div>
-              <button type="button" class="btn btn-outline" data-action="open-speed">Отвори</button>
-            </div>
           </div>
         </div>`;
       }
@@ -9562,7 +9551,6 @@
         if (action === "go-rules") { state.screen = "rules"; if (RULES_MD === null) loadRules(); render(); return; }
         /* ── Lost & Found ── */
         if (action === "go-lost-found") { state.screen = "lost-found"; render(); lfLoad(); return; }
-        if (action === "open-speed") { state.showSettingsModal = false; state.screen = "speed"; render(); return; }
         if (action === "speed-copy") { cgPerfCopy(); return; }
         if (action === "speed-mode") {
           try { if (btn.dataset.mode === "old") localStorage.setItem("cg_perf_legacy", "1"); else localStorage.removeItem("cg_perf_legacy"); } catch (_) {}
@@ -9925,6 +9913,13 @@
         const search = window.location.search || "";
         const hash = window.location.hash || "";
         const params = new URLSearchParams(search || (hash.startsWith("#") ? hash.slice(1) : ""));
+        /* „Скорост на системата" не е в менюто — отваря се само с адреса
+           …/index.html?speed=1. Параметърът се маха от адреса веднага, за
+           да не се споделя по погрешка. */
+        if (params.get("speed") === "1") {
+          state.screen = "speed";
+          try { history.replaceState({}, "", window.location.origin + window.location.pathname); } catch (_) {}
+        }
         if (params.get("phonephoto") === "1") {
           /* Phone photo upload mode — самостоятелна страница, без lock/inspection */
           state.phonePhotoLoc = decodeURIComponent((params.get("loc") || "").replace(/\+/g, "%20"));
