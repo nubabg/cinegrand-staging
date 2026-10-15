@@ -272,6 +272,12 @@
   @media (min-width: 1000px) { .ds-form { grid-template-columns: 1fr 1fr 1fr; } }
   .ds-wide { grid-column: 1 / -1; }
   .ds-form input[type=tel], .ds-form input[type=email] { width: 100%; min-width: 0; background: var(--panel-2); border: 1px solid var(--border-strong); border-radius: 10px; padding: 9px 12px; color: var(--text); }
+  .confirm-row.del { align-items: flex-end; }
+  .del-text { flex: 1 1 100%; line-height: 1.5; font-size: 14px; }
+  .del-field { flex: 1 1 220px; margin: 0; }
+  .hidden-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .hidden-row > b { flex: 1 1 140px; }
+  .hidden-row .confirm-row { flex: 1 1 100%; }
   .confirm-row { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--red-soft); border: 1px solid var(--red); }
   .confirm-row span { flex: 1 1 220px; font-weight: 650; }
   .add-staff { padding-bottom: 18px; border-bottom: 1px solid var(--border); }
@@ -384,7 +390,8 @@
     "Нямате правомощия над него — само главният администратор може да го променя.": "You have no rights over it — only the main administrator can change it.", "Записва се…": "Saving…", "Снимка": "Photo", "Качи снимка": "Upload photo", "Махни снимката": "Remove photo", "Снимката е записана.": "Photo saved.",
     "Файлът не е снимка.": "The file is not an image.", "Снимката е твърде голяма.": "The photo is too large.", "Име, което виждат служителите": "Name shown to employees",
     "Снимката и името се виждат от служителите до „Възложил“ в задачите.": "Employees see this photo and name next to “Assigned by” in their tasks.",
-    "Премахни": "Remove", "Да, премахни": "Yes, remove", "Отказ": "Cancel", "Премахнати служители": "Removed employees", "Върни": "Restore", "Служителят е добавен.": "Employee added.",
+    "Премахни": "Remove", "Изтрий завинаги": "Delete permanently", "Скрити от преди": "Hidden earlier",
+    "Премахнати с предишната версия — данните им още са в таблицата. Изтрийте ги завинаги.": "Removed with the previous version — their data is still in the sheet. Delete them permanently.", "Да, премахни": "Yes, remove", "Отказ": "Cancel", "Премахнати служители": "Removed employees", "Върни": "Restore", "Служителят е добавен.": "Employee added.",
     "Служителят е премахнат.": "Employee removed.", "Служителят е върнат.": "Employee restored.", "Името е на кирилица.": "The name must be in Cyrillic.",
     "Премахнатите не се виждат в приложението (проверки, задачи), но историята им остава.": "Removed employees disappear from the app (inspections, tasks), but their history stays.",
     "Списъкът тук е и списъкът с имена за проверките в приложението.": "This list is also the list of names for inspections in the app.", "Изпълнена със закъснение": "Completed late", "Без оценки": "No ratings", "Няма служители. Добавете ги от списъка за проверки.": "No staff yet. Add them from the inspection list.",
@@ -727,6 +734,19 @@
     }
     return `<div class="card fade">${head}<div class="card-body">${top}${body}</div></div>`;
   }
+  /* Изтриване завинаги: показва какво ще изчезне и иска името да се напише. */
+  function delConfirmHtml(name) {
+    const n = S.tasks.filter((x) => x.assignee === name).length;
+    const ok = (S.rmTyped || "").trim().toLowerCase() === name.toLowerCase();
+    if (S.rmBusy === name) return `<div class="confirm-row del" role="status"><span><span class="spin"></span> ${esc(lang === "en" ? `Deleting ${name} and all their data…` : `Изтрива се ${name} и всички данни…`)}</span></div>`;
+    return `<div class="confirm-row del" role="alert">
+      <div class="del-text"><b>${esc(lang === "en" ? `Delete ${name} permanently?` : `Да изтрия ли ${name} завинаги?`)}</b><br>
+        ${esc(lang === "en" ? `This deletes the profile, PIN, photo, dossier and ${n} task(s) with their ratings. It cannot be undone. Inspections and Lost & Found entries stay.`
+          : `Ще бъдат изтрити профилът, ПИН-ът, снимката, досието и ${n} задачи с оценките им. Не може да се върне. Проверките и Lost & Found остават.`)}</div>
+      <div class="field del-field"><label for="rm-typed">${esc(lang === "en" ? `Type “${name}” to confirm` : `Напишете „${name}“ за потвърждение`)}</label><input type="text" id="rm-typed" autocomplete="off" value="${esc(S.rmTyped || "")}"></div>
+      <button class="btn btn-danger-solid" type="button" data-act="rm-staff-yes" data-name="${esc(name)}"${ok ? "" : " disabled"}>${ic("x")}${t("Изтрий завинаги")}</button>
+      <button class="btn btn-ghost" type="button" data-act="rm-staff-no">${t("Отказ")}</button></div>`;
+  }
   function staffHtml() {
     if (S.dossier) return dossierHtml();
     const nf = S.nstaff || (S.nstaff = { name: "", rank: "", position: "", pin: "" });
@@ -756,13 +776,12 @@
           <div class="field"><label for="sn-${i}">${t("ПИН (4–8 цифри)")}</label><input type="password" id="sn-${i}" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" autocomplete="new-password" placeholder="${s.hasPin ? "••••" : ""}"></div>
           <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-primary" type="submit">${t("Запази")}</button>${s.hasPin ? `<button class="btn btn-ghost" type="button" data-act="nopin" data-name="${esc(s.name)}">${t("Махни ПИН")}</button>` : ""}${staffPhoto(s.name) ? `<button class="btn btn-ghost" type="button" data-act="nophoto" data-name="${esc(s.name)}">${t("Махни снимката")}</button>` : ""}
             <button class="btn" type="button" data-act="dossier" data-name="${esc(s.name)}">${ic("file")}${t("Досие")}</button>
-            ${S.rmConfirm === s.name ? "" : `<button class="btn btn-ghost btn-danger" type="button" data-act="rm-staff" data-name="${esc(s.name)}">${t("Премахни")}</button>`}</div>
-          ${S.rmConfirm === s.name ? `<div class="confirm-row" role="alert"><span>${S.rmBusy === s.name ? `<span class="spin"></span> ${esc(lang === "en" ? `Removing ${s.name}…` : `Премахва се ${s.name}…`)}` : esc(S.rmText || (lang === "en" ? `Are you sure you want to remove ${s.name}?` : `Сигурни ли сте, че искате да премахнете ${s.name}?`))}</span>
-            <button class="btn btn-danger-solid" type="button" data-act="rm-staff-yes" data-name="${esc(s.name)}"${S.rmBusy ? " disabled" : ""}>${S.rmBusy === s.name ? `<span class="spin light"></span>${t("Премахва се…")}` : t("Да, премахни")}</button><button class="btn btn-ghost" type="button" data-act="rm-staff-no"${S.rmBusy ? " disabled" : ""}>${t("Отказ")}</button></div>` : ""}
+            ${S.rmConfirm === s.name ? "" : `<button class="btn btn-ghost btn-danger" type="button" data-act="rm-staff" data-name="${esc(s.name)}">${t("Изтрий завинаги")}</button>`}</div>
+          ${S.rmConfirm === s.name ? delConfirmHtml(s.name) : ""}
         </form>`).join("") : `<div class="empty">${t("Няма служители. Добавете ги от списъка за проверки.")}</div>`}
-      ${removed.length ? `<div class="section"><h3>${t("Премахнати служители")} <span class="count">${removed.length}</span></h3>
-        <div class="t-sub" style="margin:6px 0 10px">${t("Премахнатите не се виждат в приложението (проверки, задачи), но историята им остава.")}</div>
-        <div class="chips">${removed.map((r) => `<button class="chip" data-act="restore-staff" data-name="${esc(r.name)}">${esc(r.name)} · ${t("Върни")}</button>`).join("")}</div></div>` : ""}
+      ${removed.length ? `<div class="section"><h3>${t("Скрити от преди")} <span class="count">${removed.length}</span></h3>
+        <div class="t-sub" style="margin:6px 0 10px">${t("Премахнати с предишната версия — данните им още са в таблицата. Изтрийте ги завинаги.")}</div>
+        ${removed.map((r) => `<div class="hidden-row"><b>${esc(r.name)}</b>${S.rmConfirm === r.name ? delConfirmHtml(r.name) : `<button class="btn btn-ghost btn-danger" type="button" data-act="rm-staff" data-name="${esc(r.name)}">${t("Изтрий завинаги")}</button>`}</div>`).join("")}</div>` : ""}
     </div></div>`;
   }
   function historyHtml() {
@@ -1069,6 +1088,13 @@
     if (who) who.onchange = () => { S.who = who.value; render(); };
     const rc = document.getElementById("rate-comment");
     if (rc) rc.oninput = () => { S.comment = rc.value; };
+    const rt = document.getElementById("rm-typed");
+    if (rt) rt.oninput = () => {
+      S.rmTyped = rt.value;
+      const b = rt.closest(".confirm-row").querySelector('[data-act="rm-staff-yes"]');
+      b.disabled = rt.value.trim().toLowerCase() !== b.dataset.name.toLowerCase();
+    };
+    if (rt) rt.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); const b = rt.closest(".confirm-row").querySelector('[data-act="rm-staff-yes"]'); if (!b.disabled) b.click(); } };
     document.querySelectorAll("[data-ds]").forEach((n) => { n.oninput = n.onchange = () => { (S.dsForm = S.dsForm || {})[n.dataset.ds] = n.value; }; });
     const pn = document.getElementById("pf-name");
     if (pn) pn.oninput = () => { S.prof.name = pn.value; };
@@ -1205,38 +1231,28 @@
       } catch (err) { S.dsSaving = false; if (!err.handled) { S.dsErr = err.message; render(); } }
       return;
     }
-    if (act === "rm-staff") { if (S.rmBusy) return; S.rmConfirm = el.dataset.name; S.rmText = ""; S.rmForce = false; render(); return; }
-    if (act === "rm-staff-no") { if (S.rmBusy) return; S.rmConfirm = ""; render(); return; }
+    if (act === "rm-staff") { if (S.rmBusy) return; S.rmConfirm = el.dataset.name; S.rmTyped = ""; render(); const n = document.getElementById("rm-typed"); if (n) n.focus(); return; }
+    if (act === "rm-staff-no") { if (S.rmBusy) return; S.rmConfirm = ""; S.rmTyped = ""; render(); return; }
     if (act === "rm-staff-yes") {
       const name = el.dataset.name;
-      if (S.rmBusy) return;
+      if (S.rmBusy || (S.rmTyped || "").trim().toLowerCase() !== name.toLowerCase()) return;
       S.rmBusy = name; render();
       try {
-        const j = await call("tasksStaffRemove", { name, force: S.rmForce });
-        if (!j.success && j.code === "HAS_OPEN") {
-          S.rmForce = true; S.rmBusy = "";
-          S.rmText = lang === "en" ? `${name} has ${j.open} open task(s). Remove anyway? The tasks stay.` : `${name} има ${j.open} отворени задачи. Сигурни ли сте, че искате да го премахнете? Задачите остават.`;
-          render(); return;
-        }
+        const j = await call("tasksStaffRemove", { name, confirm: S.rmTyped });
         if (!j.success) throw new Error(j.error);
-        const gone = S.staff.find((y) => y.name === name);
+        // Махаме го навсякъде на място — без презареждане.
         S.staff = S.staff.filter((y) => y.name !== name);
-        if (gone) S.removed = (S.removed || []).concat([{ name: gone.name, rank: gone.rank, position: gone.position, hasPin: gone.hasPin }]);
-        S.rmConfirm = ""; S.rmBusy = ""; S.logs = null;
-        flash("ok", lang === "en" ? `✓ ${name} was removed.` : `✓ ${name} е премахнат(а).`); window.scrollTo(0, 0);
-      } catch (err) { S.rmConfirm = ""; S.rmBusy = ""; if (!err.handled) flash("err", err.message); }
-      return;
-    }
-    if (act === "restore-staff") {
-      const name = el.dataset.name; el.disabled = true; el.innerHTML = `<span class="spin"></span>${esc(name)}`;
-      try {
-        const j = await call("tasksStaffAdd", { name }); if (!j.success) throw new Error(j.error);
-        const r = (S.removed || []).find((y) => y.name === name) || { name };
         S.removed = (S.removed || []).filter((y) => y.name !== name);
-        S.staff = S.staff.concat([{ name: r.name, rank: r.rank || "", position: r.position || "", hasPin: !!r.hasPin }]);
-        S.logs = null; flash("ok", t("Служителят е върнат."));
-      }
-      catch (err) { if (!err.handled) flash("err", err.message); }
+        S.tasks = S.tasks.filter((x) => x.assignee !== name);
+        if (S.dsCache) delete S.dsCache[name];
+        if (S.photos) { delete S.photos.staff[name]; if (j.ver) S.photos.ver = j.ver; }
+        if (S.dossier === name) S.dossier = "";
+        S.rmConfirm = ""; S.rmBusy = ""; S.rmTyped = ""; S.logs = null; S.ov = null;
+        const d = j.deleted || {};
+        flash("ok", lang === "en" ? `✓ ${name} was deleted permanently (${d.tasks || 0} tasks${d.dossier ? ", dossier" : ""}${d.photo ? ", photo" : ""}).`
+          : `✓ ${name} е изтрит(а) завинаги (${d.tasks || 0} задачи${d.dossier ? ", досие" : ""}${d.photo ? ", снимка" : ""}).`);
+        window.scrollTo(0, 0);
+      } catch (err) { S.rmBusy = ""; if (!err.handled) { S.rmConfirm = ""; flash("err", err.message); } }
       return;
     }
     if (act === "save-profile") {

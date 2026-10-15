@@ -1820,24 +1820,43 @@ function handleTasksStaffAdd_(data) {
 }
 /* Премахване: редът остава (Активен = „не"), за да не се губи историята
    на задачите и проверките му. Изчезва от списъците в приложението. */
+/* Изтриване на служител — ЗАВИНАГИ, с едно действие. Маха всичко лично за
+   него в таблицата: реда в „Служители" (име, ранг, позиция, ПИН, снимка),
+   досието и всичките му задачи (и от архива). Проверките в ИНФО и Lost &
+   Found остават — те са история на киното и статистиката зависи от тях.
+   За потвърждение името трябва да е написано отново (data.confirm). */
+function tkDeleteRows_(ss, sheetName, headers, col, value) {
+  var sh = ss.getSheetByName(sheetName);
+  if (!sh) return 0;                       // няма лист — нищо не създаваме
+  var ctx = tkSheet_(ss, sheetName, headers);
+  var rows = tkRows_(ctx, headers).filter(function (x) { return x[col] === value; });
+  rows.sort(function (a, b) { return b._row - a._row; }).forEach(function (x) { sh.deleteRow(x._row); });
+  return rows.length;
+}
 function handleTasksStaffRemove_(data) {
   var admin = tkCheckToken_(data.token);
   if (!admin) return tkDeny_();
   var name = tkClean_(data.name, 80);
-  if (tkProtected_(admin, name)) return tkForbidden_(admin, "опит за премахване");
+  if (!name) return jsonResponse_({ success: false, code: "MISSING", error: "Липсва име." });
+  if (tkProtected_(admin, name)) return tkForbidden_(admin, "опит за изтриване");
+  if (String(data.confirm || "").trim().toLowerCase() !== name.toLowerCase())
+    return jsonResponse_({ success: false, code: "CONFIRM", error: "За потвърждение напишете името „" + name + "“." });
   var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  lock.waitLock(30000);
   try {
     var ss = tkOpen_();
-    var ctx = tkSheet_(ss, TK_STAFF_SHEET, TK_STAFF_HEADERS);
-    var s = tkRows_(ctx, TK_STAFF_HEADERS).filter(function (x) { return x["Име"] === name; })[0];
-    if (!s) return jsonResponse_({ success: false, code: "NOT_FOUND", error: "Няма такъв служител." });
-    var open = tkRows_(tkSheet_(ss, TK_SHEET, TK_HEADERS), TK_HEADERS).filter(function (t) { return t["Възложена на"] === name && t["Статус"] === "Възложена"; }).length;
-    if (open && !data.force) return jsonResponse_({ success: false, code: "HAS_OPEN", open: open, error: name + " има " + open + " отворени задачи." });
-    tkWriteRow_(ctx, s._row, { "Активен": "не" });
-    tkLog_(admin, "Премахнат служител", name, open ? open + " отворени задачи" : "");
+    var staff = tkStaff_(ss).filter(function (x) { return x["Име"] === name; });
+    if (!staff.length) return jsonResponse_({ success: false, code: "NOT_FOUND", error: "Няма такъв служител." });
+    var hadPhoto = staff.some(function (x) { return !!x["Снимка"]; });
+    var tasks = tkDeleteRows_(ss, TK_SHEET, TK_HEADERS, "Възложена на", name);
+    var archived = tkDeleteRows_(ss, TK_ARCHIVE_SHEET, TK_HEADERS.concat(["Архивирана на"]), "Възложена на", name);
+    var dossier = tkDeleteRows_(ss, TK_DOSSIER_SHEET, TK_DOSSIER_HEADERS, "Име", name);
+    tkDeleteRows_(ss, TK_STAFF_SHEET, TK_STAFF_HEADERS, "Име", name);
+    var ver = hadPhoto ? tkPhotoBump_() : tkPhotoVer_();   // приложенията махат снимката от паметта си
+    tkLog_(admin, "Изтрит служител", name, "изтрити: " + tasks + " задачи" + (archived ? ", " + archived + " от архива" : "") +
+      (dossier ? ", досие" : "") + (hadPhoto ? ", снимка" : "") + ", ПИН и данни");
     SpreadsheetApp.flush();
-    return jsonResponse_({ success: true, name: name, open: open });
+    return jsonResponse_({ success: true, name: name, deleted: { tasks: tasks, archived: archived, dossier: dossier, photo: hadPhoto }, ver: ver });
   } finally { lock.releaseLock(); }
 }
 /* ── Снимки: администраторът качва своя снимка и снимки на служителите ──
