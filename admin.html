@@ -579,11 +579,14 @@
   try { const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null"); if (s && s.exp > Date.now()) S.session = s; } catch (_) {}
 
   /* ── Заявки към Apps Script ── */
-  async function call(action, body) {
+  /* opt.long — за тежките четения: един дълъг опит (90 с) вместо 30 с + нов
+     опит, който започва цялото четене отначало и само удвоява чакането. */
+  async function call(action, body, opt) {
     const payload = JSON.stringify(Object.assign({ action, _token: SHEETS_SECRET_TOKEN }, body || {}, S.session ? { token: S.session.token } : {}));
+    const tries = opt && opt.long ? 1 : 2, wait = opt && opt.long ? 90000 : 30000;
     let last;
-    for (let i = 0; i < 2; i++) {
-      const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 30000);
+    for (let i = 0; i < tries; i++) {
+      const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), wait);
       try {
         const r = await fetch(SHEETS_WEB_APP_URL, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=UTF-8" }, body: payload, signal: ctl.signal });
         const j = JSON.parse(await r.text());
@@ -591,13 +594,15 @@
         if (j && /Unknown action|TypeError|of undefined|Липсва запис за проверка/i.test(String(j.error || ""))) throw new Error(lang === "en" ? "Apps Script is not updated yet — deploy the new Code.gs." : "Apps Script още не е обновен — направете нов deploy с новия Code.gs.");
         return j;
       } catch (e) { last = e; if (e.handled) throw e; } finally { clearTimeout(tm); }
-      await new Promise((r) => setTimeout(r, 1200));
+      if (i + 1 < tries) await new Promise((r) => setTimeout(r, 1200));
     }
+    if (last && last.name === "AbortError") throw new Error(L("Таблицата не отговори навреме. Натиснете „Обнови“.", "The sheet did not answer in time. Press “Refresh”."));
     throw last;
   }
   function logout(msg) {
     S.session = null; S.tasks = []; S.open = null;
-    try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+    try { sessionStorage.removeItem(SESSION_KEY); localStorage.removeItem(OV_KEY); } catch (_) {}
+    S.ov = null;
     S.msg = msg ? { kind: "err", text: msg } : null;
     render();
   }
@@ -993,13 +998,18 @@
   const plural = (n, one, many, enOne, enMany) => lang === "en" ? `${n} ${n === 1 ? enOne : enMany}` : `${n} ${n === 1 ? one : many}`;
   const dd = (n) => plural(n, "ден", "дни", "day", "days");
   const shortD = (s) => String(s || "").slice(0, 5);
+  /* Последният обзор се пази в браузъра: при отваряне се показва веднага,
+     а свежият идва отзад и го сменя. */
+  const OV_KEY = "cg_admin_overview";
+  try { const o = JSON.parse(localStorage.getItem(OV_KEY) || "null"); if (o && o.success) S.ov = o; } catch (_) {}
   async function loadOverview(fresh) {
     if (S.ovBusy) return;
     S.ovBusy = true; S.ovErr = ""; if (S.tab === "overview") render();
     try {
-      const j = await call("tasksOverview", fresh ? { fresh: true } : {});
+      const j = await call("tasksOverview", fresh ? { fresh: true } : {}, { long: true });
       if (!j.success) throw new Error(j.error);
       S.ov = j;
+      try { localStorage.setItem(OV_KEY, JSON.stringify(j)); } catch (_) {}
     } catch (err) { if (!err.handled) S.ovErr = err.message || String(err); }
     S.ovBusy = false; if (S.tab === "overview") render();
   }
@@ -1085,7 +1095,7 @@
       <span><span class="quick-num">${n}<small>${label}</small></span><span class="quick-sub" style="display:block">${sub}</span></span></button>`;
     return `<div class="ov fade">
       <div class="ov-head"><div><h2 class="sec-title">${L("Обзор", "Overview")}</h2>
-        <div class="t-sub">${L(`Последните ${o.days} дни · всички листове · обновено ${esc(o.at)}`, `Last ${o.days} days · all sheets · updated ${esc(o.at)}`)}</div></div>
+        <div class="t-sub">${L(`Последните ${o.days} дни · всички листове · обновено ${esc(o.at)}`, `Last ${o.days} days · all sheets · updated ${esc(o.at)}`)}${S.ovBusy ? " · " + L("обновява се…", "refreshing…") : ""}</div>${S.ovErr ? `<div class="t-sub bad-text">${esc(S.ovErr)}</div>` : ""}</div>
         <button class="btn" data-act="ov-reload"${S.ovBusy ? " disabled" : ""}>${S.ovBusy ? `<span class="spin"></span>` : ic("refresh")}${t("Обнови")}</button></div>
       <div class="ov-hero">
         <div class="kpis">
