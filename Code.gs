@@ -154,6 +154,8 @@ function doPost(e) {
     if (data.action === "tasksPhotos") return handleTasksPhotos_(data);
     if (data.action === "tasksOverview") return handleTasksOverview_(data);
     if (data.action === "tasksLog") return handleTasksLog_(data);
+    if (data.action === "tasksDossier") return handleTasksDossier_(data);
+    if (data.action === "tasksDossierSave") return handleTasksDossierSave_(data);
     if (data.action === "tasksProfile") return handleTasksProfile_(data);
     if (data.action === "tasksProfileSave") return handleTasksProfileSave_(data);
     if (data.action === "tasksStaffPhoto") return handleTasksStaffPhoto_(data);
@@ -2166,5 +2168,73 @@ function tkArchiveOld_() {
     }
     cache.put("tk_archived", "1", 21600);
     return old.length;
+  } finally { lock.releaseLock(); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ДОСИЕ НА СЛУЖИТЕЛЯ — информация, която администраторът попълва за
+   всеки служител (телефон, имейл, спешен контакт, постъпване…). Само за
+   администратори: никога не излиза към приложението на служителите.
+   Досието на главния администратор (защитения запис) се вижда и променя
+   само от него. В „Логове" се записва, че е променено — без самите данни.
+   ══════════════════════════════════════════════════════════════ */
+var TK_DOSSIER_SHEET = "Досиета";
+var TK_DOSSIER_FIELDS = [
+  { key: "phone", h: "Телефон", max: 30, re: /^[+0-9 ()\/-]{5,30}$/, err: "Телефонът е само с цифри, интервали и +()-." },
+  { key: "email", h: "Имейл", max: 120, re: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, err: "Невалиден имейл." },
+  { key: "address", h: "Адрес", max: 200 },
+  { key: "birthday", h: "Рожден ден", max: 10, re: /^\d{2}\.\d{2}\.\d{4}$/, err: "Датата е във формат дд.мм.гггг." },
+  { key: "started", h: "Постъпил на", max: 10, re: /^\d{2}\.\d{2}\.\d{4}$/, err: "Датата е във формат дд.мм.гггг." },
+  { key: "contract", h: "Договор", max: 60 },
+  { key: "emergencyName", h: "Спешен контакт", max: 80 },
+  { key: "emergencyPhone", h: "Телефон за спешен контакт", max: 30, re: /^[+0-9 ()\/-]{5,30}$/, err: "Телефонът за спешен контакт е само с цифри, интервали и +()-." },
+  { key: "uniform", h: "Размер униформа", max: 20 },
+  { key: "languages", h: "Езици", max: 120 },
+  { key: "skills", h: "Умения и обучения", max: 500 },
+  { key: "notes", h: "Бележки", max: 3000 }
+];
+var TK_DOSSIER_HEADERS = ["Име"].concat(TK_DOSSIER_FIELDS.map(function (f) { return f.h; }), ["Обновено", "Обновил"]);
+function tkDossierOut_(row) {
+  var o = {};
+  TK_DOSSIER_FIELDS.forEach(function (f) { o[f.key] = row ? row[f.h] : ""; });
+  o.updated = row ? row["Обновено"] : ""; o.updatedBy = row ? row["Обновил"] : "";
+  return o;
+}
+function handleTasksDossier_(data) {
+  var admin = tkCheckToken_(data.token);
+  if (!admin) return tkDeny_();
+  var name = tkClean_(data.name, 80);
+  if (tkProtected_(admin, name)) return tkForbidden_(admin, "опит за преглед на досие");
+  var ctx = tkSheet_(tkOpen_(), TK_DOSSIER_SHEET, TK_DOSSIER_HEADERS);
+  var row = tkRows_(ctx, TK_DOSSIER_HEADERS).filter(function (x) { return x["Име"] === name; })[0];
+  return jsonResponse_({ success: true, name: name, dossier: tkDossierOut_(row) });
+}
+function handleTasksDossierSave_(data) {
+  var admin = tkCheckToken_(data.token);
+  if (!admin) return tkDeny_();
+  var name = tkClean_(data.name, 80), d = data.dossier || {};
+  if (!name) return jsonResponse_({ success: false, code: "MISSING", error: "Липсва име." });
+  if (tkProtected_(admin, name)) return tkForbidden_(admin, "опит за промяна на досие");
+  var obj = {}, bad = null;
+  TK_DOSSIER_FIELDS.forEach(function (f) {
+    var v = f.key === "notes" || f.key === "skills" ? String(d[f.key] == null ? "" : d[f.key]).replace(/\r/g, "").trim().slice(0, f.max) : tkClean_(d[f.key], f.max);
+    if (v && f.re && !f.re.test(v) && !bad) bad = { code: "BAD_" + f.key.toUpperCase(), error: f.err };
+    obj[f.h] = v;
+  });
+  if (bad) return jsonResponse_({ success: false, code: bad.code, error: bad.error });
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = tkOpen_();
+    if (!tkStaff_(ss).some(function (x) { return x["Име"] === name; })) return jsonResponse_({ success: false, code: "NOT_FOUND", error: "Няма такъв служител." });
+    var ctx = tkSheet_(ss, TK_DOSSIER_SHEET, TK_DOSSIER_HEADERS);
+    var row = tkRows_(ctx, TK_DOSSIER_HEADERS).filter(function (x) { return x["Име"] === name; })[0];
+    var changed = TK_DOSSIER_FIELDS.filter(function (f) { return String(row ? row[f.h] : "") !== obj[f.h]; }).map(function (f) { return f.h.toLowerCase(); });
+    obj["Име"] = name; obj["Обновено"] = tkNow_(); obj["Обновил"] = admin;
+    tkWriteRow_(ctx, row ? row._row : ctx.sheet.getLastRow() + 1, obj);
+    if (changed.length) tkLog_(admin, "Досие", name, "променено: " + changed.join(", "));
+    SpreadsheetApp.flush();
+    var out = {}; TK_DOSSIER_HEADERS.forEach(function (h) { out[h] = String(obj[h] == null ? "" : obj[h]); });
+    return jsonResponse_({ success: true, name: name, dossier: tkDossierOut_(out) });
   } finally { lock.releaseLock(); }
 }
