@@ -223,6 +223,31 @@
   .who-btn:focus-visible { outline: 2px solid var(--accent); }
   label.btn { position: relative; }
   @media (max-width: 440px) { .who-btn .who { display: none; } }
+  /* Снимка горе вдясно + меню */
+  .me-wrap { position: relative; }
+  .me-btn { all: unset; cursor: pointer; border-radius: 50%; display: block; box-shadow: 0 0 0 2px var(--border-strong); transition: box-shadow .15s; }
+  .me-btn:hover, .me-btn[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--accent); }
+  .me-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .avatar.md { width: 44px; height: 44px; font-size: 16px; }
+  .avatar.lg2 { width: 64px; height: 64px; font-size: 22px; }
+  .pmenu { position: absolute; right: 0; top: calc(100% + 10px); z-index: 30; width: min(340px, calc(100vw - 24px)); background: var(--panel); border: 1px solid var(--border-strong); border-radius: 16px; box-shadow: var(--shadow); padding: 16px; display: grid; gap: 12px; }
+  .pmenu.pop { animation: rise .2s ease both; }
+  @media (max-width: 600px) { .pmenu { position: fixed; left: 12px; right: 12px; top: 72px; width: auto; max-height: calc(100vh - 90px); overflow: auto; } }
+  .pm-head { display: flex; gap: 14px; align-items: center; }
+  .pm-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  @media (prefers-reduced-motion: reduce) { .pmenu { animation: none; } }
+  .btn-danger-solid { background: var(--red-strong); border-color: var(--red-strong); color: #fff; }
+  .btn-danger-solid:hover { background: var(--red-strong); filter: brightness(1.08); }
+  .spin { flex: none; }
+  .btn-danger-solid, .confirm-row .btn { white-space: nowrap; }
+  .spin.light { border-color: rgba(255,255,255,.35); border-top-color: #fff; }
+  .lg-badge { display: inline-flex; padding: 3px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; white-space: nowrap; background: var(--panel-3); color: var(--text); }
+  .lg-badge.good { background: var(--green-soft); color: var(--green); }
+  .lg-badge.warn { background: var(--amber-soft); color: var(--amber); }
+  .lg-badge.bad { background: var(--red-soft); color: var(--red); }
+  .lg-badge.info { background: var(--blue-soft); color: var(--blue); }
+  .lg-badge.muted { background: var(--gray-soft); color: var(--gray); }
+  .nowrap { white-space: nowrap; }
   .confirm-row { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--red-soft); border: 1px solid var(--red); }
   .confirm-row span { flex: 1 1 220px; font-weight: 650; }
   .add-staff { padding-bottom: 18px; border-bottom: 1px solid var(--border); }
@@ -275,6 +300,7 @@
   <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
   <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
   <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
 </svg>
 <div class="wrap" id="app" aria-live="polite"></div>
@@ -316,7 +342,11 @@
     "Служителят вижда коментарите и оценката с ПИН-а си.": "The employee sees comments and the rating with their PIN.",
     "Връщането във „Възложена“ изчиства изпълнението и оценката — старите стойности остават в коментарите.": "Moving back to “Assigned” clears the completion and the rating — the old values stay in the comments.",
     "Още няма коментари.": "No comments yet.", "Нов служител": "New employee", "Име и фамилия": "Full name", "Добави служителя": "Add employee",
-    "Профил": "Profile", "Обзор": "Overview", "Снимка": "Photo", "Качи снимка": "Upload photo", "Махни снимката": "Remove photo", "Снимката е записана.": "Photo saved.",
+    "Профил": "Profile", "Обзор": "Overview", "Административна страница": "Administration", "Логове": "Logs", "администратор": "administrator",
+    "Логове — действия на администраторите": "Logs — administrator actions", "Търси в логовете…": "Search logs…", "Всички администратори": "All administrators",
+    "Администратор": "Administrator", "Кога": "When", "Действие": "Action", "Какво": "What", "Подробности": "Details", "Още няма записи.": "No entries yet.", "система": "system",
+    "Всяко действие в тази страница се записва в листа „Админ лог“. ПИН-ове и пароли не се записват.": "Every action on this page is recorded in the „Админ лог“ sheet. PINs and passwords are never recorded.",
+    "Премахва се…": "Removing…", "Снимка": "Photo", "Качи снимка": "Upload photo", "Махни снимката": "Remove photo", "Снимката е записана.": "Photo saved.",
     "Файлът не е снимка.": "The file is not an image.", "Снимката е твърде голяма.": "The photo is too large.", "Име, което виждат служителите": "Name shown to employees",
     "Снимката и името се виждат от служителите до „Възложил“ в задачите.": "Employees see this photo and name next to “Assigned by” in their tasks.",
     "Премахни": "Remove", "Да, премахни": "Yes, remove", "Отказ": "Cancel", "Премахнати служители": "Removed employees", "Върни": "Restore", "Служителят е добавен.": "Employee added.",
@@ -328,7 +358,7 @@
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   const ic = (id, cls) => `<svg class="icon ${cls || ""}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
   const app = document.getElementById("app");
-  document.title = t("Задачи · Администратор");
+  document.title = "CINE GRAND · " + t("Административна страница");
 
   const S = { session: null, tasks: [], staff: [], tab: "overview", filter: "", q: "", who: "", open: null, msg: null, busy: false, score: 0, confirm: "", histName: "" };
   try { const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null"); if (s && s.exp > Date.now()) S.session = s; } catch (_) {}
@@ -430,16 +460,37 @@
       </form></div>`;
   }
   function topHtml() {
+    const me = adminOf(S.session.user), myName = me.name || S.session.user;
     return `<div class="top">
-      <div class="brand"><img src="favicon.svg" alt=""><span>CINE GRAND<small>${t("Задачи")}</small></span></div>
-      <div class="top-right"><button class="who-btn" data-tab="profile" title="${t("Профил")}">${avatar(adminOf(S.session.user).name || S.session.user, adminOf(S.session.user).photo, "sm")}<span class="who">${esc(adminOf(S.session.user).name || S.session.user)}</span></button>
+      <div class="brand"><img src="favicon.svg" alt=""><span>CINE GRAND<small>${t("Административна страница")}</small></span></div>
+      <div class="top-right">
         <button class="btn" data-act="reload"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ic("refresh")}${t("Обнови")}</button>
-        <button class="btn btn-ghost" data-act="logout">${ic("out")}${t("Изход")}</button></div></div>`;
+        <button class="btn btn-ghost" data-act="logout">${ic("out")}${t("Изход")}</button>
+        <div class="me-wrap">
+          <button class="me-btn" data-act="menu" aria-haspopup="dialog" aria-expanded="${!!S.menu}" title="${esc(myName)} · ${t("Профил")}">${avatar(myName, me.photo, "md")}</button>
+          ${S.menu ? menuHtml(me, myName) : ""}
+        </div></div></div>`;
+  }
+  /* Меню при натискане на снимката: име, качване/махане на снимка, запазване. */
+  function menuHtml(me, myName) {
+    const pf = S.prof || (S.prof = { name: me.name || "" });
+    const anim = S.menuAnim; S.menuAnim = false;   // плавно — само при отваряне, не при всяко прерисуване
+    return `<div class="pmenu${anim ? " pop" : ""}" role="dialog" aria-label="${t("Профил")}">
+      <div class="pm-head"><label class="photo-pick big" title="${t("Качи снимка")}">${avatar(myName, me.photo, "lg2")}<input type="file" accept="image/*" class="sr" data-photo-for="__me" aria-label="${t("Качи снимка")}"><span class="photo-badge" aria-hidden="true">${ic("camera")}</span></label>
+        <div style="min-width:0"><b>${esc(myName)}</b><div class="t-sub">${esc(S.session.user)} · ${t("администратор")}</div></div></div>
+      <div class="field"><label for="pm-name">${t("Име, което виждат служителите")}</label><input type="text" id="pm-name" maxlength="60" value="${esc(pf.name)}" placeholder="${esc(S.session.user)}"></div>
+      <div class="pm-actions">
+        <button class="btn btn-primary" data-act="save-profile"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ic("check")}${t("Запази")}</button>
+        <label class="btn">${ic("camera")}${t("Качи снимка")}<input type="file" accept="image/*" class="sr" data-photo-for="__me"></label>
+        ${me.photo ? `<button class="btn btn-ghost btn-danger" data-act="nophoto" data-name="__me">${t("Махни снимката")}</button>` : ""}
+      </div>
+      ${S.menuMsg ? `<div class="msg ${S.menuMsg.kind}" style="margin:10px 0 0">${esc(S.menuMsg.text)}</div>` : ""}
+    </div>`;
   }
   function tabsHtml() {
     const waiting = S.tasks.filter((x) => x.status === "Изпълнена").length;
     const tab = (id, label, n) => `<button class="tab" role="tab" data-tab="${id}" aria-selected="${S.tab === id}">${label}${n ? ` <span class="count">${n}</span>` : ""}</button>`;
-    return `<div class="tabs" role="tablist">${tab("overview", ic("trend") + t("Обзор"))}${tab("tasks", t("Задачи"), waiting)}${tab("new", ic("plus") + t("Нова задача"))}${tab("staff", t("Служители"))}${tab("history", t("История"))}${tab("profile", t("Профил"))}</div>`;
+    return `<div class="tabs" role="tablist">${tab("overview", ic("trend") + t("Обзор"))}${tab("tasks", t("Задачи"), waiting)}${tab("new", ic("plus") + t("Нова задача"))}${tab("staff", t("Служители"))}${tab("history", t("История"))}${tab("profile", t("Профил"))}${tab("logs", ic("list") + t("Логове"))}</div>`;
   }
   function tasksHtml() {
     if (S.open) return detailHtml(S.tasks.find((x) => x.id === S.open));
@@ -557,8 +608,8 @@
           <div class="field"><label for="sn-${i}">${t("ПИН (4–8 цифри)")}</label><input type="password" id="sn-${i}" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" autocomplete="new-password" placeholder="${s.hasPin ? "••••" : ""}"></div>
           <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-primary" type="submit">${t("Запази")}</button>${s.hasPin ? `<button class="btn btn-ghost" type="button" data-act="nopin" data-name="${esc(s.name)}">${t("Махни ПИН")}</button>` : ""}${staffPhoto(s.name) ? `<button class="btn btn-ghost" type="button" data-act="nophoto" data-name="${esc(s.name)}">${t("Махни снимката")}</button>` : ""}
             ${S.rmConfirm === s.name ? "" : `<button class="btn btn-ghost btn-danger" type="button" data-act="rm-staff" data-name="${esc(s.name)}">${t("Премахни")}</button>`}</div>
-          ${S.rmConfirm === s.name ? `<div class="confirm-row" role="alert"><span>${esc(S.rmText || (lang === "en" ? `Remove ${s.name}?` : `Да премахна ли ${s.name}?`))}</span>
-            <button class="btn btn-danger" type="button" data-act="rm-staff-yes" data-name="${esc(s.name)}">${t("Да, премахни")}</button><button class="btn btn-ghost" type="button" data-act="rm-staff-no">${t("Отказ")}</button></div>` : ""}
+          ${S.rmConfirm === s.name ? `<div class="confirm-row" role="alert"><span>${S.rmBusy === s.name ? `<span class="spin"></span> ${esc(lang === "en" ? `Removing ${s.name}…` : `Премахва се ${s.name}…`)}` : esc(S.rmText || (lang === "en" ? `Are you sure you want to remove ${s.name}?` : `Сигурни ли сте, че искате да премахнете ${s.name}?`))}</span>
+            <button class="btn btn-danger-solid" type="button" data-act="rm-staff-yes" data-name="${esc(s.name)}"${S.rmBusy ? " disabled" : ""}>${S.rmBusy === s.name ? `<span class="spin light"></span>${t("Премахва се…")}` : t("Да, премахни")}</button><button class="btn btn-ghost" type="button" data-act="rm-staff-no"${S.rmBusy ? " disabled" : ""}>${t("Отказ")}</button></div>` : ""}
         </form>`).join("") : `<div class="empty">${t("Няма служители. Добавете ги от списъка за проверки.")}</div>`}
       ${removed.length ? `<div class="section"><h3>${t("Премахнати служители")} <span class="count">${removed.length}</span></h3>
         <div class="t-sub" style="margin:6px 0 10px">${t("Премахнатите не се виждат в приложението (проверки, задачи), но историята им остава.")}</div>
@@ -719,6 +770,37 @@
       </div>
     </div>`;
   }
+  /* ══ Логове: какво са правили администраторите (лист „Админ лог") ══ */
+  async function loadLogs() {
+    if (S.logBusy) return;
+    S.logBusy = true; S.logErr = ""; if (S.tab === "logs") render();
+    try { const j = await call("tasksLog", { limit: 500 }); if (!j.success) throw new Error(j.error); S.logs = j.entries || []; S.logTotal = j.total || 0; }
+    catch (err) { if (!err.handled) S.logErr = err.message || String(err); }
+    S.logBusy = false; if (S.tab === "logs") render();
+  }
+  const LOG_KIND = (a) => /Неуспешен/.test(a) ? "bad" : /Премахнат|Отмяна|архив/i.test(a) ? "warn" : /Вход/.test(a) ? "muted" : /Нова задача|Нов служител|Върнат/.test(a) ? "good" : "info";
+  const LOG_EN = { "Вход": "Sign-in", "Неуспешен вход": "Failed sign-in", "Нова задача": "New task", "Оценка": "Rating", "Отмяна на задача": "Task cancelled", "Смяна на задача": "Task changed",
+    "Коментар": "Comment", "Нов служител": "New employee", "Върнат служител": "Employee restored", "Премахнат служител": "Employee removed", "Промяна на служител": "Employee changed",
+    "Служители от списъка": "Staff from the list", "Снимка на служител": "Employee photo", "Профил": "Profile", "Автоматично архивиране": "Automatic archiving" };
+  function logsHtml() {
+    if (!S.logs) return `<div class="card fade"><div class="card-body"><div class="empty">${S.logErr ? esc(S.logErr) : `<span class="spin"></span> ${t("Зарежда…")}`}</div></div></div>`;
+    const lq = (S.logQ || "").toLowerCase(), who = S.logWho || "";
+    const admins = [...new Set(S.logs.map((e) => e.admin).filter(Boolean))];
+    const list = S.logs.filter((e) => (!who || e.admin === who) && (!lq || [e.action, e.target, e.details, e.admin, e.at].join(" ").toLowerCase().includes(lq)));
+    const nameOf = (u) => u === "система" ? t("система") : u === "—" ? "—" : (adminOf(u).name || u);
+    return `<div class="card fade"><div class="card-head"><h3>${ic("list")}${t("Логове — действия на администраторите")}</h3><span class="t-sub">${S.logs.length < S.logTotal ? `${S.logs.length} / ${S.logTotal}` : S.logTotal}</span></div><div class="card-body">
+      <div class="toolbar"><div style="flex:2 1 220px"><input type="search" id="log-q" placeholder="${t("Търси в логовете…")}" value="${esc(S.logQ || "")}" aria-label="${t("Търси в логовете…")}"></div>
+        <div style="flex:1 1 180px"><select id="log-who" aria-label="${t("Администратор")}"><option value="">${t("Всички администратори")}</option>${admins.map((a) => `<option value="${esc(a)}"${a === who ? " selected" : ""}>${esc(nameOf(a))}</option>`).join("")}</select></div>
+        <button class="btn" data-act="logs-reload"${S.logBusy ? " disabled" : ""}>${S.logBusy ? `<span class="spin"></span>` : ic("refresh")}${t("Обнови")}</button></div>
+      ${list.length ? `<table class="tlist static logs"><thead><tr><th>${t("Кога")}</th><th>${t("Администратор")}</th><th>${t("Действие")}</th><th>${t("Какво")}</th><th>${t("Подробности")}</th></tr></thead><tbody>
+        ${list.map((e) => `<tr><td class="nowrap">${esc(e.at)}</td>
+          <td>${e.admin === "система" || e.admin === "—" ? `<span class="t-sub">${esc(nameOf(e.admin))}</span>` : `<div class="person">${avatar(nameOf(e.admin), adminOf(e.admin).photo, "sm adm")}<span>${esc(nameOf(e.admin))}</span></div>`}</td>
+          <td><span class="lg-badge ${LOG_KIND(e.action)}">${esc(lang === "en" ? (LOG_EN[e.action] || e.action) : e.action)}</span></td>
+          <td><b>${esc(e.target || "—")}</b></td><td class="t-sub">${esc(e.details || "")}</td></tr>`).join("")}</tbody></table>`
+        : `<div class="empty">${t("Още няма записи.")}</div>`}
+      <div class="t-sub" style="margin-top:12px">${t("Всяко действие в тази страница се записва в листа „Админ лог“. ПИН-ове и пароли не се записват.")}</div>
+    </div></div>`;
+  }
   function profileHtml() {
     const me = adminOf(S.session.user);
     const pf = S.prof || (S.prof = { name: me.name || "" });
@@ -740,7 +822,7 @@
   }
   function render() {
     if (!S.session) { app.innerHTML = loginHtml(); bind(); return; }
-    let body = S.tab === "new" ? newHtml() : S.tab === "staff" ? staffHtml() : S.tab === "history" ? historyHtml() : S.tab === "profile" ? profileHtml() : S.tab === "overview" ? overviewHtml() : tasksHtml();
+    let body = S.tab === "new" ? newHtml() : S.tab === "staff" ? staffHtml() : S.tab === "history" ? historyHtml() : S.tab === "profile" ? profileHtml() : S.tab === "overview" ? overviewHtml() : S.tab === "logs" ? logsHtml() : tasksHtml();
     /* Плавното появяване — само при смяна на изгледа, не при всяко
        прерисуване (съобщение, зареждане), иначе съдържанието мига. */
     const view = [S.tab, S.open || "", S.histName || ""].join("|");
@@ -831,6 +913,12 @@
     if (rc) rc.oninput = () => { S.comment = rc.value; };
     const pn = document.getElementById("pf-name");
     if (pn) pn.oninput = () => { S.prof.name = pn.value; };
+    const mn = document.getElementById("pm-name");
+    if (mn) { mn.oninput = () => { S.prof.name = mn.value; }; mn.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); document.querySelector('.pmenu [data-act="save-profile"]').click(); } }; }
+    const lq = document.getElementById("log-q");
+    if (lq) lq.oninput = () => { S.logQ = lq.value; const pos = lq.selectionStart; render(); const n = document.getElementById("log-q"); n.focus(); n.setSelectionRange(pos, pos); };
+    const lw = document.getElementById("log-who");
+    if (lw) lw.onchange = () => { S.logWho = lw.value; render(); };
     document.querySelectorAll("input[data-photo-for]").forEach((inp) => { inp.onchange = () => { const f = inp.files && inp.files[0]; if (f) setPhoto(inp.dataset.photoFor, f); }; });
     ["nt-text", "st-due", "st-note", "st-hours"].forEach((id) => { const n = document.getElementById(id); if (n) n.oninput = n.onchange = syncDetail; });
   }
@@ -843,7 +931,8 @@
     try {
       const j = who === "__me" ? await call("tasksProfileSave", { photo }) : await call("tasksStaffPhoto", { name: who, photo });
       if (!j.success) throw new Error(j.error);
-      S.busy = false; await loadPhotos(); flash("ok", t("Снимката е записана."));
+      S.busy = false; await loadPhotos();
+      if (who === "__me" && S.menu) { S.menuMsg = { kind: "ok", text: t("Снимката е записана.") }; render(); } else flash("ok", t("Снимката е записана."));
       return;
     } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
     S.busy = false; render();
@@ -858,6 +947,7 @@
     const el = e.target.closest("[data-act],[data-tab],[data-filter],[data-open],[data-score],[data-hist],[data-st]");
     if (!el) return;
     if (el.dataset.tab === "overview" && !S.ov) loadOverview();
+    if (el.dataset.tab === "logs") { S.menu = false; loadLogs(); }
     if (el.dataset.tab) { S.tab = el.dataset.tab; S.open = null; S.msg = null; S.histName = ""; S.prof = null; render(); return; }
     if (el.dataset.filter != null && el.classList.contains("chip")) { S.filter = el.dataset.filter; render(); return; }
     if (el.dataset.open) { S.open = el.dataset.open; S.tab = "tasks"; S.score = 0; S.comment = null; S.editRate = false; S.confirm = ""; S.st = null; S.noteText = ""; S.msg = null; render(); window.scrollTo(0, 0); return; }
@@ -927,20 +1017,23 @@
       catch (err) { if (!err.handled) flash("err", err.message); }
       return;
     }
-    if (act === "rm-staff") { S.rmConfirm = el.dataset.name; S.rmText = ""; S.rmForce = false; render(); return; }
-    if (act === "rm-staff-no") { S.rmConfirm = ""; render(); return; }
+    if (act === "rm-staff") { if (S.rmBusy) return; S.rmConfirm = el.dataset.name; S.rmText = ""; S.rmForce = false; render(); return; }
+    if (act === "rm-staff-no") { if (S.rmBusy) return; S.rmConfirm = ""; render(); return; }
     if (act === "rm-staff-yes") {
       const name = el.dataset.name;
+      if (S.rmBusy) return;
+      S.rmBusy = name; render();
       try {
         const j = await call("tasksStaffRemove", { name, force: S.rmForce });
         if (!j.success && j.code === "HAS_OPEN") {
-          S.rmForce = true;
-          S.rmText = lang === "en" ? `${name} has ${j.open} open task(s). Remove anyway? The tasks stay.` : `${name} има ${j.open} отворени задачи. Да премахна ли въпреки това? Задачите остават.`;
+          S.rmForce = true; S.rmBusy = "";
+          S.rmText = lang === "en" ? `${name} has ${j.open} open task(s). Remove anyway? The tasks stay.` : `${name} има ${j.open} отворени задачи. Сигурни ли сте, че искате да го премахнете? Задачите остават.`;
           render(); return;
         }
         if (!j.success) throw new Error(j.error);
-        S.rmConfirm = ""; await load(); flash("ok", t("Служителят е премахнат."));
-      } catch (err) { S.rmConfirm = ""; if (!err.handled) flash("err", err.message); }
+        S.rmConfirm = ""; S.rmBusy = ""; S.logs = null; await load();
+        flash("ok", lang === "en" ? `✓ ${name} was removed.` : `✓ ${name} е премахнат(а).`); window.scrollTo(0, 0);
+      } catch (err) { S.rmConfirm = ""; S.rmBusy = ""; if (!err.handled) flash("err", err.message); }
       return;
     }
     if (act === "restore-staff") {
@@ -949,14 +1042,17 @@
       return;
     }
     if (act === "save-profile") {
-      S.busy = true; render();
+      S.busy = true; S.menuMsg = null; render();
       try {
         const j = await call("tasksProfileSave", { name: (S.prof && S.prof.name) || "" });
         if (!j.success) throw new Error(j.error);
-        S.busy = false; await loadPhotos(); S.prof = null; flash("ok", t("Записано."));
-      } catch (err) { S.busy = false; if (!err.handled) flash("err", err.message); }
+        S.busy = false; await loadPhotos(); S.prof = null;
+        if (S.menu) { S.menuMsg = { kind: "ok", text: t("Записано.") }; render(); } else flash("ok", t("Записано."));
+      } catch (err) { S.busy = false; if (!err.handled) { if (S.menu) { S.menuMsg = { kind: "err", text: err.message }; render(); } else flash("err", err.message); } }
       return;
     }
+    if (act === "menu") { S.menu = !S.menu; S.menuAnim = S.menu; S.menuMsg = null; S.prof = null; render(); if (S.menu) { const n = document.getElementById("pm-name"); if (n) n.focus(); } return; }
+    if (act === "logs-reload") { loadLogs(); return; }
     if (act === "nophoto") {
       const who = el.dataset.name;
       try {
@@ -972,6 +1068,8 @@
       catch (err) { if (!err.handled) flash("err", err.message); }
     }
   });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.menu) { S.menu = false; render(); const b = document.querySelector(".me-btn"); if (b) b.focus(); } });
+  document.addEventListener("click", (e) => { if (S.menu && !e.target.closest(".me-wrap")) { S.menu = false; render(); } });
   app.addEventListener("keydown", (e) => {
     if ((e.key === "Enter" || e.key === " ") && e.target.matches("tr[data-open],tr[data-hist]")) { e.preventDefault(); e.target.click(); }
   });

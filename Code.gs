@@ -153,6 +153,7 @@ function doPost(e) {
     if (data.action === "tasksStaffAdd") return handleTasksStaffAdd_(data);
     if (data.action === "tasksPhotos") return handleTasksPhotos_(data);
     if (data.action === "tasksOverview") return handleTasksOverview_(data);
+    if (data.action === "tasksLog") return handleTasksLog_(data);
     if (data.action === "tasksProfile") return handleTasksProfile_(data);
     if (data.action === "tasksProfileSave") return handleTasksProfileSave_(data);
     if (data.action === "tasksStaffPhoto") return handleTasksStaffPhoto_(data);
@@ -1608,13 +1609,15 @@ function handleTasksLogin_(data) {
   if (!Object.keys(admins).length) return jsonResponse_({ success: false, code: "NO_ADMINS", error: "Няма администратори — добавете TASKS_ADMIN_<име> в Script properties." });
   if (tkLocked_("adm_" + user)) return jsonResponse_({ success: false, code: "LOCKED", error: "Твърде много грешни опити. Опитайте след 10 минути." });
   var a = admins[user];
-  if (!a || !tkSafeEq_(a.pass, pass)) { tkFail_("adm_" + user); return jsonResponse_({ success: false, code: "BAD_LOGIN", error: "Грешно име или парола." }); }
+  if (!a || !tkSafeEq_(a.pass, pass)) { tkFail_("adm_" + user); tkLog_("—", "Неуспешен вход", user || "—", ""); return jsonResponse_({ success: false, code: "BAD_LOGIN", error: "Грешно име или парола." }); }
+  tkLog_(a.name, "Вход", "", "");
   var payload = a.name + "|" + (Date.now() + TK_TOKEN_HOURS * 3600 * 1000);
   return jsonResponse_({ success: true, user: a.name, token: tkB64_(Utilities.newBlob(payload).getBytes()) + "." + tkSign_(payload), hours: TK_TOKEN_HOURS });
 }
 function handleTasksAdminList_(data) {
   var admin = tkCheckToken_(data.token);
   if (!admin) return tkDeny_();
+  tkArchiveOld_();
   var ss = tkOpen_();
   var tasks = tkRows_(tkSheet_(ss, TK_SHEET, TK_HEADERS), TK_HEADERS).filter(function (t) { return t["ID"]; })
     .map(function (t) { return tkPublicTask_(t, true); });
@@ -1644,6 +1647,7 @@ function handleTasksCreate_(data) {
     tkWriteRow_(ctx, ctx.sheet.getLastRow() + 1, { "ID": id, "Създадена": now, "Създал": admin, "Заглавие": rec.title,
       "Описание": rec.description, "Категория": rec.category, "Приоритет": rec.priority, "Възложена на": rec.assignee,
       "Срок": rec.due, "Статус": "Възложена", "Обновено": now + " · възложена от " + admin });
+    tkLog_(admin, "Нова задача", rec.title, "на " + rec.assignee + (rec.due ? ", срок " + rec.due : "") + ", " + rec.priority);
     SpreadsheetApp.flush();
     return jsonResponse_({ success: true, id: id });
   } finally { lock.releaseLock(); }
@@ -1670,6 +1674,7 @@ function handleTasksRate_(data) {
     var now = tkNow_();
     tkWriteRow_(ctx, t._row, { "Статус": "Оценена", "Оценка": String(score), "Коментар": tkClean_(data.comment, 2000),
       "Оценена на": now, "Оценил": admin, "Обновено": now + " · оценена " + score + "/10 от " + admin });
+    tkLog_(admin, "Оценка", t["Заглавие"], score + "/10 за " + t["Възложена на"]);
     return jsonResponse_({ success: true, id: t["ID"], status: "Оценена" });
   });
 }
@@ -1678,6 +1683,7 @@ function handleTasksCancel_(data) {
     if (t["Статус"] !== "Възложена") return jsonResponse_({ success: false, code: "BAD_STATE", error: "Може да се отмени само задача, която още не е изпълнена." });
     var now = tkNow_();
     tkWriteRow_(ctx, t._row, { "Статус": "Отменена", "Обновено": now + " · отменена от " + admin });
+    tkLog_(admin, "Отмяна на задача", t["Заглавие"], t["Възложена на"]);
     return jsonResponse_({ success: true, id: t["ID"], status: "Отменена" });
   });
 }
@@ -1685,6 +1691,7 @@ function handleTasksCancel_(data) {
    възложил. Без описание, бележки, часове и оценки — те са лични. */
 var TK_BOARD_DONE_DAYS = 14;
 function handleTasksBoard_(data) {
+  tkArchiveOld_();
   var ss = tkOpen_();
   var staff = {};
   tkStaffPublic_(tkStaff_(ss)).forEach(function (s) { staff[s.name] = s; });
@@ -1735,6 +1742,7 @@ function handleTasksSetStatus_(data) {
     changes["Бележки"] = tkAddNote_(t, admin, log.join(", ") + (reason ? " — " + reason : ""));
     changes["Обновено"] = tkNow_() + " · " + log.join(", ") + " · " + admin;
     tkWriteRow_(ctx, t._row, changes);
+    tkLog_(admin, "Смяна на задача", t["Заглавие"], log.join(", ") + (reason ? " — " + reason : ""));
     return jsonResponse_({ success: true, id: t["ID"], status: to });
   });
 }
@@ -1745,6 +1753,7 @@ function handleTasksNote_(data) {
   return tkAdminTask_(data, function (ctx, t, admin) {
     var notes = tkAddNote_(t, admin, text);
     tkWriteRow_(ctx, t._row, { "Бележки": notes, "Обновено": tkNow_() + " · коментар от " + admin });
+    tkLog_(admin, "Коментар", t["Заглавие"], text);
     return jsonResponse_({ success: true, id: t["ID"], notes: tkNotes_(notes) });
   });
 }
@@ -1768,6 +1777,7 @@ function handleTasksStaffAdd_(data) {
     if (data.position != null) obj["Позиция"] = tkClean_(data.position, 80);
     if (pin) obj["ПИН"] = tkHashPin_(pin);
     tkWriteRow_(ctx, s ? s._row : ctx.sheet.getLastRow() + 1, obj);
+    tkLog_(admin, s ? "Върнат служител" : "Нов служител", obj["Име"], [obj["Ранг"], obj["Позиция"]].filter(Boolean).join(", "));
     SpreadsheetApp.flush();
     return jsonResponse_({ success: true, name: obj["Име"], restored: !!s });
   } finally { lock.releaseLock(); }
@@ -1788,6 +1798,7 @@ function handleTasksStaffRemove_(data) {
     var open = tkRows_(tkSheet_(ss, TK_SHEET, TK_HEADERS), TK_HEADERS).filter(function (t) { return t["Възложена на"] === name && t["Статус"] === "Възложена"; }).length;
     if (open && !data.force) return jsonResponse_({ success: false, code: "HAS_OPEN", open: open, error: name + " има " + open + " отворени задачи." });
     tkWriteRow_(ctx, s._row, { "Активен": "не" });
+    tkLog_(admin, "Премахнат служител", name, open ? open + " отворени задачи" : "");
     SpreadsheetApp.flush();
     return jsonResponse_({ success: true, name: name, open: open });
   } finally { lock.releaseLock(); }
@@ -1839,6 +1850,7 @@ function handleTasksProfileSave_(data) {
     if (photo !== null) obj["Снимка"] = photo;
     tkWriteRow_(ctx, me ? me._row : ctx.sheet.getLastRow() + 1, obj);
     tkPhotoBump_();
+    tkLog_(admin, "Профил", admin, [name !== null ? "име: " + (name || "—") : "", photo !== null ? (photo ? "нова снимка" : "махната снимка") : ""].filter(Boolean).join(", "));
     SpreadsheetApp.flush();
     return jsonResponse_({ success: true, user: admin });
   } finally { lock.releaseLock(); }
@@ -1855,6 +1867,7 @@ function handleTasksStaffPhoto_(data) {
     var s = tkRows_(ctx, TK_STAFF_HEADERS).filter(function (x) { return x["Име"] === name; })[0];
     if (!s) return jsonResponse_({ success: false, code: "NOT_FOUND", error: "Няма такъв служител." });
     tkWriteRow_(ctx, s._row, { "Снимка": photo });
+    tkLog_(admin, "Снимка на служител", name, photo ? "нова снимка" : "махната снимка");
     tkPhotoBump_();
     SpreadsheetApp.flush();
     return jsonResponse_({ success: true, name: name });
@@ -1876,6 +1889,7 @@ function handleTasksStaffSeed_(data) {
       tkWriteRow_(ctx, ctx.sheet.getLastRow() + 1, { "Име": n, "Активен": "да" });
       have[n] = 1; added++;
     });
+    if (added) tkLog_(admin, "Служители от списъка", added + " добавени", "");
     SpreadsheetApp.flush();
     return jsonResponse_({ success: true, added: added });
   } finally { lock.releaseLock(); }
@@ -1897,6 +1911,7 @@ function handleTasksStaffSave_(data) {
     if (!s) obj["Активен"] = "да";
     if (pin !== null) obj["ПИН"] = pin === "" ? "" : tkHashPin_(pin);   // "" = махни ПИН-а
     tkWriteRow_(ctx, row, obj);
+    tkLog_(admin, "Промяна на служител", name, [obj["Ранг"] && "ранг: " + obj["Ранг"], obj["Позиция"] && "позиция: " + obj["Позиция"], pin !== null ? (pin ? "нов ПИН" : "махнат ПИН") : ""].filter(Boolean).join(", "));
     SpreadsheetApp.flush();
     return jsonResponse_({ success: true, name: name });
   } finally { lock.releaseLock(); }
@@ -2035,4 +2050,74 @@ function handleTasksOverview_(data) {
   var json = JSON.stringify(res);
   try { if (json.length < 90000) cache.put("tk_overview", json, 300); } catch (_) {}
   return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ЛОГ НА АДМИНИСТРАТОРИТЕ — кой какво е направил и кога. Всяко действие
+   от admin.html добавя ред в листа „Админ лог". ПИН-ове и пароли никога
+   не се записват. Грешка в лога не спира самото действие.
+   ══════════════════════════════════════════════════════════════ */
+var TK_LOG_SHEET = "Админ лог";
+var TK_LOG_HEADERS = ["Дата", "Администратор", "Действие", "Обект", "Подробности"];
+function tkLog_(admin, action, target, details) {
+  try {
+    var ctx = tkSheet_(tkOpen_(), TK_LOG_SHEET, TK_LOG_HEADERS);
+    var row = [], vals = { "Дата": tkNow_(), "Администратор": admin, "Действие": action, "Обект": tkClean_(target, 200), "Подробности": tkClean_(details, 500) };
+    for (var i = 0; i < ctx.sheet.getLastColumn(); i++) row.push("");
+    TK_LOG_HEADERS.forEach(function (h) { row[ctx.map[h]] = tkText_(vals[h]); });
+    ctx.sheet.appendRow(row);
+  } catch (e) { Logger.log("tkLog_: " + e); }
+}
+function handleTasksLog_(data) {
+  var admin = tkCheckToken_(data.token);
+  if (!admin) return tkDeny_();
+  var ctx = tkSheet_(tkOpen_(), TK_LOG_SHEET, TK_LOG_HEADERS), sh = ctx.sheet, last = sh.getLastRow();
+  var limit = Math.min(1000, Math.max(50, Number(data.limit) || 500)), out = [];
+  if (last >= 2) {
+    var from = Math.max(2, last - limit + 1);
+    var vals = sh.getRange(from, 1, last - from + 1, sh.getLastColumn()).getDisplayValues();
+    for (var r = vals.length - 1; r >= 0; r--) {
+      var v = vals[r];
+      out.push({ at: v[ctx.map["Дата"]], admin: v[ctx.map["Администратор"]], action: v[ctx.map["Действие"]], target: v[ctx.map["Обект"]], details: v[ctx.map["Подробности"]] });
+    }
+  }
+  return jsonResponse_({ success: true, entries: out, total: Math.max(0, last - 1) });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   АВТОМАТИЧНО АРХИВИРАНЕ — задачи, създадени преди повече от 3 месеца
+   (90 дни), се махат от системата: преместват се в листа „Tasks архив"
+   (нищо не се губи — оценки, часове и коментари остават там). Проверява
+   се най-много веднъж на 6 часа, при отваряне на таблото или admin.html.
+   ══════════════════════════════════════════════════════════════ */
+var TK_ARCHIVE_SHEET = "Tasks архив";
+var TK_ARCHIVE_DAYS = 90;
+function tkArchiveOld_() {
+  var cache = CacheService.getScriptCache();
+  if (cache.get("tk_archived")) return 0;
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return 0;
+  try {
+    var ss = tkOpen_(), ctx = tkSheet_(ss, TK_SHEET, TK_HEADERS), today = tkToday_();
+    var old = tkRows_(ctx, TK_HEADERS).filter(function (t) {
+      var d = tkDay_(t["Създадена"]);
+      return t["ID"] && d != null && today - d >= TK_ARCHIVE_DAYS;
+    });
+    if (old.length) {
+      var heads = TK_HEADERS.concat(["Архивирана на"]);
+      var actx = tkSheet_(ss, TK_ARCHIVE_SHEET, heads), now = tkNow_();
+      old.forEach(function (t) {
+        var obj = {};
+        TK_HEADERS.forEach(function (h) { obj[h] = t[h]; });
+        obj["Архивирана на"] = now;
+        tkWriteRow_(actx, actx.sheet.getLastRow() + 1, obj);
+      });
+      // Отдолу нагоре, за да не се разместват номерата на редовете.
+      old.sort(function (a, b) { return b._row - a._row; }).forEach(function (t) { ctx.sheet.deleteRow(t._row); });
+      tkLog_("система", "Автоматично архивиране", old.length + " задачи", "създадени преди повече от " + TK_ARCHIVE_DAYS + " дни → „" + TK_ARCHIVE_SHEET + "“");
+      SpreadsheetApp.flush();
+    }
+    cache.put("tk_archived", "1", 21600);
+    return old.length;
+  } finally { lock.releaseLock(); }
 }
