@@ -250,6 +250,12 @@
   .lg-badge.info { background: var(--blue-soft); color: var(--blue); }
   .lg-badge.muted { background: var(--gray-soft); color: var(--gray); }
   .nowrap { white-space: nowrap; }
+  @media (min-width: 820px) { .staff-row.locked { grid-template-columns: 1.2fr 1fr 1.2fr 2fr; } }
+  .staff-row.locked .ro { min-height: 40px; display: flex; align-items: center; padding: 0 12px; border-radius: 10px; background: var(--panel-3); color: var(--text); font-weight: 600; }
+  .lock-note { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--accent); background: var(--accent-soft); font-size: 13px; color: var(--text); }
+  .lock-note .icon { color: var(--accent); width: 22px; height: 22px; }
+  .owner-tag { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-weight: 700; }
+  .owner-tag .icon { width: 13px; height: 13px; }
   .confirm-row { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--red-soft); border: 1px solid var(--red); }
   .confirm-row span { flex: 1 1 220px; font-weight: 650; }
   .add-staff { padding-bottom: 18px; border-bottom: 1px solid var(--border); }
@@ -303,6 +309,7 @@
   <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
   <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
   <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></symbol>
   <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
 </svg>
 <div class="wrap" id="app" aria-live="polite"></div>
@@ -348,7 +355,8 @@
     "Логове — действия на администраторите": "Logs — administrator actions", "Търси в логовете…": "Search logs…", "Всички администратори": "All administrators",
     "Администратор": "Administrator", "Кога": "When", "Действие": "Action", "Какво": "What", "Подробности": "Details", "Още няма записи.": "No entries yet.", "система": "system",
     "Всяко действие в тази страница се записва в листа „Админ лог“. ПИН-ове и пароли не се записват.": "Every action on this page is recorded in the „Админ лог“ sheet. PINs and passwords are never recorded.",
-    "Премахва се…": "Removing…", "Записва се…": "Saving…", "Снимка": "Photo", "Качи снимка": "Upload photo", "Махни снимката": "Remove photo", "Снимката е записана.": "Photo saved.",
+    "Премахва се…": "Removing…", "главен администратор": "main administrator", "Защитен профил": "Protected profile",
+    "Нямате правомощия над него — само главният администратор може да го променя.": "You have no rights over it — only the main administrator can change it.", "Записва се…": "Saving…", "Снимка": "Photo", "Качи снимка": "Upload photo", "Махни снимката": "Remove photo", "Снимката е записана.": "Photo saved.",
     "Файлът не е снимка.": "The file is not an image.", "Снимката е твърде голяма.": "The photo is too large.", "Име, което виждат служителите": "Name shown to employees",
     "Снимката и името се виждат от служителите до „Възложил“ в задачите.": "Employees see this photo and name next to “Assigned by” in their tasks.",
     "Премахни": "Remove", "Да, премахни": "Yes, remove", "Отказ": "Cancel", "Премахнати служители": "Removed employees", "Върни": "Restore", "Служителят е добавен.": "Employee added.",
@@ -398,6 +406,7 @@
       const j = await call("tasksAdminList");
       if (!j.success) throw new Error(j.error);
       S.tasks = j.tasks || []; S.staff = j.staff || []; S.removed = j.removed || [];
+      if (S.session && "owner" in j) { S.session.owner = !!j.owner; S.session.ownerStaff = j.ownerStaff || ""; try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(S.session)); } catch (_) {} }
       await photos;
       if (j.photoVer && S.photos && S.photos.ver !== j.photoVer) loadPhotos().then(render);
     } catch (e) { if (!e.handled) S.msg = { kind: "err", text: e.message || String(e) }; }
@@ -449,6 +458,10 @@
   const imgOk = (u) => /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(u || "");
   const avatarSaving = (who, html) => S.saving && S.saving[who] ? `<span class="av-wrap">${html}<span class="av-busy" title="${t("Записва се…")}"><span class="spin light"></span></span></span>` : html;
   const avatar = (name, photo, cls) => imgOk(photo) ? `<img class="avatar ${cls || ""}" src="${photo}" alt="" aria-hidden="true">` : `<span class="avatar ${cls || ""}" aria-hidden="true">${esc(initials(name))}</span>`;
+  /* Главният администратор: само той вижда „Логове"; неговият запис в
+     „Служители" е защитен от другите (сървърът също отказва). */
+  const isOwner = () => !!(S.session && S.session.owner);
+  const isProtected = (name) => !isOwner() && !!(S.session && S.session.ownerStaff) && String(name).trim().toLowerCase() === S.session.ownerStaff.trim().toLowerCase();
   const staffPhoto = (name) => (S.photos && S.photos.staff[name]) || "";
   const adminOf = (u) => (S.photos && S.photos.admins[String(u || "").toLowerCase()]) || {};
   const adminPerson = (u) => u ? `<div class="person">${avatar(adminOf(u).name || u, adminOf(u).photo, "adm")}<span>${esc(adminOf(u).name || u)}</span></div>` : "—";
@@ -492,7 +505,7 @@
     const anim = S.menuAnim; S.menuAnim = false;   // плавно — само при отваряне, не при всяко прерисуване
     return `<div class="pmenu${anim ? " pop" : ""}" role="dialog" aria-label="${t("Профил")}">
       <div class="pm-head"><label class="photo-pick big" title="${t("Качи снимка")}">${avatarSaving("__me", avatar(myName, me.photo, "lg2"))}<input type="file" accept="image/*" class="sr" data-photo-for="__me" aria-label="${t("Качи снимка")}"><span class="photo-badge" aria-hidden="true">${ic("camera")}</span></label>
-        <div style="min-width:0"><b>${esc(myName)}</b><div class="t-sub">${esc(S.session.user)} · ${t("администратор")}</div></div></div>
+        <div style="min-width:0"><b>${esc(myName)}</b><div class="t-sub">${esc(S.session.user)} · ${isOwner() ? `<span class="owner-tag">${ic("shield")}${t("главен администратор")}</span>` : t("администратор")}</div></div></div>
       <div class="field"><label for="pm-name">${t("Име, което виждат служителите")}</label><input type="text" id="pm-name" maxlength="60" value="${esc(pf.name)}" placeholder="${esc(S.session.user)}"></div>
       <div class="pm-actions">
         <button class="btn btn-primary" data-act="save-profile"${S.meBusy ? " disabled" : ""}>${S.meBusy ? `<span class="spin light"></span>` : ic("check")}${S.meBusy ? t("Записва се…") : t("Запази")}</button>
@@ -505,7 +518,7 @@
   function tabsHtml() {
     const waiting = S.tasks.filter((x) => x.status === "Изпълнена").length;
     const tab = (id, label, n) => `<button class="tab" role="tab" data-tab="${id}" aria-selected="${S.tab === id}">${label}${n ? ` <span class="count">${n}</span>` : ""}</button>`;
-    return `<div class="tabs" role="tablist">${tab("overview", ic("trend") + t("Обзор"))}${tab("tasks", t("Задачи"), waiting)}${tab("new", ic("plus") + t("Нова задача"))}${tab("staff", t("Служители"))}${tab("history", t("История"))}${tab("profile", t("Профил"))}${tab("logs", ic("list") + t("Логове"))}</div>`;
+    return `<div class="tabs" role="tablist">${tab("overview", ic("trend") + t("Обзор"))}${tab("tasks", t("Задачи"), waiting)}${tab("new", ic("plus") + t("Нова задача"))}${tab("staff", t("Служители"))}${tab("history", t("История"))}${tab("profile", t("Профил"))}${isOwner() ? tab("logs", ic("list") + t("Логове")) : ""}</div>`;
   }
   function tasksHtml() {
     if (S.open) return detailHtml(S.tasks.find((x) => x.id === S.open));
@@ -616,7 +629,12 @@
         <div class="t-sub">${t("Списъкът тук е и списъкът с имена за проверките в приложението.")}</div>
       </form>
       <div class="toolbar" style="margin-top:18px"><button class="btn" data-act="seed">${ic("plus")}${t("Добави имената от списъка за проверки")}</button></div>
-      ${S.staff.length ? S.staff.map((s, i) => `<form class="staff-row" data-staff="${i}">
+      ${S.staff.length ? S.staff.map((s, i) => isProtected(s.name) ? `<div class="staff-row locked">
+          <div class="staff-name">${avatar(s.name, staffPhoto(s.name), "lg")}<span>${esc(s.name)}<br><span class="t-sub">${s.hasPin ? t("има ПИН") : t("без ПИН")}</span></span></div>
+          <div class="field"><span class="meta-label">${t("Ранг")}</span><div class="ro">${esc(s.rank || "—")}</div></div>
+          <div class="field"><span class="meta-label">${t("Позиция")}</span><div class="ro">${esc(s.position || "—")}</div></div>
+          <div class="lock-note" role="note">${ic("shield")}<span><b>${t("Защитен профил")}</b><br>${t("Нямате правомощия над него — само главният администратор може да го променя.")}</span></div>
+        </div>` : `<form class="staff-row" data-staff="${i}">
           <div class="staff-name"><label class="photo-pick" title="${t("Снимка")}">${avatarSaving(s.name, avatar(s.name, staffPhoto(s.name), "lg"))}<input type="file" accept="image/*" class="sr" data-photo-for="${esc(s.name)}" aria-label="${t("Снимка")}: ${esc(s.name)}"><span class="photo-badge" aria-hidden="true">${ic("camera")}</span></label><span>${esc(s.name)}<br><span class="t-sub">${s.hasPin ? t("има ПИН") : t("без ПИН")}</span></span></div>
           <div class="field"><label for="sr-${i}">${t("Ранг")}</label><input type="text" id="sr-${i}" name="rank" maxlength="60" value="${esc(s.rank)}"></div>
           <div class="field"><label for="sp-${i}">${t("Позиция")}</label><input type="text" id="sp-${i}" name="position" maxlength="80" value="${esc(s.position)}"></div>
@@ -841,7 +859,7 @@
       if (!S.warmed) { S.warmed = true; fetch(SHEETS_WEB_APP_URL + "?action=ping&_token=" + encodeURIComponent(SHEETS_SECRET_TOKEN), { redirect: "follow" }).catch(() => {}); }
       app.innerHTML = loginHtml(); bind(); return;
     }
-    let body = S.tab === "new" ? newHtml() : S.tab === "staff" ? staffHtml() : S.tab === "history" ? historyHtml() : S.tab === "profile" ? profileHtml() : S.tab === "overview" ? overviewHtml() : S.tab === "logs" ? logsHtml() : tasksHtml();
+    let body = S.tab === "new" ? newHtml() : S.tab === "staff" ? staffHtml() : S.tab === "history" ? historyHtml() : S.tab === "profile" ? profileHtml() : S.tab === "overview" ? overviewHtml() : S.tab === "logs" && isOwner() ? logsHtml() : S.tab === "logs" ? overviewHtml() : tasksHtml();
     /* Плавното появяване — само при смяна на изгледа, не при всяко
        прерисуване (съобщение, зареждане), иначе съдържанието мига. */
     const view = [S.tab, S.open || "", S.histName || ""].join("|");
@@ -864,7 +882,7 @@
         try {
           const j = await call("tasksLogin", { user, pass });
           if (!j.success) throw new Error(j.error);
-          S.session = { user: j.user, token: j.token, exp: Date.now() + (j.hours || 12) * 3600e3 - 60e3 };
+          S.session = { user: j.user, token: j.token, owner: !!j.owner, ownerStaff: j.ownerStaff || "", exp: Date.now() + (j.hours || 12) * 3600e3 - 60e3 };
           try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(S.session)); } catch (_) {}
           S.busy = false; S.msg = null; loadOverview(); load(); return;
         } catch (err) { S.msg = { kind: "err", text: err.message || String(err) }; }
