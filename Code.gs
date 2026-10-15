@@ -1966,6 +1966,7 @@ function handleTasksStaffSave_(data) {
    прескача), за да не се чете целият лист при всяко отваряне.
    ══════════════════════════════════════════════════════════════ */
 var TK_OVERVIEW_DAYS = 30;
+var TK_OVERVIEW_CHUNK = 1500;   // редове на едно четене от ИНФО (отдолу нагоре)
 function tkDayStr_(n) {
   var d = new Date(n * 86400000), p = function (x) { return (x < 10 ? "0" : "") + x; };
   return p(d.getUTCDate()) + "." + p(d.getUTCMonth() + 1) + "." + d.getUTCFullYear();
@@ -1979,12 +1980,29 @@ function tkInspectionStats_(ss, today) {
   var out = { total: 0, n: 0, p: 0, prevN: 0, prevP: 0, daily: [], locations: [], issues: [], inspectors: [], zeroDays: 0 };
   var last = sh.getLastRow();
   if (last < 2) return out;
-  var vals = sh.getRange(2, 1, last - 1, 6).getDisplayValues();
+  // Целият лист се чете над 30 с (виж „Данни" в index.html), а обзорът
+  // има нужда само от последните 2 × W дни. Редовете се добавят отдолу,
+  // затова четем отдолу нагоре на парчета, докато стигнем по-стар ред.
+  var vals = [], end = last;
+  while (end >= 2) {
+    var start = Math.max(2, end - TK_OVERVIEW_CHUNK + 1);
+    var part = sh.getRange(start, 1, end - start + 1, 6).getDisplayValues();
+    vals = part.concat(vals);
+    end = start - 1;
+    var oldest = null;
+    for (var q = 0; q < part.length && oldest == null; q++) oldest = tkDay_(part[q][1]);
+    if (oldest != null && today - oldest >= 2 * W) break;
+  }
+  out.total = last - 1;
+  // Последната проверка за всяко място се помни отделно — място, което не е
+  // проверявано повече от 2 × W дни, иначе би изчезнало от списъка.
+  var props = PropertiesService.getScriptProperties(), seen = {};
+  try { seen = JSON.parse(props.getProperty("tk_loc_last") || "{}") || {}; } catch (_) { seen = {}; }
   var days = {}, locs = {}, iss = {}, issPrev = {}, insp = {};
+  Object.keys(seen).forEach(function (k) { locs[k] = { name: k, n: 0, p: 0, last: seen[k], top: {} }; });
   for (var r = 0; r < vals.length; r++) {
     var row = vals[r], d = tkDay_(row[1]);
     if (d == null) continue;
-    out.total++;
     var type = String(row[2] || "").trim() || "—", bad = String(row[4]).trim() === "Проблем";
     var list = String(row[5] || "").split(/\s*,\s*/).filter(function (x) { return x && x !== "—"; });
     var loc = locs[type] || (locs[type] = { name: type, n: 0, p: 0, last: null, top: {} });
@@ -2002,6 +2020,9 @@ function tkInspectionStats_(ss, today) {
       list.forEach(function (x) { issPrev[x] = (issPrev[x] || 0) + 1; });
     }
   }
+  var seenNew = {};
+  Object.keys(locs).forEach(function (k) { if (locs[k].last != null) seenNew[k] = locs[k].last; });
+  try { props.setProperty("tk_loc_last", JSON.stringify(seenNew)); } catch (_) {}
   for (var i = W - 1; i >= 0; i--) {
     var k = today - i, v = days[k] || { n: 0, p: 0 };
     out.daily.push({ date: tkDayStr_(k), n: v.n, p: v.p });
