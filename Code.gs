@@ -1499,6 +1499,24 @@ function tkCheckToken_(token) {
 }
 function tkDeny_() { return jsonResponse_({ success: false, code: "AUTH", error: "Входът е изтекъл — влезте отново." }); }
 
+/* ── Главен администратор ──
+   Един профил (по подразбиране „denis"; може да се смени със Script
+   property TASKS_OWNER) е недосегаем: само той вижда „Логове" и само той
+   може да променя, премахва или сменя снимката/ПИН-а на своя запис в
+   „Служители" (по подразбиране „Денис"; TASKS_OWNER_STAFF). Другите
+   администратори нямат правомощия над него — проверката е тук, на сървъра. */
+function tkOwner_() { return String(PropertiesService.getScriptProperties().getProperty("TASKS_OWNER") || "denis").trim().toLowerCase(); }
+function tkOwnerStaff_() { return String(PropertiesService.getScriptProperties().getProperty("TASKS_OWNER_STAFF") || "Денис").trim(); }
+function tkIsOwner_(admin) { return String(admin || "").toLowerCase() === tkOwner_(); }
+function tkProtected_(admin, staffName) {
+  return !tkIsOwner_(admin) && String(staffName || "").trim().toLowerCase() === tkOwnerStaff_().toLowerCase();
+}
+function tkForbidden_(admin, what) {
+  // Опитът се вижда в „Логове" на главния администратор.
+  if (admin) tkLog_(admin, "Отказан достъп", tkOwnerStaff_(), what || "");
+  return jsonResponse_({ success: false, code: "FORBIDDEN", error: "Този профил е защитен — само главният администратор може да го променя." });
+}
+
 /* ── Данни ── */
 function tkPublicTask_(t, withRating) {
   var o = { id: t["ID"], created: t["Създадена"], title: t["Заглавие"], description: t["Описание"],
@@ -1615,7 +1633,7 @@ function handleTasksLogin_(data) {
   if (!a || !tkSafeEq_(a.pass, pass)) { tkFail_("adm_" + user); tkLog_("—", "Неуспешен вход", user || "—", ""); return jsonResponse_({ success: false, code: "BAD_LOGIN", error: "Грешно име или парола." }); }
   tkLog_(a.name, "Вход", "", "");
   var payload = a.name + "|" + (Date.now() + TK_TOKEN_HOURS * 3600 * 1000);
-  return jsonResponse_({ success: true, user: a.name, token: tkB64_(Utilities.newBlob(payload).getBytes()) + "." + tkSign_(payload), hours: TK_TOKEN_HOURS });
+  return jsonResponse_({ success: true, user: a.name, owner: tkIsOwner_(a.name), ownerStaff: tkOwnerStaff_(), token: tkB64_(Utilities.newBlob(payload).getBytes()) + "." + tkSign_(payload), hours: TK_TOKEN_HOURS });
 }
 function handleTasksAdminList_(data) {
   var admin = tkCheckToken_(data.token);
@@ -1626,7 +1644,7 @@ function handleTasksAdminList_(data) {
     .map(function (t) { return tkPublicTask_(t, true); });
   var staffRows = tkStaff_(ss);
   var removed = staffRows.filter(function (s) { return s["Име"] && s["Активен"] === "не"; }).map(function (s) { return { name: s["Име"], rank: s["Ранг"], position: s["Позиция"], hasPin: !!s["ПИН"] }; });
-  return jsonResponse_({ success: true, admin: admin, tasks: tasks, staff: tkStaffPublic_(staffRows), removed: removed,
+  return jsonResponse_({ success: true, admin: admin, owner: tkIsOwner_(admin), ownerStaff: tkOwnerStaff_(), tasks: tasks, staff: tkStaffPublic_(staffRows), removed: removed,
     statuses: TK_STATUSES, priorities: TK_PRIORITIES, photoVer: tkPhotoVer_() });
 }
 function handleTasksCreate_(data) {
@@ -1779,6 +1797,7 @@ function handleTasksStaffAdd_(data) {
   if (!admin) return tkDeny_();
   var name = tkClean_(data.name, 60).replace(/\s+/g, " ");
   if (!/^[Ѐ-ӿ][Ѐ-ӿ ]{1,59}$/.test(name)) return jsonResponse_({ success: false, code: "BAD_NAME", error: "Името е на кирилица (напр. „Иван Петров“)." });
+  if (tkProtected_(admin, name)) return tkForbidden_(admin, "опит за добавяне/връщане");
   var pin = data.pin == null ? "" : String(data.pin);
   if (pin && !/^\d{4,8}$/.test(pin)) return jsonResponse_({ success: false, code: "BAD_PIN", error: "ПИН-ът е от 4 до 8 цифри." });
   var lock = LockService.getScriptLock();
@@ -1803,6 +1822,7 @@ function handleTasksStaffRemove_(data) {
   var admin = tkCheckToken_(data.token);
   if (!admin) return tkDeny_();
   var name = tkClean_(data.name, 80);
+  if (tkProtected_(admin, name)) return tkForbidden_(admin, "опит за премахване");
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -1874,6 +1894,7 @@ function handleTasksStaffPhoto_(data) {
   var admin = tkCheckToken_(data.token);
   if (!admin) return tkDeny_();
   var name = tkClean_(data.name, 80), photo = String(data.photo == null ? "" : data.photo);
+  if (tkProtected_(admin, name)) return tkForbidden_(admin, "опит за смяна на снимка");
   if (!tkPhotoOk_(photo)) return jsonResponse_({ success: false, code: "BAD_PHOTO", error: "Снимката е твърде голяма или не е изображение." });
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -1914,6 +1935,7 @@ function handleTasksStaffSave_(data) {
   if (!admin) return tkDeny_();
   var name = tkClean_(data.name, 80);
   if (!name) return jsonResponse_({ success: false, code: "MISSING", error: "Липсва име." });
+  if (tkProtected_(admin, name)) return tkForbidden_(admin, "опит за промяна (ранг/позиция/ПИН)");
   var pin = data.pin == null ? null : String(data.pin);
   if (pin !== null && pin !== "" && !/^\d{4,8}$/.test(pin)) return jsonResponse_({ success: false, code: "BAD_PIN", error: "ПИН-ът е от 4 до 8 цифри." });
   var lock = LockService.getScriptLock();
@@ -2089,6 +2111,7 @@ function tkLog_(admin, action, target, details) {
 function handleTasksLog_(data) {
   var admin = tkCheckToken_(data.token);
   if (!admin) return tkDeny_();
+  if (!tkIsOwner_(admin)) return jsonResponse_({ success: false, code: "FORBIDDEN", error: "Логовете се виждат само от главния администратор." });
   var ctx = tkSheet_(tkOpen_(), TK_LOG_SHEET, TK_LOG_HEADERS), sh = ctx.sheet, last = sh.getLastRow();
   var limit = Math.min(1000, Math.max(50, Number(data.limit) || 500)), out = [];
   if (last >= 2) {
