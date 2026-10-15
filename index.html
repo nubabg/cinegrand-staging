@@ -2125,6 +2125,40 @@
         .tk-top .seg { flex: 1 1 100%; }
         .tk-top .seg-btn { flex: 1; justify-content: center; }
       }
+      /* Брояч на задачите: червено число в менюто + карта на началния екран. */
+      .tk-nav-n { margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; display: inline-grid; place-items: center;
+        background: var(--gold); color: var(--gold-ink); font-size: 12px; font-weight: 800; line-height: 1; box-shadow: 0 0 0 0 rgba(var(--gold-rgb), .55); animation: tk-ping 2s ease-out infinite; }
+      .tk-nav-n.late { background: var(--red-dark, #a51f1c); color: #fff; box-shadow: 0 0 0 0 rgba(var(--red-rgb, 198,42,38), .55); }
+      @keyframes tk-ping { 0% { box-shadow: 0 0 0 0 rgba(var(--gold-rgb), .5); } 70%, 100% { box-shadow: 0 0 0 8px rgba(var(--gold-rgb), 0); } }
+      .tk-nav-n.late { animation-name: tk-ping-red; }
+      @keyframes tk-ping-red { 0% { box-shadow: 0 0 0 0 rgba(var(--red-rgb, 198,42,38), .5); } 70%, 100% { box-shadow: 0 0 0 8px rgba(var(--red-rgb, 198,42,38), 0); } }
+      .tk-alert { display: flex; align-items: center; gap: var(--s4); flex-wrap: wrap; margin-bottom: var(--s5); padding: var(--s4) var(--s5);
+        border-color: var(--gold); background: var(--gold-soft); }
+      .tk-alert.late { border-color: var(--red); background: var(--red-soft); }
+      .tk-alert-ic { position: relative; width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: var(--panel); color: var(--gold-2); flex: none; }
+      .tk-alert.late .tk-alert-ic { color: var(--red-2); }
+      .tk-alert-n { position: absolute; top: -8px; right: -8px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; display: grid; place-items: center;
+        background: var(--gold); color: var(--gold-ink); font-size: 12px; font-weight: 800; animation: tk-ping 2s ease-out infinite; }
+      .tk-alert.late .tk-alert-n { background: var(--red-dark, #a51f1c); color: #fff; animation-name: tk-ping-red; }
+      .tk-alert-btns { display: flex; gap: var(--s2); flex-wrap: wrap; }
+      .tk-alert-people { flex: 1 1 100%; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding-top: var(--s3); border-top: 1px dashed var(--border); }
+      .tk-alert-hint { flex: 1 1 100%; font-size: var(--fs-meta); color: var(--text); opacity: .8; }
+      .tk-alert-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 10px 4px 4px; border-radius: 999px; border: 1px solid var(--border);
+        background: var(--panel); color: var(--text); font: inherit; font-size: var(--fs-meta); font-weight: 650; cursor: pointer; transition: border-color .15s, transform .1s; }
+      .tk-alert-chip:hover { border-color: var(--gold); }
+      .tk-alert-chip:active { transform: translateY(1px); }
+      .tk-alert-chip:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+      .tk-alert-chip .tk-avatar { width: 30px; height: 30px; font-size: 11px; }
+      .tk-alert-chip b { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; display: inline-grid; place-items: center; background: var(--gold); color: var(--gold-ink); font-size: 12px; }
+      .tk-alert-chip.late { border-color: var(--red); }
+      .tk-alert-chip.late b { background: var(--red-dark, #a51f1c); color: #fff; }
+      .tk-alert-chip.me { box-shadow: inset 0 0 0 2px var(--gold); }
+      .tk-alert-txt { flex: 1 1 220px; min-width: 0; display: grid; gap: 2px; }
+      .tk-alert-txt b { font-size: var(--fs-card); color: var(--text); }
+      .tk-alert-txt span { color: var(--text); opacity: .85; font-size: var(--fs-body); }
+      .btn-danger-solid { background: var(--red-dark, #a51f1c); border-color: var(--red-dark, #a51f1c); color: #fff; }
+      @media (prefers-reduced-motion: reduce) { .tk-nav-n, .tk-alert-n { animation: none; } }
+      body.low-perf .tk-nav-n, body.low-perf .tk-alert-n { animation: none; }
       /* ── Лента за неизпратени проверки ── */
       .cg-sync-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
         margin-bottom: var(--s4); padding: var(--s3) var(--s4); font-size: var(--fs-body); color: var(--text); }
@@ -6098,7 +6132,7 @@
           `<button class="nav-btn ${state.screen === 'charts' ? 'state' : ''} ${chartsCooldownUntil > Date.now() ? 'cooldown' : ''}" data-action="go-charts" aria-label="Данни от Sheets" ${chartsCooldownUntil > Date.now() ? 'disabled' : ''}>${cgIcon("data", 18)} ${chartsCooldownUntil > Date.now() ? "Данни (" + Math.ceil((chartsCooldownUntil - Date.now()) / 1000) + ")" : "Данни"}</button>`,
           `<button class="nav-btn ${state.screen === 'rules' ? 'state' : ''}" data-action="go-rules" aria-label="Правила за работа">${cgIcon("rules", 18)} Правила</button>`,
           `<button class="nav-btn ${state.screen === 'lost-found' ? 'state' : ''}" data-action="go-lost-found" aria-label="Lost &amp; Found — изгубени и намерени вещи">${cgIcon("lost-found", 18)} Lost &amp; Found</button>`,
-          `<button class="nav-btn ${state.screen === 'tasks' ? 'state' : ''}" data-action="go-tasks">${cgIcon("tasks", 18)} Задачи</button>`,
+          `<button class="nav-btn ${state.screen === 'tasks' ? 'state' : ''}" data-action="go-tasks">${cgIcon("tasks", 18)} Задачи${tkNavBadge()}</button>`,
           `<button class="nav-btn ${state.showSettingsModal ? 'state' : ''}" data-action="open-settings" aria-label="Настройки">${cgIcon("settings", 18)} Настройки</button>`,
         ].filter(Boolean).join("");
 
@@ -6672,6 +6706,7 @@
           </div>
 
           ${renderSyncBanner()}
+          ${tkHomeAlert()}
           ${renderLastCheckedBadges()}
           ${renderFeatureAnnouncement()}
           ${_annHtml}
@@ -8724,14 +8759,18 @@
         return json || {};
       }
       async function tkLoad() {
-        if (!tk.name || tk.loading) { render(); return; }
-        tk.loading = true; tk.error = ""; render();
+        /* Ако името се смени, докато още идват задачите на предишния, старият
+           отговор се пренебрегва — иначе чуждите задачи остават на екрана. */
+        const name = tk.name;
+        if (!name || tk.loading === name) { render(); return; }
+        tk.loading = name; tk.error = ""; render();
         try {
-          const j = await tkCall("tasksMine", { name: tk.name });
+          const j = await tkCall("tasksMine", { name });
+          if (tk.name !== name) return;
           if (!j.success) { const e = new Error(j.error); e.reason = j.error; throw e; }
           tk.data = j; tk.needsDeploy = false; tk.anim = true; tkSyncPhotos(j.photoVer);
-        } catch (e) { tk.error = e.reason || e.message; tk.needsDeploy = !!e.needsDeploy; }
-        tk.loading = false;
+        } catch (e) { if (tk.name !== name) return; tk.error = e.reason || e.message; tk.needsDeploy = !!e.needsDeploy; }
+        finally { if (tk.loading === name) tk.loading = false; }
         if (state.screen === "tasks") render();
       }
       async function tkLoadHistory() {
@@ -8754,6 +8793,79 @@
       const tkb = { data: null, loading: false, error: "", needsDeploy: false, filter: "open", who: "", anim: false };
       tk.view = "board";
       try { if (localStorage.getItem(TK_VIEW_KEY) === "mine") tk.view = "mine"; } catch (_) {}
+      /* ── Брояч на задачите върху „Задачи" и на началния екран ──
+         Малко служители влизат в „Задачи" сами — затова броят отворени
+         задачи се вижда навсякъде: червено число в менюто и карта на
+         началния екран. Обобщението идва от таблото (публично) и се пази на
+         устройството, за да се покаже веднага; опреснява се на 5 минути. */
+      const TK_SUM_KEY = "cg_tk_sum_v1";
+      let tkSum = null, tkSumBusy = false, tkSumAt = 0;
+      try { tkSum = JSON.parse(localStorage.getItem(TK_SUM_KEY) || "null"); } catch (_) {}
+      function tkSummarize(b) {
+        const today = tkDayNum(b.today), open = (b.tasks || []).filter((x) => x.status === "Възложена");
+        const sum = { open: open.length, late: open.filter((x) => x.overdue > 0).length,
+          fresh: open.filter((x) => { const d = tkDayNum(x.created); return d != null && today - d <= 1; }).length, by: {} };
+        open.forEach((x) => { const p = sum.by[x.assignee] || (sum.by[x.assignee] = { open: 0, late: 0 }); p.open++; if (x.overdue) p.late++; });
+        return sum;
+      }
+      function tkSetSummary(b) {
+        if (!b || !Array.isArray(b.tasks)) return;
+        tkSum = tkSummarize(b); tkSumAt = Date.now();
+        try { localStorage.setItem(TK_SUM_KEY, JSON.stringify(tkSum)); } catch (_) {}
+        tkPaintBadges();
+      }
+      /* Брой за менюто: ако служителят си е избрал име — неговите, иначе всички. */
+      function tkBadgeInfo() {
+        if (!tkSum || !tkSum.open) return null;
+        const me = tk.name && tkSum.by ? tkSum.by[tk.name] : null;
+        return me && me.open ? { n: me.open, late: me.late > 0, mine: true } : { n: tkSum.open, late: tkSum.late > 0, mine: false };
+      }
+      function tkNavBadge() {
+        const b = tkBadgeInfo();
+        if (!b) return "";
+        const label = tkEn() ? `${b.n} ${b.mine ? "of your " : ""}open task${b.n === 1 ? "" : "s"}` : `${b.n} ${b.mine ? "твои " : ""}отворени задачи`;
+        return `<span class="tk-nav-n${b.late ? " late" : ""}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${b.n > 99 ? "99+" : b.n}</span>`;
+      }
+      /* Сменя само числото в менюто — без цялостно прерисуване (за да не пипа
+         полета, които някой попълва в момента). */
+      function tkPaintBadges() {
+        document.querySelectorAll('[data-action="go-tasks"].nav-btn').forEach((btn) => {
+          const old = btn.querySelector(".tk-nav-n"); if (old) old.remove();
+          const html = tkNavBadge(); if (html) btn.insertAdjacentHTML("beforeend", html);
+        });
+        if (state.screen === "home") { const box = document.getElementById("tk-home-alert"); if (box) box.outerHTML = tkHomeAlert(); }
+      }
+      function tkHomeAlert() {
+        if (isQROnlySession() || !tkSum || !tkSum.open) return `<div id="tk-home-alert" hidden></div>`;
+        const en = tkEn(), s = tkSum, me = tk.name && s.by ? s.by[tk.name] : null;
+        const people = Object.entries(s.by || {}).sort((a, b) => b[1].late - a[1].late || b[1].open - a[1].open || a[0].localeCompare(b[0], "bg")).slice(0, 24);
+        const bits = [s.fresh ? (en ? `${s.fresh} new since yesterday` : `${s.fresh} нови от вчера`) : "",
+          s.late ? (en ? `${s.late} overdue` : `${s.late} просрочени`) : "",
+          me && me.open ? (en ? `${me.open} for you, ${tk.name}` : `${me.open} са за теб, ${tk.name}`) : ""].filter(Boolean);
+        return `<div id="tk-home-alert" class="panel tk-alert${s.late ? " late" : ""}" role="status">
+          <span class="tk-alert-ic" aria-hidden="true">${cgIcon("tasks", 26)}<span class="tk-alert-n">${s.open > 99 ? "99+" : s.open}</span></span>
+          <div class="tk-alert-txt"><b>${en ? `${s.open} open task${s.open === 1 ? "" : "s"} for the team` : `${s.open} отворени задачи за екипа`}</b>
+            ${bits.length ? `<span>${escapeHtml(bits.join(" · "))}</span>` : `<span>${en ? "See who has what to do." : "Вижте кой какво има да прави."}</span>`}</div>
+          <div class="tk-alert-btns">
+            <button type="button" class="btn ${s.late ? "btn-danger-solid" : "btn-gold"}" data-action="tk-go" data-view="board">${cgIcon("tasks", 16)} ${en ? "Team board" : "Табло на задачите"} →</button>
+            <button type="button" class="btn btn-outline" data-action="tk-go" data-view="mine">${en ? "My tasks" : "Моите задачи"}</button>
+          </div>
+          ${people.length ? `<div class="tk-alert-people" role="group" aria-label="${en ? "Who has tasks — tap your name" : "Кой има задачи — натиснете името си"}">
+            <span class="tk-alert-hint">${en ? "Tap your name to see and complete your tasks:" : "Натиснете името си, за да видите и изпълните задачите си:"}</span>
+            ${people.map(([name, p]) => `<button type="button" class="tk-alert-chip${p.late ? " late" : ""}${name === tk.name ? " me" : ""}" data-action="tk-go" data-view="mine" data-name="${escapeHtml(name)}"
+              aria-label="${escapeHtml(name)}: ${p.open} ${en ? "open" : "отворени"}${p.late ? `, ${p.late} ${en ? "overdue" : "просрочени"}` : ""}">${tkAvatar(name)}<span>${escapeHtml(name)}</span><b>${p.open}</b></button>`).join("")}
+          </div>` : ""}
+        </div>`;
+      }
+      async function tkRefreshSummary() {
+        if (tkSumBusy || isQROnlySession() || !isSheetsConfigured()) return;
+        tkSumBusy = true;
+        try { const j = await tkCall("tasksBoard", {}); if (j && j.success) { tkb.data = tkb.data || j; tkSetSummary(j); } } catch (_) {}
+        tkSumBusy = false;
+      }
+      setTimeout(tkRefreshSummary, 3000);                                   // след първото зареждане
+      setInterval(() => { if (!document.hidden) tkRefreshSummary(); }, 5 * 60 * 1000);
+      document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - tkSumAt > 2 * 60 * 1000) tkRefreshSummary(); });
       async function tkLoadBoard() {
         if (tkb.loading) return;
         tkb.loading = true; tkb.error = "";
@@ -8761,7 +8873,7 @@
         try {
           const j = await tkCall("tasksBoard", {});
           if (!j.success || !Array.isArray(j.tasks)) throw Object.assign(new Error(j.error || "no tasks"), { reason: j.error || tkT("Сървърът не върна задачи — опитайте пак.", "The server returned no tasks — try again."), needsDeploy: !j.error });
-          tkb.data = j; tkb.needsDeploy = false; tkb.anim = true; tkSyncPhotos(j.photoVer);
+          tkb.data = j; tkb.needsDeploy = false; tkb.anim = true; tkSyncPhotos(j.photoVer); tkSetSummary(j);
         } catch (e) { tkb.error = e.reason || e.message; tkb.needsDeploy = !!e.needsDeploy; }
         tkb.loading = false;
         if (state.screen === "tasks") render();
@@ -10169,6 +10281,19 @@
         /* ── Lost & Found ── */
         if (action === "go-lost-found") { state.screen = "lost-found"; render(); lfLoad(); return; }
         if (action === "go-tasks") { state.screen = "tasks"; render(); tkLoadBoard(); tkLoad(); return; }
+        /* От картата на началния екран: направо таблото, „Моите задачи“ или
+           задачите на конкретен служител (избира името му, за да ги изпълни). */
+        if (action === "tk-go") {
+          tk.view = btn.dataset.view === "mine" ? "mine" : "board";
+          try { localStorage.setItem(TK_VIEW_KEY, tk.view); } catch (_) {}
+          const nm = btn.dataset.name;
+          if (nm && nm !== tk.name) {
+            tk.name = nm; tk.data = null; tk.history = null; tk.pin = ""; tk.doing = ""; tk.error = "";
+            try { localStorage.setItem(TK_NAME_KEY, tk.name); } catch (_) {}
+          }
+          state.screen = "tasks"; render(); window.scrollTo(0, 0);
+          tkLoadBoard(); tkLoad(); return;
+        }
         if (action === "tk-reload") { if (tk.view === "board") tkLoadBoard(); else { tk.history = null; tkLoad(); } return; }
         if (action === "tk-view") {
           tk.view = btn.dataset.view === "mine" ? "mine" : "board";
