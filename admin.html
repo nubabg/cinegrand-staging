@@ -579,22 +579,34 @@
   try { const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null"); if (s && s.exp > Date.now()) S.session = s; } catch (_) {}
 
   /* ── Заявки към Apps Script ── */
-  /* opt.long — за тежките четения: един дълъг опит (90 с) вместо 30 с + нов
-     опит, който започва цялото четене отначало и само удвоява чакането. */
+  /* opt.long — за тежките четения: изчаква до 90 с вместо 30 с и не започва
+     отначало след изтекло време (това само удвоява чакането).
+     Когато Apps Script върне HTML страница вместо JSON (грешка в скрипта,
+     претоварване, изтекло време при Google), се показва текстът от нея. */
+  function htmlError(txt) {
+    const d = new DOMParser().parseFromString(txt, "text/html");
+    d.querySelectorAll("script,style,title").forEach((n) => n.remove());
+    const msg = (d.body ? d.body.textContent : "").replace(/\s+/g, " ").trim().slice(0, 300);
+    return new Error(L("Apps Script върна грешка вместо данни", "Apps Script returned an error instead of data") + (msg ? ": " + msg : "."));
+  }
   async function call(action, body, opt) {
     const payload = JSON.stringify(Object.assign({ action, _token: SHEETS_SECRET_TOKEN }, body || {}, S.session ? { token: S.session.token } : {}));
-    const tries = opt && opt.long ? 1 : 2, wait = opt && opt.long ? 90000 : 30000;
+    const long = !!(opt && opt.long), wait = long ? 90000 : 30000;
     let last;
-    for (let i = 0; i < tries; i++) {
+    for (let i = 0; i < 2; i++) {
       const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), wait);
       try {
         const r = await fetch(SHEETS_WEB_APP_URL, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=UTF-8" }, body: payload, signal: ctl.signal });
-        const j = JSON.parse(await r.text());
+        const txt = await r.text();
+        let j;
+        try { j = JSON.parse(txt); } catch (_) { throw htmlError(txt); }
+        if (j && j.error === "Unauthorized") throw new Error(L("Apps Script отказа достъп: SECRET_TOKEN в Code.gs (ред 7) не съвпада със страницата. Проверете го и направете нов deploy.", "Apps Script refused access: SECRET_TOKEN in Code.gs (line 7) does not match this page. Check it and redeploy."));
         if (j && j.code === "AUTH") { logout(t(j.error)); throw Object.assign(new Error(j.error), { handled: true }); }
         if (j && /Unknown action|TypeError|of undefined|Липсва запис за проверка/i.test(String(j.error || ""))) throw new Error(lang === "en" ? "Apps Script is not updated yet — deploy the new Code.gs." : "Apps Script още не е обновен — направете нов deploy с новия Code.gs.");
         return j;
       } catch (e) { last = e; if (e.handled) throw e; } finally { clearTimeout(tm); }
-      if (i + 1 < tries) await new Promise((r) => setTimeout(r, 1200));
+      if (long && last.name === "AbortError") break;
+      if (i === 0) await new Promise((r) => setTimeout(r, 1200));
     }
     if (last && last.name === "AbortError") throw new Error(L("Таблицата не отговори навреме. Натиснете „Обнови“.", "The sheet did not answer in time. Press “Refresh”."));
     throw last;
