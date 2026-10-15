@@ -343,7 +343,7 @@
         const r = await fetch(SHEETS_WEB_APP_URL, { method: "POST", redirect: "follow", headers: { "Content-Type": "text/plain;charset=UTF-8" }, body: payload, signal: ctl.signal });
         const j = JSON.parse(await r.text());
         if (j && j.code === "AUTH") { logout(t(j.error)); throw Object.assign(new Error(j.error), { handled: true }); }
-        if (j && /Unknown action|TypeError|of undefined/i.test(String(j.error || ""))) throw new Error(lang === "en" ? "Apps Script is not updated yet — deploy the new Code.gs." : "Apps Script още не е обновен — направете нов deploy с новия Code.gs.");
+        if (j && /Unknown action|TypeError|of undefined|Липсва запис за проверка/i.test(String(j.error || ""))) throw new Error(lang === "en" ? "Apps Script is not updated yet — deploy the new Code.gs." : "Apps Script още не е обновен — направете нов deploy с новия Code.gs.");
         return j;
       } catch (e) { last = e; if (e.handled) throw e; } finally { clearTimeout(tm); }
       await new Promise((r) => setTimeout(r, 1200));

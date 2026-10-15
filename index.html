@@ -4978,7 +4978,7 @@
           headers: { "Content-Type": "text/plain;charset=UTF-8" },
           body: JSON.stringify(Object.assign({ action, _token: SHEETS_SECRET_TOKEN }, body || {})),
         }, opts || { timeouts: [20000, 30000], backoffs: [1000] });
-        if (json && json.success === false && /Unknown action|TypeError|of undefined/i.test(String(json.error || ""))) {
+        if (json && json.success === false && /Unknown action|TypeError|of undefined|Липсва запис за проверка/i.test(String(json.error || ""))) {
           const e = new Error(json.error); e.needsDeploy = true;
           e.reason = "Apps Script още не поддържа Lost & Found";
           throw e;
@@ -8718,7 +8718,7 @@
           headers: { "Content-Type": "text/plain;charset=UTF-8" },
           body: JSON.stringify(Object.assign({ action, _token: SHEETS_SECRET_TOKEN }, body || {})),
         }, { timeouts: [20000, 30000], backoffs: [1000] });
-        if (json && json.success === false && /Unknown action|TypeError|of undefined/i.test(String(json.error || ""))) {
+        if (json && json.success === false && /Unknown action|TypeError|of undefined|Липсва запис за проверка/i.test(String(json.error || ""))) {
           const e = new Error(json.error); e.needsDeploy = true; e.reason = "Apps Script още не поддържа задачите"; throw e;
         }
         return json || {};
