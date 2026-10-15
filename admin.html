@@ -256,6 +256,22 @@
   .lock-note .icon { color: var(--accent); width: 22px; height: 22px; }
   .owner-tag { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-weight: 700; }
   .owner-tag .icon { width: 13px; height: 13px; }
+  /* Досие */
+  .ds-top { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin-bottom: 22px; }
+  .ds-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .ds-grid { grid-template-columns: 1fr 1fr; } }
+  .ds-sec { border: 1px solid var(--border); border-radius: 14px; padding: 16px; background: var(--panel-2); display: grid; gap: 12px; align-content: start; }
+  .ds-sec h3 { font-size: 15px; }
+  .ds-sec.ds-alert { border-color: color-mix(in srgb, var(--red) 45%, var(--border)); }
+  .ds-item .meta-val { overflow-wrap: anywhere; }
+  .ds-link { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); font-weight: 700; text-decoration: none; }
+  .ds-link:hover { text-decoration: underline; }
+  .ds-link .icon { width: 16px; height: 16px; }
+  .ds-form { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 640px) { .ds-form { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1000px) { .ds-form { grid-template-columns: 1fr 1fr 1fr; } }
+  .ds-wide { grid-column: 1 / -1; }
+  .ds-form input[type=tel], .ds-form input[type=email] { width: 100%; min-width: 0; background: var(--panel-2); border: 1px solid var(--border-strong); border-radius: 10px; padding: 9px 12px; color: var(--text); }
   .confirm-row { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--red-soft); border: 1px solid var(--red); }
   .confirm-row span { flex: 1 1 220px; font-weight: 650; }
   .add-staff { padding-bottom: 18px; border-bottom: 1px solid var(--border); }
@@ -310,6 +326,10 @@
   <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
   <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h5"/><circle cx="12" cy="13" r="2.5"/><path d="M8 19a4 4 0 0 1 8 0"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
   <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
 </svg>
 <div class="wrap" id="app" aria-live="polite"></div>
@@ -355,7 +375,12 @@
     "Логове — действия на администраторите": "Logs — administrator actions", "Търси в логовете…": "Search logs…", "Всички администратори": "All administrators",
     "Администратор": "Administrator", "Кога": "When", "Действие": "Action", "Какво": "What", "Подробности": "Details", "Още няма записи.": "No entries yet.", "система": "system",
     "Всяко действие в тази страница се записва в листа „Админ лог“. ПИН-ове и пароли не се записват.": "Every action on this page is recorded in the „Админ лог“ sheet. PINs and passwords are never recorded.",
-    "Премахва се…": "Removing…", "главен администратор": "main administrator", "Защитен профил": "Protected profile",
+    "Премахва се…": "Removing…", "Досие": "Dossier", "Контакти": "Contacts", "Работа": "Work", "Лични": "Personal", "Спешен контакт": "Emergency contact",
+    "Телефон": "Phone", "Имейл": "Email", "Адрес": "Address", "Постъпил на": "Started on", "Договор": "Contract", "Размер униформа": "Uniform size", "Езици": "Languages",
+    "Рожден ден": "Birthday", "Име": "Name", "Умения и обучения": "Skills and training", "Бележки": "Notes", "Редактирай досието": "Edit dossier", "Запази досието": "Save dossier",
+    "Обновено": "Updated", "Досието още е празно.": "The dossier is still empty.", "Последни задачи": "Recent tasks", "Телефон за спешен контакт": "Emergency contact phone",
+    "отворени": "open", "изпълнени": "completed",
+    "Вижда се само от администраторите. Не се показва в приложението на служителите.": "Visible to administrators only. Never shown in the staff app.", "главен администратор": "main administrator", "Защитен профил": "Protected profile",
     "Нямате правомощия над него — само главният администратор може да го променя.": "You have no rights over it — only the main administrator can change it.", "Записва се…": "Saving…", "Снимка": "Photo", "Качи снимка": "Upload photo", "Махни снимката": "Remove photo", "Снимката е записана.": "Photo saved.",
     "Файлът не е снимка.": "The file is not an image.", "Снимката е твърде голяма.": "The photo is too large.", "Име, което виждат служителите": "Name shown to employees",
     "Снимката и името се виждат от служителите до „Възложил“ в задачите.": "Employees see this photo and name next to “Assigned by” in their tasks.",
@@ -613,7 +638,97 @@
         <button class="btn btn-primary" style="margin-top:20px" type="submit"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ic("plus")}${t("Възложи задачата")}</button>
       </div></form>`;
   }
+  /* ══ Досие на служителя (само за администратори) ══ */
+  const DS_FIELDS = [
+    ["phone", "Телефон", "tel"], ["email", "Имейл", "email"], ["address", "Адрес", "text"],
+    ["birthday", "Рожден ден", "date"], ["started", "Постъпил на", "date"], ["contract", "Договор", "text"],
+    ["emergencyName", "Спешен контакт", "text"], ["emergencyPhone", "Телефон за спешен контакт", "tel"],
+    ["uniform", "Размер униформа", "text"], ["languages", "Езици", "text"], ["skills", "Умения и обучения", "area"], ["notes", "Бележки", "area"],
+  ];
+  async function openDossier(name) {
+    S.dossier = name; S.dsEdit = false; S.dsErr = ""; S.msg = null;
+    S.dsCache = S.dsCache || {};
+    if (S.dsCache[name]) { render(); window.scrollTo(0, 0); return; }
+    S.dsBusy = true; render(); window.scrollTo(0, 0);
+    try {
+      const j = await call("tasksDossier", { name });
+      if (!j.success) throw new Error(j.error);
+      S.dsCache[name] = j.dossier;
+    } catch (err) { if (!err.handled) S.dsErr = err.message; }
+    S.dsBusy = false; render();
+  }
+  const bgDays = (s) => { const m = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(s || ""); return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null; };
+  function tenure(s) {
+    const d = bgDays(s); if (!d) return "";
+    const now = new Date(); let mo = (now.getFullYear() - d.getFullYear()) * 12 + now.getMonth() - d.getMonth(); if (now.getDate() < d.getDate()) mo--;
+    if (mo < 0) return "";
+    const y = Math.floor(mo / 12), m = mo % 12;
+    return lang === "en" ? [y && `${y} yr`, (m || !y) && `${m} mo`].filter(Boolean).join(" ") : [y && `${y} г.`, (m || !y) && `${m} мес.`].filter(Boolean).join(" ");
+  }
+  function nextBirthday(s) {
+    const d = bgDays(s); if (!d) return "";
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    let b = new Date(now.getFullYear(), d.getMonth(), d.getDate()); if (b < now) b = new Date(now.getFullYear() + 1, d.getMonth(), d.getDate());
+    const n = Math.round((b - now) / 864e5), age = b.getFullYear() - d.getFullYear();
+    return n === 0 ? (lang === "en" ? `🎂 today (${age})` : `🎂 днес (${age} г.)`) : n <= 30 ? (lang === "en" ? `in ${n} days (${age})` : `след ${n} дни (${age} г.)`) : (lang === "en" ? `${age - 1} years old` : `${age - 1} г.`);
+  }
+  function dossierHtml() {
+    const name = S.dossier, s = staffOf(name), d = (S.dsCache || {})[name];
+    const sub = [s.rank, s.position].filter(Boolean).join(" · ");
+    const mine = S.tasks.filter((x) => x.assignee === name);
+    const rated = mine.filter((x) => x.score), avg = rated.length ? rated.reduce((a, x) => a + Number(x.score), 0) / rated.length : null;
+    const st = { open: mine.filter((x) => x.status === "Възложена").length, late: mine.filter((x) => x.overdue > 0).length, done: mine.filter((x) => x.status === "Изпълнена" || x.status === "Оценена").length };
+    const head = `<div class="card-head"><span class="crumbs"><span>${t("Служители")}</span><span>${esc(name)}</span><span>${t("Досие")}</span></span>
+      <button class="btn btn-ghost" data-act="ds-close" aria-label="${t("Назад")}">${ic("x")}</button></div>`;
+    const top = `<div class="ds-top">${avatar(name, staffPhoto(name), "xl")}<div style="min-width:0"><h1 class="title" style="margin:0 0 4px">${esc(name)}</h1>
+        <div class="t-sub">${esc(sub || "—")} · ${s.hasPin ? t("има ПИН") : t("без ПИН")}</div>
+        <div class="tags" style="margin-top:10px"><span class="tag">${st.open} ${t("отворени")}</span>${st.late ? `<span class="late-badge">${st.late} ${t("Просрочени").toLowerCase()}</span>` : ""}<span class="tag">${st.done} ${t("изпълнени")}</span><span class="tag">${avg == null ? t("Без оценки") : `${t("Средна оценка")}: ${(lang === "en" ? avg.toFixed(1) : avg.toFixed(1).replace(".", ","))}/10`}</span></div></div></div>`;
+    if (S.dsBusy || (!d && !S.dsErr)) return `<div class="card fade">${head}<div class="card-body">${top}<div class="empty"><span class="spin"></span> ${t("Зарежда…")}</div></div></div>`;
+    if (!d) return `<div class="card fade">${head}<div class="card-body">${top}<div class="msg err">${esc(S.dsErr)}</div></div></div>`;
+    const val = (k) => d[k] || "";
+    const tel = (v) => v ? `<a class="ds-link" href="tel:${esc(v.replace(/[^+0-9]/g, ""))}">${ic("phone")}${esc(v)}</a>` : `<span class="t-sub">—</span>`;
+    const row = (label, html) => `<div class="ds-item"><div class="meta-label">${label}</div><div class="meta-val">${html}</div></div>`;
+    const txt = (k) => val(k) ? esc(val(k)) : `<span class="t-sub">—</span>`;
+    let body;
+    if (!S.dsEdit) {
+      body = `${msgHtml()}
+        <div class="ds-grid">
+          <section class="ds-sec"><h3>${ic("phone")}${t("Контакти")}</h3>
+            ${row(t("Телефон"), tel(val("phone")))}
+            ${row(t("Имейл"), val("email") ? `<a class="ds-link" href="mailto:${esc(val("email"))}">${ic("mail")}${esc(val("email"))}</a>` : `<span class="t-sub">—</span>`)}
+            ${row(t("Адрес"), txt("address"))}</section>
+          <section class="ds-sec"><h3>${ic("users")}${t("Работа")}</h3>
+            ${row(t("Постъпил на"), val("started") ? `${esc(val("started"))} <span class="t-sub">· ${esc(tenure(val("started")))}</span>` : `<span class="t-sub">—</span>`)}
+            ${row(t("Договор"), txt("contract"))}
+            ${row(t("Размер униформа"), txt("uniform"))}
+            ${row(t("Езици"), txt("languages"))}</section>
+          <section class="ds-sec"><h3>${ic("cal")}${t("Лични")}</h3>
+            ${row(t("Рожден ден"), val("birthday") ? `${esc(val("birthday"))} <span class="t-sub">· ${esc(nextBirthday(val("birthday")))}</span>` : `<span class="t-sub">—</span>`)}</section>
+          <section class="ds-sec ds-alert"><h3>${ic("alert")}${t("Спешен контакт")}</h3>
+            ${row(t("Име"), txt("emergencyName"))}
+            ${row(t("Телефон"), tel(val("emergencyPhone")))}</section>
+        </div>
+        <div class="section"><h3>${ic("star")}${t("Умения и обучения")}</h3><div class="note" style="margin-top:10px">${txt("skills")}</div></div>
+        <div class="section"><h3>${ic("text")}${t("Бележки")}</h3><div class="note" style="margin-top:10px">${txt("notes")}</div></div>
+        <div class="row-actions" style="margin-top:20px"><button class="btn btn-primary" data-act="ds-edit">${ic("text")}${t("Редактирай досието")}</button>
+          <span class="t-sub">${d.updated ? `${t("Обновено")}: ${esc(d.updated)} · ${esc(adminOf(d.updatedBy).name || d.updatedBy)}` : t("Досието още е празно.")}</span></div>
+        ${mine.length ? `<div class="section"><h3>${ic("list")}${t("Последни задачи")}</h3><table class="tlist static mini" style="margin-top:8px"><tbody>
+          ${mine.slice().sort((a, b) => parseBg(b.created) - parseBg(a.created)).slice(0, 6).map((x) => `<tr><td><b>${esc(x.title)}</b><div class="t-sub">${esc(x.created)}</div></td><td>${x.overdue ? lateBadge(x.overdue) : badge(x.status)}</td><td class="right">${x.score ? `<b>${esc(x.score)}</b>/10` : ""}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
+    } else {
+      const f = S.dsForm || (S.dsForm = Object.assign({}, d));
+      const inp = ([k, label, type]) => type === "area"
+        ? `<div class="field ds-wide"><label for="ds-${k}">${t(label)}</label><textarea id="ds-${k}" data-ds="${k}" maxlength="${k === "notes" ? 3000 : 500}">${esc(f[k] || "")}</textarea></div>`
+        : `<div class="field"><label for="ds-${k}">${t(label)}</label><input id="ds-${k}" data-ds="${k}" type="${type === "date" ? "date" : type}" ${type === "tel" ? 'inputmode="tel" autocomplete="off"' : ""} value="${esc(type === "date" ? bgToIso(f[k]) : (f[k] || ""))}"></div>`;
+      body = `${S.dsErr ? `<div class="msg err" role="alert">${esc(S.dsErr)}</div>` : ""}
+        <form id="ds-form" class="ds-form" onsubmit="return false">${DS_FIELDS.map(inp).join("")}</form>
+        <div class="row-actions" style="margin-top:16px"><button class="btn btn-primary" data-act="ds-save"${S.dsSaving ? " disabled" : ""}>${S.dsSaving ? `<span class="spin light"></span>${t("Записва се…")}` : `${ic("check")}${t("Запази досието")}`}</button>
+          <button class="btn btn-ghost" data-act="ds-cancel"${S.dsSaving ? " disabled" : ""}>${t("Отказ")}</button>
+          <span class="t-sub">${t("Вижда се само от администраторите. Не се показва в приложението на служителите.")}</span></div>`;
+    }
+    return `<div class="card fade">${head}<div class="card-body">${top}${body}</div></div>`;
+  }
   function staffHtml() {
+    if (S.dossier) return dossierHtml();
     const nf = S.nstaff || (S.nstaff = { name: "", rank: "", position: "", pin: "" });
     const removed = S.removed || [];
     return `<div class="card fade"><div class="card-body">${msgHtml()}
@@ -640,6 +755,7 @@
           <div class="field"><label for="sp-${i}">${t("Позиция")}</label><input type="text" id="sp-${i}" name="position" maxlength="80" value="${esc(s.position)}"></div>
           <div class="field"><label for="sn-${i}">${t("ПИН (4–8 цифри)")}</label><input type="password" id="sn-${i}" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" autocomplete="new-password" placeholder="${s.hasPin ? "••••" : ""}"></div>
           <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-primary" type="submit">${t("Запази")}</button>${s.hasPin ? `<button class="btn btn-ghost" type="button" data-act="nopin" data-name="${esc(s.name)}">${t("Махни ПИН")}</button>` : ""}${staffPhoto(s.name) ? `<button class="btn btn-ghost" type="button" data-act="nophoto" data-name="${esc(s.name)}">${t("Махни снимката")}</button>` : ""}
+            <button class="btn" type="button" data-act="dossier" data-name="${esc(s.name)}">${ic("file")}${t("Досие")}</button>
             ${S.rmConfirm === s.name ? "" : `<button class="btn btn-ghost btn-danger" type="button" data-act="rm-staff" data-name="${esc(s.name)}">${t("Премахни")}</button>`}</div>
           ${S.rmConfirm === s.name ? `<div class="confirm-row" role="alert"><span>${S.rmBusy === s.name ? `<span class="spin"></span> ${esc(lang === "en" ? `Removing ${s.name}…` : `Премахва се ${s.name}…`)}` : esc(S.rmText || (lang === "en" ? `Are you sure you want to remove ${s.name}?` : `Сигурни ли сте, че искате да премахнете ${s.name}?`))}</span>
             <button class="btn btn-danger-solid" type="button" data-act="rm-staff-yes" data-name="${esc(s.name)}"${S.rmBusy ? " disabled" : ""}>${S.rmBusy === s.name ? `<span class="spin light"></span>${t("Премахва се…")}` : t("Да, премахни")}</button><button class="btn btn-ghost" type="button" data-act="rm-staff-no"${S.rmBusy ? " disabled" : ""}>${t("Отказ")}</button></div>` : ""}
@@ -862,7 +978,7 @@
     let body = S.tab === "new" ? newHtml() : S.tab === "staff" ? staffHtml() : S.tab === "history" ? historyHtml() : S.tab === "profile" ? profileHtml() : S.tab === "overview" ? overviewHtml() : S.tab === "logs" && isOwner() ? logsHtml() : S.tab === "logs" ? overviewHtml() : tasksHtml();
     /* Плавното появяване — само при смяна на изгледа, не при всяко
        прерисуване (съобщение, зареждане), иначе съдържанието мига. */
-    const view = [S.tab, S.open || "", S.histName || ""].join("|");
+    const view = [S.tab, S.open || "", S.histName || "", S.dossier || "", S.dsEdit ? "e" : ""].join("|");
     if (view === S.view) body = body.replace(/ fade"/g, '"').replace(/class="tlist"/g, 'class="tlist still"');
     S.view = view;
     app.innerHTML = topHtml() + tabsHtml() + body;
@@ -953,6 +1069,7 @@
     if (who) who.onchange = () => { S.who = who.value; render(); };
     const rc = document.getElementById("rate-comment");
     if (rc) rc.oninput = () => { S.comment = rc.value; };
+    document.querySelectorAll("[data-ds]").forEach((n) => { n.oninput = n.onchange = () => { (S.dsForm = S.dsForm || {})[n.dataset.ds] = n.value; }; });
     const pn = document.getElementById("pf-name");
     if (pn) pn.oninput = () => { S.prof.name = pn.value; };
     const mn = document.getElementById("pm-name");
@@ -1001,7 +1118,7 @@
     if (!el) return;
     if (el.dataset.tab === "overview" && !S.ov) loadOverview();
     if (el.dataset.tab === "logs") { S.menu = false; loadLogs(); }
-    if (el.dataset.tab) { S.tab = el.dataset.tab; S.open = null; S.msg = null; S.histName = ""; S.prof = null; render(); return; }
+    if (el.dataset.tab) { S.tab = el.dataset.tab; S.open = null; S.msg = null; S.histName = ""; S.prof = null; S.dossier = ""; render(); return; }
     if (el.dataset.filter != null && el.classList.contains("chip")) { S.filter = el.dataset.filter; render(); return; }
     if (el.dataset.open) { S.open = el.dataset.open; S.tab = "tasks"; S.score = 0; S.comment = null; S.editRate = false; S.confirm = ""; S.st = null; S.noteText = ""; S.msg = null; render(); window.scrollTo(0, 0); return; }
     if (el.dataset.hist) { S.histName = el.dataset.hist; render(); return; }
@@ -1068,6 +1185,24 @@
       const names = await loadNames();
       try { const j = await call("tasksStaffSeed", { names }); if (!j.success) throw new Error(j.error); await load(); flash("ok", (lang === "en" ? "Added: " : "Добавени: ") + j.added); }
       catch (err) { if (!err.handled) flash("err", err.message); }
+      return;
+    }
+    if (act === "dossier") { openDossier(el.dataset.name); return; }
+    if (act === "ds-close") { S.dossier = ""; S.dsEdit = false; S.dsForm = null; S.msg = null; render(); return; }
+    if (act === "ds-edit") { S.dsEdit = true; S.dsForm = null; S.dsErr = ""; render(); const f = document.getElementById("ds-phone"); if (f) f.focus(); return; }
+    if (act === "ds-cancel") { S.dsEdit = false; S.dsForm = null; S.dsErr = ""; render(); return; }
+    if (act === "ds-save") {
+      if (S.dsSaving) return;
+      const f = Object.assign({}, S.dsForm || {});
+      DS_FIELDS.forEach(([k, , type]) => { if (type === "date") f[k] = isoToBg(f[k] && /^\d{4}-/.test(f[k]) ? f[k] : bgToIso(f[k])); });
+      if (f.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) { S.dsErr = lang === "en" ? "Invalid email." : "Невалиден имейл."; render(); return; }
+      S.dsSaving = true; S.dsErr = ""; render();
+      try {
+        const j = await call("tasksDossierSave", { name: S.dossier, dossier: f });
+        if (!j.success) throw new Error(j.error);
+        S.dsCache[S.dossier] = j.dossier; S.dsEdit = false; S.dsForm = null; S.dsSaving = false; S.logs = null;
+        flash("ok", lang === "en" ? "✓ Dossier saved." : "✓ Досието е записано.");
+      } catch (err) { S.dsSaving = false; if (!err.handled) { S.dsErr = err.message; render(); } }
       return;
     }
     if (act === "rm-staff") { if (S.rmBusy) return; S.rmConfirm = el.dataset.name; S.rmText = ""; S.rmForce = false; render(); return; }
