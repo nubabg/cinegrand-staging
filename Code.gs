@@ -1920,12 +1920,15 @@ function handleTasksStaffSeed_(data) {
     var ctx = tkSheet_(tkOpen_(), TK_STAFF_SHEET, TK_STAFF_HEADERS);
     var have = {}; tkRows_(ctx, TK_STAFF_HEADERS).forEach(function (s) { have[s["Име"]] = 1; });
     var added = 0;
+    var skipped = 0;
     names.forEach(function (n) {
       if (have[n]) return;
+      if (tkProtected_(admin, n)) { skipped++; return; }
       tkWriteRow_(ctx, ctx.sheet.getLastRow() + 1, { "Име": n, "Активен": "да" });
       have[n] = 1; added++;
     });
     if (added) tkLog_(admin, "Служители от списъка", added + " добавени", "");
+    if (skipped) tkLog_(admin, "Отказан достъп", tkOwnerStaff_(), "опит за добавяне от списъка");
     SpreadsheetApp.flush();
     return jsonResponse_({ success: true, added: added });
   } finally { lock.releaseLock(); }
@@ -2111,7 +2114,10 @@ function tkLog_(admin, action, target, details) {
 function handleTasksLog_(data) {
   var admin = tkCheckToken_(data.token);
   if (!admin) return tkDeny_();
-  if (!tkIsOwner_(admin)) return jsonResponse_({ success: false, code: "FORBIDDEN", error: "Логовете се виждат само от главния администратор." });
+  if (!tkIsOwner_(admin)) {
+    tkLog_(admin, "Отказан достъп", "Логове", "опит за преглед на логовете");
+    return jsonResponse_({ success: false, code: "FORBIDDEN", error: "Логовете се виждат само от главния администратор." });
+  }
   var ctx = tkSheet_(tkOpen_(), TK_LOG_SHEET, TK_LOG_HEADERS), sh = ctx.sheet, last = sh.getLastRow();
   var limit = Math.min(1000, Math.max(50, Number(data.limit) || 500)), out = [];
   if (last >= 2) {
