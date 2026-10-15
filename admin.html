@@ -10,38 +10,44 @@
   /* Цветове по темата от основното приложение (cg_theme). Пет теми —
      две основи (тъмна/светла) с различен акцент. */
   :root {
-    --bg: #090E14; --panel: #111A24; --panel-2: #16212D; --panel-3: #1c2a38;
-    --text: #ffffff; --muted: #B7C2D0; --muted-2: #94A2B4;
-    --border: rgba(255,255,255,.08); --border-strong: rgba(255,255,255,.16);
-    --accent: #E0A93F; --accent-ink: #1a1203; --accent-soft: rgba(224,169,63,.14);
-    --blue: #6aa8ff; --blue-soft: rgba(106,168,255,.14);
-    --amber: #f2bd52; --amber-soft: rgba(242,189,82,.14);
-    --green: #4fd18b; --green-soft: rgba(79,209,139,.14);
-    --red: #ff7a7a; --red-soft: rgba(255,122,122,.14); --red-strong: #b42335;
-    --gray: #aab4c2; --gray-soft: rgba(170,180,194,.12);
-    --shadow: 0 24px 60px rgba(0,0,0,.45);
+    --bg: #04010A; --side: #111015; --panel: #1B1A1F; --panel-2: #26232A; --panel-3: #302D35; --recess: #0C0A10;
+    --text: #F9F6FF; --muted: #ABA6B2; --muted-2: #8C8793;
+    --border: rgba(255,255,255,.07); --border-strong: rgba(255,255,255,.13);
+    --accent: #6993FF; --accent-ink: #0A0712; --accent-soft: rgba(105,147,255,.16);
+    --blue: #6993FF; --blue-soft: rgba(105,147,255,.15);
+    --amber: #FFD765; --amber-soft: rgba(255,215,101,.13);
+    --green: #65E8A1; --green-soft: rgba(101,232,161,.13);
+    --red: #FF7979; --red-soft: rgba(255,121,121,.13); --red-strong: #C93545;
+    --gray: #ABA6B2; --gray-soft: rgba(171,166,178,.12);
+    --orange: #F59E72; --pink: #FC9A9D;
+    --spot-bg: #F9F6FF; --spot-ink: #16131B; --nav-on-bg: #F9F6FF; --nav-on-ink: #131019;
+    --p-blue: #8BA6EF; --p-orange: #F59E72; --p-yellow: #FFE08D; --p-green: #6CEBA2; --p-ink: #17141B;
+    --shadow: none;
     color-scheme: dark;
   }
   :root[data-theme="special-dark"] {
-    --bg: #0c151b; --panel: #14232b; --panel-2: #1a2d36; --panel-3: #213844;
-    --text: #f4fafb; --muted: #bdcdd3; --muted-2: #9fb3bb; --border: #2a3e47; --border-strong: #3a535e;
-    --accent: #34d3a6; --accent-ink: #062018; --accent-soft: rgba(52,211,166,.14);
+    --bg: #071014; --side: #0D1A20; --panel: #16262C; --panel-2: #1E333A; --panel-3: #284049; --recess: #0A151A;
+    --text: #F4FAFB; --muted: #BDCDD3; --muted-2: #9FB3BB; --border: rgba(255,255,255,.08); --border-strong: rgba(255,255,255,.15);
+    --accent: #34D3A6; --accent-ink: #062018; --accent-soft: rgba(52,211,166,.15);
+    --blue: #6DADFF; --blue-soft: rgba(109,173,255,.15); --green: #49DDAF; --green-soft: rgba(73,221,175,.13);
   }
   :root[data-theme="light"], :root[data-theme="orange"], :root[data-theme="special-light"] {
-    --bg: #f4f6f8; --panel: #ffffff; --panel-2: #eef1f5; --panel-3: #e4e9ef;
-    --text: #1d2430; --muted: #56606e; --muted-2: #5f6a78;
-    --border: #dfe4ea; --border-strong: #c8d0da;
-    --accent: #8f5a00; --accent-ink: #ffffff; --accent-soft: rgba(143,90,0,.10);
-    --blue: #1d4ed8; --blue-soft: rgba(29,78,216,.09);
-    --amber: #92400e; --amber-soft: rgba(217,119,6,.13);
-    --green: #166534; --green-soft: rgba(22,101,52,.10);
-    --red: #b91c1c; --red-soft: rgba(185,28,28,.09); --red-strong: #b91c1c;
-    --gray: #4b5563; --gray-soft: rgba(75,85,99,.10);
-    --shadow: 0 20px 48px rgba(15,23,42,.10), 0 3px 10px rgba(15,23,42,.05);
+    --bg: #F1F3F8; --side: #FFFFFF; --panel: #FFFFFF; --panel-2: #F0F2F6; --panel-3: #E5E9F0; --recess: #F7F8FB;
+    --text: #1C2130; --muted: #596375; --muted-2: #667083;
+    --border: rgba(23,31,44,.09); --border-strong: rgba(23,31,44,.17);
+    --accent: #3668D9; --accent-ink: #ffffff; --accent-soft: rgba(54,104,217,.10);
+    --blue: #3668D9; --blue-soft: rgba(54,104,217,.10);
+    --amber: #8F5A00; --amber-soft: rgba(217,150,6,.14);
+    --green: #157A48; --green-soft: rgba(21,122,72,.10);
+    --red: #BA343F; --red-soft: rgba(186,52,63,.09); --red-strong: #BA343F;
+    --gray: #4B5563; --gray-soft: rgba(75,85,99,.10);
+    --orange: #B65C2E; --pink: #BA4967;
+    --spot-bg: #232735; --spot-ink: #F9F6FF; --nav-on-bg: #232735; --nav-on-ink: #F9F6FF;
+    --shadow: 0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.05);
     color-scheme: light;
   }
-  :root[data-theme="orange"] { --accent: #b33f0a; --accent-soft: rgba(179,63,10,.10); }
-  :root[data-theme="special-light"] { --bg: #edf3f8; --panel-2: #f1f6fa; --border: #dfe8f0; --accent: #00785b; --accent-soft: rgba(0,120,91,.10); }
+  :root[data-theme="orange"] { --accent: #B65025; --accent-soft: rgba(182,80,37,.10); }
+  :root[data-theme="special-light"] { --bg: #EDF3F8; --panel-2: #F1F6FA; --accent: #007C69; --accent-soft: rgba(0,124,105,.10); }
 
   * { box-sizing: border-box; }
   html, body { margin: 0; }
@@ -300,6 +306,173 @@
     .tlist tr.late td { background: transparent; }
     .tlist tr.late td:first-child { box-shadow: none; }
   }
+
+  /* ══ Визия: тъмно табло с икони отляво (по референтния дизайн) ══
+     Само вид — цветовете идват от темата горе, функциите не са засегнати. */
+  body { font-size: 14.5px; }
+  .wrap.authed { max-width: none; padding: 0; }
+  .shell { display: grid; grid-template-columns: 92px minmax(0, 1fr); min-height: 100vh; min-height: 100dvh;
+    background: linear-gradient(to right, var(--side) 91px, var(--border) 91px 92px, transparent 92px); }
+  .side { position: sticky; top: 0; height: 100vh; height: 100dvh; background: var(--side); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 20px 10px 16px; z-index: 20; }
+  .side-logo { display: grid; place-items: center; width: 48px; height: 48px; }
+  .side-logo img { width: 36px; height: 36px; }
+  .side .tabs { flex-direction: column; flex-wrap: nowrap; gap: 6px; margin: 0; width: 100%; overflow-y: auto; scrollbar-width: none; }
+  .side .tab { position: relative; flex-direction: column; justify-content: center; gap: 5px; width: 100%; min-height: 58px; padding: 9px 4px; border: 0; border-radius: 16px;
+    background: transparent; color: var(--muted); font-size: 10.5px; font-weight: 650; line-height: 1.15; text-align: center; transition: background .15s, color .15s; }
+  .side .tab .icon { width: 21px; height: 21px; }
+  .side .tab:hover { background: var(--panel-2); color: var(--text); }
+  .side .tab[aria-selected="true"] { background: var(--nav-on-bg); color: var(--nav-on-ink); }
+  .side .tab .count, .side .tab[aria-selected="true"] .count { position: absolute; top: 5px; right: 9px; min-width: 18px; padding: 0 5px; font-size: 10.5px; line-height: 17px; font-weight: 800; background: var(--red); color: #fff; }
+  .side-out { margin-top: auto; width: 52px; height: 52px; border-radius: 16px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); display: grid; place-items: center; cursor: pointer; flex: none; }
+  .side-out:hover { background: var(--panel-3); }
+  .side-out:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .main { min-width: 0; width: 100%; max-width: 1440px; padding: 24px clamp(16px, 2.6vw, 34px) 56px; }
+
+  .top { flex-wrap: nowrap; margin-bottom: 26px; }
+  .top-l { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .top-logo { display: none; width: 30px; height: 30px; flex: none; }
+  .page-title { margin: 0; font-size: clamp(22px, 2.6vw, 31px); line-height: 1.15; letter-spacing: -.03em; font-weight: 750; overflow-wrap: anywhere; }
+  .page-sub { margin-top: 5px; font-size: 13px; color: var(--muted); }
+  .top-right { flex-wrap: nowrap; gap: 10px; }
+  .icon-btn { width: 44px; min-height: 44px; padding: 0; border-radius: 14px; }
+  .me-btn { box-shadow: 0 0 0 2px var(--border); }
+
+  /* Общи елементи */
+  .btn { border-radius: 12px; border-color: var(--border); background: var(--panel-2); font-size: 14px; }
+  .btn-ghost { background: transparent; border-color: transparent; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .card { border-radius: 20px; border-color: var(--border); }
+  .card-head { background: transparent; padding: 16px 20px; }
+  .card-body { padding: 20px; }
+  @media (min-width: 760px) { .card-body { padding: 26px; } }
+  input[type=text], input[type=password], input[type=date], input[type=number], input[type=search], select, textarea,
+  .ds-form input[type=tel], .ds-form input[type=email] { border-radius: 12px; border-color: var(--border); background: var(--panel-2); min-height: 42px; }
+  .chip { border-radius: 10px; border-color: var(--border); background: var(--panel-2); padding: 7px 12px; }
+  .chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
+  .stat { border-radius: 16px; background: var(--panel); padding: 16px 18px; }
+  .stat b { font-size: 26px; letter-spacing: -.03em; line-height: 1.2; }
+  .ds-sec, .note, .notes li, .rec { border-radius: 14px; }
+  .login { margin-top: 12vh; }
+  .login .card-head img { width: 26px; height: 26px; }
+
+  /* Таблици: вдлъбнат тъмен контейнер, тънки линии */
+  .tbl-wrap { background: var(--recess); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; }
+  .tlist th { background: var(--panel-2); font-size: 11px; letter-spacing: .05em; padding: 12px; }
+  .tlist td { padding: 13px 12px; }
+  .tlist tbody tr:hover { background: var(--panel-2); }
+  .tlist tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .card .tlist th { background: transparent; }
+  .tbl-wrap .tlist th { background: var(--panel-2); }
+  .badge { border-radius: 8px; }
+  .tag, .lg-badge, .late-badge { border-radius: 8px; }
+  @media (max-width: 700px) {
+    .tbl-wrap { background: transparent; border: 0; border-radius: 0; overflow: visible; }
+    .tlist tr { border-radius: 16px; background: var(--panel); }
+    .tlist td { padding: 5px 14px; }
+  }
+
+  /* Обзор: 4 показателя + графика, после бързи плочки и кръгова диаграма */
+  .sec-title { margin: 0; font-size: 18px; letter-spacing: -.01em; }
+  .ov-hero { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 1000px) { .ov-hero { grid-template-columns: minmax(330px, .95fr) minmax(0, 1.15fr); } }
+  .kpis { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi { min-width: 0; min-height: 150px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; padding: 18px; border-radius: 20px; background: var(--panel); border: 1px solid var(--border); }
+  .kpi-label { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .kpi-val { font-size: clamp(26px, 2.8vw, 34px); font-weight: 760; letter-spacing: -.04em; line-height: 1.05; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .kpi .delta { margin: 0; font-size: 12px; }
+  .kpi.spot { background: var(--spot-bg); color: var(--spot-ink); border-color: transparent; }
+  .kpi.spot .kpi-label, .kpi.spot .delta { color: inherit; opacity: .72; }
+  .kpi.spot .delta.up, .kpi.spot .delta.down { opacity: 1; }
+  .kpi.spot .delta.up { color: #157A48; } .kpi.spot .delta.down { color: #BA343F; }
+  :root[data-theme="light"] .kpi.spot .delta.up, :root[data-theme="orange"] .kpi.spot .delta.up, :root[data-theme="special-light"] .kpi.spot .delta.up { color: #65E8A1; }
+  :root[data-theme="light"] .kpi.spot .delta.down, :root[data-theme="orange"] .kpi.spot .delta.down, :root[data-theme="special-light"] .kpi.spot .delta.down { color: #FF9C9C; }
+  .kpi.bad { border-color: color-mix(in srgb, var(--red) 45%, transparent); }
+  .kpi.bad .kpi-val { color: var(--red); }
+  .pill { display: inline-flex; align-items: center; font-size: 11.5px; font-weight: 800; letter-spacing: 0; padding: 2px 8px; border-radius: 999px; background: var(--red); color: #fff; }
+  .chart-card { padding: 20px 22px 16px; min-width: 0; display: flex; flex-direction: column; }
+  .chart-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .chart-head h3 { font-size: 16px; }
+  .chart-card .legend { margin: 0; }
+  .chart-card .bars { flex: 1; min-height: 190px; height: auto; gap: clamp(3px, .6vw, 9px); padding-top: 10px;
+    background: repeating-linear-gradient(to top, var(--border) 0 1px, transparent 1px 25%); }
+  .chart-card .bar-in { background: var(--blue); opacity: 1; border-radius: 9px 9px 3px 3px; }
+  .chart-card .bar:hover .bar-in { filter: brightness(1.12); }
+  .chart-card .bar-bad { background: var(--red); }
+  .bars-x.days { justify-content: stretch; gap: clamp(3px, .6vw, 9px); }
+  .bars-x.days span { flex: 1 1 0; min-width: 0; text-align: center; white-space: nowrap; overflow: visible; font-size: 11px; }
+  .lg-ok { background: var(--blue); }
+  .ov-lower { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 640px) { .ov-lower { grid-template-columns: 1fr 1fr; } .donut-card { grid-column: 1 / -1; } }
+  @media (min-width: 1100px) { .ov-lower { grid-template-columns: 1fr 1fr 1.35fr; } .donut-card { grid-column: auto; } }
+  .quick { all: unset; box-sizing: border-box; position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 18px; min-height: 190px; padding: 20px;
+    border-radius: 20px; background: var(--panel); border: 1px solid var(--border); cursor: pointer; transition: background .15s, transform .1s; }
+  .quick:hover { background: var(--panel-2); }
+  .quick:active { transform: translateY(1px); }
+  .quick:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .quick-ic { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: var(--panel-3); color: var(--text); }
+  .quick-go { position: absolute; top: 18px; right: 18px; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--spot-bg); color: var(--spot-ink); }
+  .quick-num { font-size: clamp(38px, 4vw, 52px); font-weight: 760; letter-spacing: -.045em; line-height: 1; }
+  .quick-num small { font-size: 17px; font-weight: 600; letter-spacing: 0; margin-left: 8px; color: var(--text); }
+  .quick-sub { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .quick.hot .quick-num, .quick.hot .quick-ic { color: var(--red); }
+  .donut-card { padding: 20px; }
+  .donut-card h3 { font-size: 16px; margin-bottom: 14px; }
+  .donut-wrap { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+  .donut { width: 150px; height: 150px; flex: none; }
+  .donut text { fill: var(--text); font-weight: 760; }
+  .donut-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 13px; min-width: 0; }
+  .donut-legend li { display: flex; align-items: center; gap: 9px; }
+  .donut-legend i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .donut-legend b { margin-left: auto; padding-left: 12px; }
+  .ov-sec .stat { background: var(--panel); }
+  .ov .card-head h3 { font-size: 16px; }
+
+  /* Задачи: цветни броячи + лента с търсене + таблица */
+  .tasks-page { display: grid; gap: 16px; }
+  .counters { display: grid; gap: 14px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  @media (max-width: 900px) { .counters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .counter { border-radius: 18px; overflow: hidden; background: var(--panel); border: 1px solid var(--border); min-width: 0; }
+  .counter-h { padding: 10px 14px; font-size: 13px; font-weight: 700; color: var(--p-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .counter-b { padding: 14px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .counter-b b { font-size: 28px; font-weight: 760; letter-spacing: -.03em; line-height: 1; }
+  .counter-b span { font-size: 12px; color: var(--muted); }
+  .c-blue .counter-h { background: var(--p-blue); } .c-orange .counter-h { background: var(--p-orange); }
+  .c-yellow .counter-h { background: var(--p-yellow); } .c-green .counter-h { background: var(--p-green); }
+  .tasks-page .toolbar { margin: 0; }
+  .search { position: relative; }
+  .search .icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+  .search input { padding-left: 40px; }
+
+  /* Телефон: менюто става лента долу */
+  @media (max-width: 760px) {
+    .shell { grid-template-columns: minmax(0, 1fr); background: none; }
+    .hide-m { display: none; }
+    .side { position: fixed; top: auto; bottom: 0; left: 0; right: 0; height: auto; flex-direction: row; gap: 0; padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+      border-right: 0; border-top: 1px solid var(--border); }
+    .side-logo, .side-out { display: none; }
+    .side .tabs { flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: 2px; }
+    .side .tab { flex: 1 0 52px; width: auto; min-height: 54px; padding: 6px 2px; font-size: 10px; border-radius: 13px; }
+    .side .tab .icon { width: 20px; height: 20px; }
+    .side .tab .count, .side .tab[aria-selected="true"] .count { right: 4px; top: 2px; }
+    .main { padding: 14px 14px calc(92px + env(safe-area-inset-bottom)); }
+    .top { margin-bottom: 18px; }
+    .top-logo { display: block; }
+    .page-sub { font-size: 12px; }
+    .kpi { min-height: 128px; padding: 15px; }
+    .quick { min-height: 160px; }
+    .pmenu { top: 70px; }
+  }
+  @media (max-width: 380px) {
+    .kpis { gap: 10px; }
+    .kpi { padding: 13px; }
+    .kpi-val { font-size: 24px; }
+    .counters { gap: 10px; }
+    .counter-b b { font-size: 24px; }
+    .main { padding-left: 10px; padding-right: 10px; }
+    .icon-btn { width: 40px; min-height: 40px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .side .tab, .quick { transition: none; } }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 </style>
 </head>
@@ -330,7 +503,14 @@
   <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></symbol>
   <symbol id="i-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
-  <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-pie" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 15.9A10 10 0 1 1 8 2.8"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M12 11h4M12 16h4M8 11h.01M8 16h.01"/></symbol>
+  <symbol id="i-hist" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.8 9.8 0 0 0-6.7 2.7L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+  <symbol id="i-scroll" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12h-5M15 8h-5M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></symbol>
+  <symbol id="i-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M7 7h10v10"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-out"viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
 </svg>
 <div class="wrap" id="app" aria-live="polite"></div>
 
@@ -503,7 +683,7 @@
 
   /* ── Екрани ── */
   function loginHtml() {
-    return `<div class="login card fade"><div class="card-head"><span class="crumbs"><span>CineGrand</span><span>${t("Задачи")}</span></span></div>
+    return `<div class="login card fade"><div class="card-head"><img src="favicon.svg" alt=""><span class="crumbs" style="margin-right:auto"><span>CineGrand</span><span>${t("Задачи")}</span></span></div>
       <form class="card-body" id="login-form" autocomplete="on">
         <h1 class="title" style="margin-bottom:18px">${t("Вход за администратор")}</h1>
         ${msgHtml()}
@@ -514,11 +694,14 @@
   }
   function topHtml() {
     const me = adminOf(S.session.user), myName = me.name || S.session.user;
+    const titles = { tasks: t("Задачи"), new: t("Нова задача"), staff: t("Служители"), history: t("История"), profile: t("Профил"), logs: t("Логове") };
+    const today = new Date().toLocaleDateString(lang === "en" ? "en-GB" : "bg-BG", { weekday: "long", day: "numeric", month: "long" });
+    const title = S.tab === "overview" || !titles[S.tab] ? `${L("Здравей", "Hello")}, ${esc(myName)}! 👋` : titles[S.tab];
     return `<div class="top">
-      <div class="brand"><img src="favicon.svg" alt=""><span>CINE GRAND<small>${t("Административна страница")}</small></span></div>
+      <div class="top-l"><img class="top-logo" src="favicon.svg" alt=""><div style="min-width:0"><h1 class="page-title">${title}</h1>
+        <div class="page-sub">${esc(today.charAt(0).toUpperCase() + today.slice(1))}<span class="hide-m"> · CINE GRAND · ${t("Административна страница")}</span></div></div></div>
       <div class="top-right">
-        <button class="btn" data-act="reload"${S.listBusy ? " disabled" : ""}>${S.listBusy ? `<span class="spin"></span>` : ic("refresh")}${t("Обнови")}</button>
-        <button class="btn btn-ghost" data-act="logout">${ic("out")}${t("Изход")}</button>
+        <button class="btn icon-btn" data-act="reload"${S.listBusy ? " disabled" : ""} aria-label="${t("Обнови")}" title="${t("Обнови")}">${S.listBusy ? `<span class="spin"></span>` : ic("refresh")}</button>
         <div class="me-wrap">
           <button class="me-btn" data-act="menu" aria-haspopup="dialog" aria-expanded="${!!S.menu}" title="${esc(myName)} · ${t("Профил")}">${avatarSaving("__me", avatar(myName, me.photo, "md"))}</button>
           ${S.menu ? menuHtml(me, myName) : ""}
@@ -536,14 +719,21 @@
         <button class="btn btn-primary" data-act="save-profile"${S.meBusy ? " disabled" : ""}>${S.meBusy ? `<span class="spin light"></span>` : ic("check")}${S.meBusy ? t("Записва се…") : t("Запази")}</button>
         <label class="btn">${ic("camera")}${t("Качи снимка")}<input type="file" accept="image/*" class="sr" data-photo-for="__me"></label>
         ${me.photo ? `<button class="btn btn-ghost btn-danger" data-act="nophoto" data-name="__me">${t("Махни снимката")}</button>` : ""}
+        <button class="btn btn-ghost" data-act="logout">${ic("out")}${t("Изход")}</button>
       </div>
       ${S.menuMsg ? `<div class="msg ${S.menuMsg.kind}" style="margin:10px 0 0">${esc(S.menuMsg.text)}</div>` : ""}
     </div>`;
   }
   function tabsHtml() {
     const waiting = S.tasks.filter((x) => x.status === "Изпълнена").length;
-    const tab = (id, label, n) => `<button class="tab" role="tab" data-tab="${id}" aria-selected="${S.tab === id}">${label}${n ? ` <span class="count">${n}</span>` : ""}</button>`;
-    return `<div class="tabs" role="tablist">${tab("overview", ic("trend") + t("Обзор"))}${tab("tasks", t("Задачи"), waiting)}${tab("new", ic("plus") + t("Нова задача"))}${tab("staff", t("Служители"))}${tab("history", t("История"))}${tab("profile", t("Профил"))}${isOwner() ? tab("logs", ic("list") + t("Логове")) : ""}</div>`;
+    const tab = (id, icon, label, n) => `<button class="tab" role="tab" data-tab="${id}" aria-selected="${S.tab === id}" title="${label}">${ic(icon)}<span>${label}</span>${n ? ` <span class="count" aria-label="${n} ${t("Чакат оценка").toLowerCase()}">${n}</span>` : ""}</button>`;
+    return `<div class="tabs" role="tablist" aria-label="${t("Административна страница")}">${tab("overview", "pie", t("Обзор"))}${tab("tasks", "clip", t("Задачи"), waiting)}${tab("new", "plus", t("Нова задача"))}${tab("staff", "users", t("Служители"))}${tab("history", "hist", t("История"))}${tab("profile", "user", t("Профил"))}${isOwner() ? tab("logs", "scroll", t("Логове")) : ""}</div>`;
+  }
+  /* Рамка: икони отляво (на телефон — лента долу), горе заглавие и профил. */
+  function shellHtml(body) {
+    return `<div class="shell"><aside class="side"><div class="side-logo"><img src="favicon.svg" alt="CINE GRAND"></div>${tabsHtml()}
+        <button class="side-out" data-act="logout" aria-label="${t("Изход")}" title="${t("Изход")}">${ic("out")}</button></aside>
+      <main class="main">${topHtml()}${body}</main></div>`;
   }
   function tasksHtml() {
     if (S.open) return detailHtml(S.tasks.find((x) => x.id === S.open));
@@ -555,20 +745,26 @@
     const list = S.tasks.filter((x) => (!S.filter || (S.filter === "late" ? x.overdue > 0 : x.status === S.filter)) && (!S.who || x.assignee === S.who)
       && (!q || [x.title, x.description, x.assignee, x.category, x.id, x.createdBy].join(" ").toLowerCase().includes(q)))
       .sort((a, b) => prio(a) - prio(b) || (b.overdue || 0) - (a.overdue || 0) || parseBg(b.created) - parseBg(a.created));
-    return `<div class="card fade"><div class="card-body">
+    /* Броячи горе — само от заредените задачи. „Просрочени“ се припокрива с „Възложени“. */
+    const cnt = (n) => S.listBusy && !S.tasks.length ? "—" : n;
+    const counter = (cls, label, n, sub) => `<div class="counter ${cls}"><div class="counter-h">${label}</div><div class="counter-b"><b>${cnt(n)}</b><span>${sub}</span></div></div>`;
+    const ofAll = L(`от ${S.tasks.length} задачи`, `of ${S.tasks.length} tasks`);
+    return `<div class="tasks-page fade">
+      <div class="counters">${counter("c-blue", t("Възложени"), counts["Възложена"] || 0, ofAll)}${counter("c-orange", t("Чакат оценка"), counts["Изпълнена"] || 0, ofAll)}${counter("c-yellow", t("Просрочени"), counts.late, L("срокът е минал", "past due date"))}${counter("c-green", L("Оценени", "Rated"), counts["Оценена"] || 0, ofAll)}</div>
+      <div class="toolbar"><div class="search" style="flex:2 1 220px">${ic("search")}<input type="search" id="q" placeholder="${t("Търси задача…")}" value="${esc(S.q)}" aria-label="${t("Търси задача…")}"></div>
+        <div style="flex:1 1 180px"><select id="who" aria-label="${t("Изпълнител")}"><option value="">${t("Всички служители")}</option>${S.staff.map((s) => `<option${s.name === S.who ? " selected" : ""}>${esc(s.name)}</option>`).join("")}</select></div>
+        <button class="btn btn-primary" data-tab="new">${ic("plus")}${t("Нова задача")}</button></div>
       <div class="toolbar"><div class="chips" role="group" aria-label="${t("Статус")}">${chip("", t("Всички"))}${chip("Изпълнена", t("Чака оценка"))}${chip("late", t("Просрочени"))}${chip("Възложена", t("Възложена"))}${chip("Оценена", t("Оценена"))}${chip("Отменена", t("Отменена"))}</div></div>
-      <div class="toolbar"><div style="flex:2 1 220px"><input type="search" id="q" placeholder="${t("Търси задача…")}" value="${esc(S.q)}" aria-label="${t("Търси задача…")}"></div>
-        <div style="flex:1 1 180px"><select id="who" aria-label="${t("Изпълнител")}"><option value="">${t("Всички служители")}</option>${S.staff.map((s) => `<option${s.name === S.who ? " selected" : ""}>${esc(s.name)}</option>`).join("")}</select></div></div>
       ${msgHtml()}
-      ${list.length ? `<table class="tlist"><thead><tr><th class="no">№</th><th>${t("Задача")}</th><th>${t("Изпълнител")}</th><th>${t("Възложил")}</th><th>${t("Статус")}</th><th class="right">${t("Срок")}</th></tr></thead><tbody>
+      ${list.length ? `<div class="tbl-wrap"><table class="tlist"><thead><tr><th class="no">№</th><th>${t("Задача")}</th><th>${t("Изпълнител")}</th><th>${t("Възложил")}</th><th>${t("Статус")}</th><th class="right">${t("Срок")}</th></tr></thead><tbody>
         ${list.map((x, i) => `<tr data-open="${esc(x.id)}" tabindex="0"${x.overdue ? ' class="late"' : ""} style="animation-delay:${Math.min(i, 12) * 35}ms">
           <td class="no">${i + 1}</td>
           <td><div class="t-title">${esc(x.title)}</div><div class="t-sub">${esc([x.category, t(x.priority)].filter(Boolean).join(" · "))}</div></td>
           <td>${esc(x.assignee)}</td><td>${adminPerson(x.createdBy)}</td>
           <td>${x.overdue ? lateBadge(x.overdue) : badge(x.status)}${x.score ? ` <span class="tag">${esc(x.score)}/10</span>` : ""}</td>
-          <td class="right"${x.overdue ? ' style="color:var(--red);font-weight:800"' : ""}>${esc(x.due || "—")}</td></tr>`).join("")}</tbody></table>`
-        : `<div class="empty">${S.listBusy ? `<span class="spin"></span> ${t("Зарежда…")}` : t("Няма задачи.")}</div>`}
-    </div></div>`;
+          <td class="right"${x.overdue ? ' style="color:var(--red);font-weight:800"' : ""}>${esc(x.due || "—")}</td></tr>`).join("")}</tbody></table></div>`
+        : `<div class="empty card">${S.listBusy ? `<span class="spin"></span> ${t("Зарежда…")}` : t("Няма задачи.")}</div>`}
+    </div>`;
   }
   function detailHtml(x) {
     if (!x) { S.open = null; return tasksHtml(); }
@@ -858,6 +1054,20 @@
     if (!out.some((x) => x.sev === "high" || x.sev === "mid")) out.push({ sev: "good", icon: "check", text: L("Няма нищо спешно — всичко изглежда наред.", "Nothing urgent — everything looks fine.") });
     return out;
   }
+  /* Кръгова диаграма „Задачи по статус“ — само от вече заредения списък (S.tasks). */
+  function donutHtml() {
+    if (S.listBusy && !S.tasks.length) return `<div class="empty"><span class="spin"></span> ${t("Зарежда…")}</div>`;
+    const parts = [["Възложена", "var(--blue)"], ["Изпълнена", "var(--amber)"], ["Оценена", "var(--green)"], ["Отменена", "var(--pink)"]]
+      .map(([st, color]) => ({ label: statusLabel(st), color, n: S.tasks.filter((x) => x.status === st).length }));
+    const total = parts.reduce((a, p) => a + p.n, 0);
+    if (!total) return `<div class="empty">${t("Няма задачи.")}</div>`;
+    const r = 38, c = 2 * Math.PI * r; let used = 0;
+    const arcs = parts.filter((p) => p.n).map((p) => { const len = p.n / total * c, off = -used; used += len;
+      return `<circle cx="50" cy="50" r="${r}" fill="none" stroke="${p.color}" stroke-width="18" stroke-dasharray="${len.toFixed(2)} ${c.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}"/>`; }).join("");
+    const label = `${t("Задачи")}: ${total}`;
+    return `<div class="donut-wrap"><svg class="donut" viewBox="0 0 100 100" role="img" aria-label="${esc(label + " — " + parts.map((p) => `${p.label} ${p.n}`).join(", "))}"><g transform="rotate(-90 50 50)">${arcs}</g><text x="50" y="57" font-size="20" text-anchor="middle">${total}</text></svg>
+      <ul class="donut-legend">${parts.map((p) => `<li><i style="background:${p.color}" aria-hidden="true"></i><span>${esc(p.label)}</span><b>${p.n}</b></li>`).join("")}</ul></div>`;
+  }
   function overviewHtml() {
     const o = S.ov;
     if (!o) return `<div class="card fade"><div class="card-body"><div class="empty">${S.ovErr ? esc(S.ovErr) + `<div style="margin-top:12px"><button class="btn" data-act="ov-reload">${ic("refresh")}${t("Обнови")}</button></div>` : `<span class="spin"></span> ${L("Чете всички листове…", "Reading all sheets…")}`}</div></div></div>`;
@@ -866,41 +1076,52 @@
     const delta = (a, b, unit, inverse) => { if (b == null) return ""; const d = a - b; if (!d) return `<span class="delta">= ${L("както преди", "same as before")}</span>`;
       const good = inverse ? d < 0 : d > 0; return `<span class="delta ${good ? "up" : "down"}">${d > 0 ? "▲" : "▼"} ${Math.abs(d)}${unit} ${L("спрямо предишните", "vs previous")} ${o.days} ${L("дни", "days")}</span>`; };
     const stat = (big, label, extra, cls) => `<div class="stat ${cls || ""}"><b>${big}</b><span>${label}</span>${extra || ""}</div>`;
+    const kpi = (big, label, extra, cls) => `<div class="kpi ${cls || ""}"><div class="kpi-label">${label}</div><div class="kpi-val">${big}</div>${extra || ""}</div>`;
     const recs = recommendations(o);
     const max = Math.max(1, ...(I.daily || []).map((d) => d.n));
     const sevLabel = { high: L("Спешно", "Urgent"), mid: L("Внимание", "Attention"), info: L("Информация", "Info"), good: L("Добре", "Good") };
+    const daily = I.daily || [], step = Math.max(1, Math.ceil(daily.length / 7));
+    const quick = (n, label, sub, f, icon, hot) => `<button class="quick${hot && n ? " hot" : ""}" data-act="ov-go" data-f="${f}"><span class="quick-ic">${ic(icon)}</span><span class="quick-go" aria-hidden="true">${ic("go")}</span>
+      <span><span class="quick-num">${n}<small>${label}</small></span><span class="quick-sub" style="display:block">${sub}</span></span></button>`;
     return `<div class="ov fade">
-      <div class="ov-head"><div><h1 class="title" style="margin:0">${L("Обзор", "Overview")}</h1>
+      <div class="ov-head"><div><h2 class="sec-title">${L("Обзор", "Overview")}</h2>
         <div class="t-sub">${L(`Последните ${o.days} дни · всички листове · обновено ${esc(o.at)}`, `Last ${o.days} days · all sheets · updated ${esc(o.at)}`)}</div></div>
         <button class="btn" data-act="ov-reload"${S.ovBusy ? " disabled" : ""}>${S.ovBusy ? `<span class="spin"></span>` : ic("refresh")}${t("Обнови")}</button></div>
-      <div class="stats ov-stats">
-        ${stat(I.n || 0, L("проверки", "inspections"), delta(I.n || 0, I.prevN, ""))}
-        ${stat(rate + "%", L("с проблем", "with problems"), I.prevN ? delta(rate, prevRate, L(" т.", " pts"), true) : "", rate >= 30 ? "bad" : "")}
-        ${stat(K.open || 0, L("отворени задачи", "open tasks"), K.overdue ? `<span class="delta down">${K.overdue} ${L("просрочени", "overdue")}</span>` : "", K.overdue ? "bad" : "")}
-        ${stat(K.avg == null ? "—" : String(K.avg).replace(".", lang === "en" ? "." : ","), L("средна оценка на задачите", "average task rating"), K.done ? `<span class="delta">${pct(K.onTime, K.done)}% ${L("навреме", "on time")}</span>` : "")}
+      <div class="ov-hero">
+        <div class="kpis">
+          ${kpi(I.n || 0, L("Проверки", "Inspections"), delta(I.n || 0, I.prevN, ""), "spot")}
+          ${kpi(rate + "%", L("С проблем", "With problems"), I.prevN ? delta(rate, prevRate, L(" т.", " pts"), true) : "", rate >= 30 ? "bad" : "")}
+          ${kpi(`${K.open || 0}${K.overdue ? ` <span class="pill">${K.overdue} ${L("просрочени", "overdue")}</span>` : ""}`, L("Отворени задачи", "Open tasks"), "", "")}
+          ${kpi(K.avg == null ? "—" : String(K.avg).replace(".", lang === "en" ? "." : ","), L("Средна оценка на задачите", "Average task rating"), K.done ? `<span class="delta">${pct(K.onTime, K.done)}% ${L("навреме", "on time")}</span>` : "")}
+        </div>
+        <section class="card chart-card"><div class="chart-head"><h3>${ic("trend")}${L("Проверки по дни", "Inspections by day")}</h3>
+            <div class="legend"><span><i class="lg-ok"></i>${L("чисто", "clean")}</span><span><i class="lg-bad"></i>${L("с проблем", "with problems")}</span></div></div>
+          <div class="bars" role="img" aria-label="${L(`${I.n} проверки за ${o.days} дни, ${I.p} с проблем`, `${I.n} inspections in ${o.days} days, ${I.p} with problems`)}">
+            ${daily.map((d) => `<div class="bar" title="${esc(d.date)}: ${d.n} ${L("проверки", "inspections")}, ${d.p} ${L("с проблем", "with problems")}"><div class="bar-in" style="height:${Math.round(d.n / max * 100)}%"><div class="bar-bad" style="height:${d.n ? Math.round(d.p / d.n * 100) : 0}%"></div></div></div>`).join("")}
+          </div>
+          <div class="bars-x days" aria-hidden="true">${daily.map((d, i) => `<span>${(i % step === 0 && daily.length - 1 - i >= step / 2) || i === daily.length - 1 ? esc(shortD(d.date)) : ""}</span>`).join("")}</div>
+        </section>
+      </div>
+      <div class="ov-lower">
+        ${quick(K.waiting || 0, L("чакат оценка", "awaiting rating"), L("Задачи, изпълнени от служителите — дайте оценка.", "Tasks completed by staff — give a rating."), "Изпълнена", "star")}
+        ${quick(K.overdue || 0, L("просрочени", "overdue"), L("Задачи с изтекъл срок, още неизпълнени.", "Tasks past their due date, not done yet."), "late", "clock", true)}
+        <section class="card donut-card"><h3>${ic("pie")}${L("Задачи по статус", "Tasks by status")}</h3>${donutHtml()}</section>
+      </div>
+      ${R.found || F.found ? `<div class="stats ov-stats ov-sec">
         ${R.found ? stat(`${R.done}/${R.due}`, L("почиствания на съблекални", "changing room cleanings"), R.missed && R.missed.length ? `<span class="delta down">${R.missed.length} ${L("пропуснати", "missed")}</span>` : "", R.missed && R.missed.length ? "bad" : "") : ""}
         ${F.found ? stat(F.open, L("отворени в Lost & Found", "open in Lost & Found"), F.old ? `<span class="delta down">${F.old} ${L("над 30 дни", "over 30 days")}</span>` : "") : ""}
-      </div>
+      </div>` : ""}
       <section class="card"><div class="card-head"><h3>${ic("star")}${L("Препоръки — върху какво да се съсредоточите", "Recommendations — what to focus on")}</h3><span class="count">${recs.length}</span></div>
         <ul class="recs">${recs.map((r, i) => `<li class="rec ${r.sev}"><span class="rec-ic">${ic(r.icon)}</span><div class="rec-body"><span class="rec-sev">${sevLabel[r.sev]}</span><div>${esc(r.text)}</div></div>
           ${r.act ? `<button class="btn" data-act="ov-assign" data-i="${i}">${ic("plus")}${L("Възложи като задача", "Assign as task")}</button>` : r.go ? `<button class="btn" data-act="ov-go" data-f="${esc(r.go)}">${L("Виж задачите", "View tasks")}</button>` : ""}</li>`).join("")}</ul></section>
-      <div class="ov-grid">
-        <section class="card"><div class="card-head"><h3>${ic("cal")}${L("Съблекални — график", "Changing rooms — schedule")}</h3></div><div class="card-body">
+      <section class="card"><div class="card-head"><h3>${ic("cal")}${L("Съблекални — график", "Changing rooms — schedule")}</h3></div><div class="card-body">
           ${!R.found ? `<div class="t-sub">${L("Листът „Почистване съблекални“ липсва.", "The „Почистване съблекални“ sheet is missing.")}</div>` : `
           <table class="tlist static mini"><thead><tr><th>${L("Дата", "Date")}</th><th>${L("Мъжка", "Men's")}</th><th>${L("Женска", "Women's")}</th></tr></thead><tbody>
             ${(R.upcoming || []).map((r) => `<tr${r.days === 0 ? ' class="today"' : ""}><td><b>${esc(r.date)}</b><div class="t-sub">${r.days === 0 ? L("днес", "today") : r.days === 1 ? L("утре", "tomorrow") : L("след ", "in ") + dd(r.days)}</div></td>
               <td><span class="mlbl">${L("Мъжка", "Men's")}: </span>${r.male ? `<span class="ok-mark">✓ ${esc(r.male)}</span>` : `<span class="t-sub">${L("не е отчетена", "not reported")}</span>`}</td><td><span class="mlbl">${L("Женска", "Women's")}: </span>${r.female ? `<span class="ok-mark">✓ ${esc(r.female)}</span>` : `<span class="t-sub">${L("не е отчетена", "not reported")}</span>`}</td></tr>`).join("") || `<tr><td colspan="3" class="t-sub">${L("Няма бъдещи дати в графика.", "No future dates in the schedule.")}</td></tr>`}
           </tbody></table>
           ${R.missed && R.missed.length ? `<h4 class="ov-h4 bad-text">${L("Пропуснати", "Missed")} (${R.missed.length})</h4><div class="chips">${R.missed.map((m) => `<span class="chip late">${esc(shortD(m.date))} · ${esc([!m.male && L("мъжка", "men's"), !m.female && L("женска", "women's")].filter(Boolean).join(" + "))}</span>`).join("")}</div>` : ""}`}
-        </div></section>
-        <section class="card"><div class="card-head"><h3>${ic("trend")}${L("Проверки по дни", "Inspections by day")}</h3></div><div class="card-body">
-          <div class="bars" role="img" aria-label="${L(`${I.n} проверки за ${o.days} дни, ${I.p} с проблем`, `${I.n} inspections in ${o.days} days, ${I.p} with problems`)}">
-            ${(I.daily || []).map((d) => `<div class="bar" title="${esc(d.date)}: ${d.n} ${L("проверки", "inspections")}, ${d.p} ${L("с проблем", "with problems")}"><div class="bar-in" style="height:${Math.round(d.n / max * 100)}%"><div class="bar-bad" style="height:${d.n ? Math.round(d.p / d.n * 100) : 0}%"></div></div></div>`).join("")}
-          </div>
-          <div class="bars-x"><span>${esc(shortD((I.daily || [])[0] && I.daily[0].date))}</span><span>${esc(shortD((I.daily || []).length && I.daily[I.daily.length - 1].date))}</span></div>
-          <div class="legend"><span><i class="lg-ok"></i>${L("чисто", "clean")}</span><span><i class="lg-bad"></i>${L("с проблем", "with problems")}</span></div>
-        </div></section>
-      </div>
+      </div></section>
       <section class="card"><div class="card-head"><h3>${ic("pin")}${L("Зони — къде има най-много проблеми", "Areas — where most problems are")}</h3></div><div class="card-body">
         ${(I.locations || []).length ? `<table class="tlist static"><thead><tr><th>${L("Зона", "Area")}</th><th>${L("Проверки", "Inspections")}</th><th>${L("С проблем", "With problems")}</th><th>${L("Последна проверка", "Last inspection")}</th><th>${L("Най-чести проблеми", "Most frequent problems")}</th></tr></thead><tbody>
           ${I.locations.map((l) => `<tr${l.n >= 3 && l.p / l.n >= .5 ? ' class="late"' : ""}><td><b>${esc(l.name)}</b></td><td><span class="mlbl">${L("Проверки", "Inspections")}: </span>${l.n}</td>
@@ -973,7 +1194,7 @@
     if (!S.session) {
       /* Събуждаме Apps Script, докато човек пише паролата — входът е по-бърз. */
       if (!S.warmed) { S.warmed = true; fetch(SHEETS_WEB_APP_URL + "?action=ping&_token=" + encodeURIComponent(SHEETS_SECRET_TOKEN), { redirect: "follow" }).catch(() => {}); }
-      app.innerHTML = loginHtml(); bind(); return;
+      app.className = "wrap"; app.innerHTML = loginHtml(); bind(); return;
     }
     let body = S.tab === "new" ? newHtml() : S.tab === "staff" ? staffHtml() : S.tab === "history" ? historyHtml() : S.tab === "profile" ? profileHtml() : S.tab === "overview" ? overviewHtml() : S.tab === "logs" && isOwner() ? logsHtml() : S.tab === "logs" ? overviewHtml() : tasksHtml();
     /* Плавното появяване — само при смяна на изгледа, не при всяко
@@ -981,7 +1202,8 @@
     const view = [S.tab, S.open || "", S.histName || "", S.dossier || "", S.dsEdit ? "e" : ""].join("|");
     if (view === S.view) body = body.replace(/ fade"/g, '"').replace(/class="tlist"/g, 'class="tlist still"');
     S.view = view;
-    app.innerHTML = topHtml() + tabsHtml() + body;
+    app.className = "wrap authed";
+    app.innerHTML = shellHtml(body);
     bind();
   }
   function flash(kind, text) { S.msg = { kind, text }; render(); if (kind === "ok") setTimeout(() => { if (S.msg && S.msg.text === text) { S.msg = null; render(); } }, 3500); }
