@@ -239,6 +239,8 @@
   .btn-danger-solid { background: var(--red-strong); border-color: var(--red-strong); color: #fff; }
   .btn-danger-solid:hover { background: var(--red-strong); filter: brightness(1.08); }
   .spin { flex: none; }
+  .av-wrap { position: relative; display: block; border-radius: 50%; }
+  .av-busy { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center; background: rgba(0,0,0,.45); }
   .btn-danger-solid, .confirm-row .btn { white-space: nowrap; }
   .spin.light { border-color: rgba(255,255,255,.35); border-top-color: #fff; }
   .lg-badge { display: inline-flex; padding: 3px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 700; white-space: nowrap; background: var(--panel-3); color: var(--text); }
@@ -346,7 +348,7 @@
     "Логове — действия на администраторите": "Logs — administrator actions", "Търси в логовете…": "Search logs…", "Всички администратори": "All administrators",
     "Администратор": "Administrator", "Кога": "When", "Действие": "Action", "Какво": "What", "Подробности": "Details", "Още няма записи.": "No entries yet.", "система": "system",
     "Всяко действие в тази страница се записва в листа „Админ лог“. ПИН-ове и пароли не се записват.": "Every action on this page is recorded in the „Админ лог“ sheet. PINs and passwords are never recorded.",
-    "Премахва се…": "Removing…", "Снимка": "Photo", "Качи снимка": "Upload photo", "Махни снимката": "Remove photo", "Снимката е записана.": "Photo saved.",
+    "Премахва се…": "Removing…", "Записва се…": "Saving…", "Снимка": "Photo", "Качи снимка": "Upload photo", "Махни снимката": "Remove photo", "Снимката е записана.": "Photo saved.",
     "Файлът не е снимка.": "The file is not an image.", "Снимката е твърде голяма.": "The photo is too large.", "Име, което виждат служителите": "Name shown to employees",
     "Снимката и името се виждат от служителите до „Възложил“ в задачите.": "Employees see this photo and name next to “Assigned by” in their tasks.",
     "Премахни": "Remove", "Да, премахни": "Yes, remove", "Отказ": "Cancel", "Премахнати служители": "Removed employees", "Върни": "Restore", "Служителят е добавен.": "Employee added.",
@@ -386,15 +388,27 @@
     S.msg = msg ? { kind: "err", text: msg } : null;
     render();
   }
+  /* Целият списък — само при вход и при „Обнови". След отделните действия
+     сървърът връща променения запис и той се сменя на място (без чакане). */
   async function load() {
-    S.busy = true; render();
+    if (S.listBusy) return;
+    S.listBusy = true; render();
     try {
+      const photos = S.photos ? null : loadPhotos();   // снимките — успоредно, не след списъка
       const j = await call("tasksAdminList");
       if (!j.success) throw new Error(j.error);
       S.tasks = j.tasks || []; S.staff = j.staff || []; S.removed = j.removed || [];
-      if (j.photoVer && (!S.photos || S.photos.ver !== j.photoVer)) await loadPhotos();
+      await photos;
+      if (j.photoVer && S.photos && S.photos.ver !== j.photoVer) loadPhotos().then(render);
     } catch (e) { if (!e.handled) S.msg = { kind: "err", text: e.message || String(e) }; }
-    S.busy = false; render();
+    finally { S.listBusy = false; }
+    render();
+  }
+  function putTask(task) {
+    if (!task || !task.id) return false;
+    const i = S.tasks.findIndex((x) => x.id === task.id);
+    if (i >= 0) S.tasks[i] = task; else S.tasks.unshift(task);
+    return true;
   }
   async function loadPhotos() {
     try { const p = await call("tasksPhotos"); if (p && p.success) S.photos = { ver: p.ver, staff: p.staff || {}, admins: p.admins || {} }; } catch (_) {}
@@ -433,6 +447,7 @@
   const initials = (n) => String(n || "?").trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   const staffOf = (name) => S.staff.find((s) => s.name === name) || { name };
   const imgOk = (u) => /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(u || "");
+  const avatarSaving = (who, html) => S.saving && S.saving[who] ? `<span class="av-wrap">${html}<span class="av-busy" title="${t("Записва се…")}"><span class="spin light"></span></span></span>` : html;
   const avatar = (name, photo, cls) => imgOk(photo) ? `<img class="avatar ${cls || ""}" src="${photo}" alt="" aria-hidden="true">` : `<span class="avatar ${cls || ""}" aria-hidden="true">${esc(initials(name))}</span>`;
   const staffPhoto = (name) => (S.photos && S.photos.staff[name]) || "";
   const adminOf = (u) => (S.photos && S.photos.admins[String(u || "").toLowerCase()]) || {};
@@ -464,10 +479,10 @@
     return `<div class="top">
       <div class="brand"><img src="favicon.svg" alt=""><span>CINE GRAND<small>${t("Административна страница")}</small></span></div>
       <div class="top-right">
-        <button class="btn" data-act="reload"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ic("refresh")}${t("Обнови")}</button>
+        <button class="btn" data-act="reload"${S.listBusy ? " disabled" : ""}>${S.listBusy ? `<span class="spin"></span>` : ic("refresh")}${t("Обнови")}</button>
         <button class="btn btn-ghost" data-act="logout">${ic("out")}${t("Изход")}</button>
         <div class="me-wrap">
-          <button class="me-btn" data-act="menu" aria-haspopup="dialog" aria-expanded="${!!S.menu}" title="${esc(myName)} · ${t("Профил")}">${avatar(myName, me.photo, "md")}</button>
+          <button class="me-btn" data-act="menu" aria-haspopup="dialog" aria-expanded="${!!S.menu}" title="${esc(myName)} · ${t("Профил")}">${avatarSaving("__me", avatar(myName, me.photo, "md"))}</button>
           ${S.menu ? menuHtml(me, myName) : ""}
         </div></div></div>`;
   }
@@ -476,11 +491,11 @@
     const pf = S.prof || (S.prof = { name: me.name || "" });
     const anim = S.menuAnim; S.menuAnim = false;   // плавно — само при отваряне, не при всяко прерисуване
     return `<div class="pmenu${anim ? " pop" : ""}" role="dialog" aria-label="${t("Профил")}">
-      <div class="pm-head"><label class="photo-pick big" title="${t("Качи снимка")}">${avatar(myName, me.photo, "lg2")}<input type="file" accept="image/*" class="sr" data-photo-for="__me" aria-label="${t("Качи снимка")}"><span class="photo-badge" aria-hidden="true">${ic("camera")}</span></label>
+      <div class="pm-head"><label class="photo-pick big" title="${t("Качи снимка")}">${avatarSaving("__me", avatar(myName, me.photo, "lg2"))}<input type="file" accept="image/*" class="sr" data-photo-for="__me" aria-label="${t("Качи снимка")}"><span class="photo-badge" aria-hidden="true">${ic("camera")}</span></label>
         <div style="min-width:0"><b>${esc(myName)}</b><div class="t-sub">${esc(S.session.user)} · ${t("администратор")}</div></div></div>
       <div class="field"><label for="pm-name">${t("Име, което виждат служителите")}</label><input type="text" id="pm-name" maxlength="60" value="${esc(pf.name)}" placeholder="${esc(S.session.user)}"></div>
       <div class="pm-actions">
-        <button class="btn btn-primary" data-act="save-profile"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ic("check")}${t("Запази")}</button>
+        <button class="btn btn-primary" data-act="save-profile"${S.meBusy ? " disabled" : ""}>${S.meBusy ? `<span class="spin light"></span>` : ic("check")}${S.meBusy ? t("Записва се…") : t("Запази")}</button>
         <label class="btn">${ic("camera")}${t("Качи снимка")}<input type="file" accept="image/*" class="sr" data-photo-for="__me"></label>
         ${me.photo ? `<button class="btn btn-ghost btn-danger" data-act="nophoto" data-name="__me">${t("Махни снимката")}</button>` : ""}
       </div>
@@ -514,7 +529,7 @@
           <td>${esc(x.assignee)}</td><td>${adminPerson(x.createdBy)}</td>
           <td>${x.overdue ? lateBadge(x.overdue) : badge(x.status)}${x.score ? ` <span class="tag">${esc(x.score)}/10</span>` : ""}</td>
           <td class="right"${x.overdue ? ' style="color:var(--red);font-weight:800"' : ""}>${esc(x.due || "—")}</td></tr>`).join("")}</tbody></table>`
-        : `<div class="empty">${S.busy ? `<span class="spin"></span> ${t("Зарежда…")}` : t("Няма задачи.")}</div>`}
+        : `<div class="empty">${S.listBusy ? `<span class="spin"></span> ${t("Зарежда…")}` : t("Няма задачи.")}</div>`}
     </div></div>`;
   }
   function detailHtml(x) {
@@ -555,7 +570,7 @@
         <div class="section"><h3>${ic("text")}${t("Коментари")} <span class="count">${notes.length}</span></h3>
           ${notes.length ? `<ul class="notes">${notes.map((n) => `<li><small>${esc([n.at, n.by].filter(Boolean).join(" · "))}</small>${esc(n.text)}</li>`).join("")}</ul>` : `<div class="t-sub" style="margin-top:10px">${t("Още няма коментари.")}</div>`}
           <div class="field" style="margin-top:14px"><label for="nt-text">${t("Нов коментар")}</label><textarea id="nt-text" maxlength="1000" style="min-height:70px">${esc(S.noteText || "")}</textarea></div>
-          <div class="row-actions"><button class="btn" data-act="add-note"${S.busy ? " disabled" : ""}>${ic("plus")}${t("Добави коментар")}</button><span class="t-sub">${t("Служителят вижда коментарите и оценката с ПИН-а си.")}</span></div>
+          <div class="row-actions"><button class="btn" data-act="add-note"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ic("plus")}${t("Добави коментар")}</button><span class="t-sub">${t("Служителят вижда коментарите и оценката с ПИН-а си.")}</span></div>
         </div>
         <div class="section"><h3>${ic("dots")}${t("Смяна на статус")}</h3>
           <div class="chips" role="group" aria-label="${t("Статус")}" style="margin-top:14px">${["Възложена", "Изпълнена", "Отменена"].map((v) => `<button class="chip" data-st="${v}" aria-pressed="${st.to === v}">${esc(t(v))}</button>`).join("")}</div>
@@ -596,13 +611,13 @@
           <div class="field"><label for="ns-rank">${t("Ранг")}</label><input type="text" id="ns-rank" maxlength="60" value="${esc(nf.rank)}"></div>
           <div class="field"><label for="ns-pos">${t("Позиция")}</label><input type="text" id="ns-pos" maxlength="80" value="${esc(nf.position)}"></div>
           <div class="field"><label for="ns-pin">${t("ПИН (4–8 цифри)")}</label><input type="password" id="ns-pin" inputmode="numeric" maxlength="8" autocomplete="new-password" value="${esc(nf.pin)}"></div>
-          <div><button class="btn btn-primary" type="submit"${S.busy ? " disabled" : ""}>${t("Добави служителя")}</button></div>
+          <div><button class="btn btn-primary" type="submit"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin light"></span>${t("Записва се…")}` : t("Добави служителя")}</button></div>
         </div>
         <div class="t-sub">${t("Списъкът тук е и списъкът с имена за проверките в приложението.")}</div>
       </form>
       <div class="toolbar" style="margin-top:18px"><button class="btn" data-act="seed">${ic("plus")}${t("Добави имената от списъка за проверки")}</button></div>
       ${S.staff.length ? S.staff.map((s, i) => `<form class="staff-row" data-staff="${i}">
-          <div class="staff-name"><label class="photo-pick" title="${t("Снимка")}">${avatar(s.name, staffPhoto(s.name), "lg")}<input type="file" accept="image/*" class="sr" data-photo-for="${esc(s.name)}" aria-label="${t("Снимка")}: ${esc(s.name)}"><span class="photo-badge" aria-hidden="true">${ic("camera")}</span></label><span>${esc(s.name)}<br><span class="t-sub">${s.hasPin ? t("има ПИН") : t("без ПИН")}</span></span></div>
+          <div class="staff-name"><label class="photo-pick" title="${t("Снимка")}">${avatarSaving(s.name, avatar(s.name, staffPhoto(s.name), "lg"))}<input type="file" accept="image/*" class="sr" data-photo-for="${esc(s.name)}" aria-label="${t("Снимка")}: ${esc(s.name)}"><span class="photo-badge" aria-hidden="true">${ic("camera")}</span></label><span>${esc(s.name)}<br><span class="t-sub">${s.hasPin ? t("има ПИН") : t("без ПИН")}</span></span></div>
           <div class="field"><label for="sr-${i}">${t("Ранг")}</label><input type="text" id="sr-${i}" name="rank" maxlength="60" value="${esc(s.rank)}"></div>
           <div class="field"><label for="sp-${i}">${t("Позиция")}</label><input type="text" id="sp-${i}" name="position" maxlength="80" value="${esc(s.position)}"></div>
           <div class="field"><label for="sn-${i}">${t("ПИН (4–8 цифри)")}</label><input type="password" id="sn-${i}" name="pin" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" autocomplete="new-password" placeholder="${s.hasPin ? "••••" : ""}"></div>
@@ -821,7 +836,11 @@
       </div></div>`;
   }
   function render() {
-    if (!S.session) { app.innerHTML = loginHtml(); bind(); return; }
+    if (!S.session) {
+      /* Събуждаме Apps Script, докато човек пише паролата — входът е по-бърз. */
+      if (!S.warmed) { S.warmed = true; fetch(SHEETS_WEB_APP_URL + "?action=ping&_token=" + encodeURIComponent(SHEETS_SECRET_TOKEN), { redirect: "follow" }).catch(() => {}); }
+      app.innerHTML = loginHtml(); bind(); return;
+    }
     let body = S.tab === "new" ? newHtml() : S.tab === "staff" ? staffHtml() : S.tab === "history" ? historyHtml() : S.tab === "profile" ? profileHtml() : S.tab === "overview" ? overviewHtml() : S.tab === "logs" ? logsHtml() : tasksHtml();
     /* Плавното появяване — само при смяна на изгледа, не при всяко
        прерисуване (съобщение, зареждане), иначе съдържанието мига. */
@@ -847,7 +866,7 @@
           if (!j.success) throw new Error(j.error);
           S.session = { user: j.user, token: j.token, exp: Date.now() + (j.hours || 12) * 3600e3 - 60e3 };
           try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(S.session)); } catch (_) {}
-          S.busy = false; S.msg = null; loadOverview(); await load(); return;
+          S.busy = false; S.msg = null; loadOverview(); load(); return;
         } catch (err) { S.msg = { kind: "err", text: err.message || String(err) }; }
         S.busy = false; render();
       };
@@ -867,7 +886,7 @@
           f.id = f.id || newId();
           const j = await call("tasksCreate", { id: f.id, task: { title: f.title, description: f.description, category: f.category, priority: f.priority, assignee: f.assignee, due: isoToBg(f.due) } });
           if (!j.success) throw new Error(j.error);
-          S.form = null; S.busy = false; S.tab = "tasks"; S.filter = ""; await load(); flash("ok", t("Задачата е възложена."));
+          S.form = null; S.busy = false; S.tab = "tasks"; S.filter = ""; if (!putTask(j.task)) await load(); flash("ok", t("Задачата е възложена."));
           return;
         } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
         S.busy = false; render();
@@ -887,7 +906,10 @@
         try {
           const j = await call("tasksStaffAdd", { name, rank: nf.rank, position: nf.position, pin: nf.pin });
           if (!j.success) throw new Error(j.error);
-          S.nstaff = null; S.busy = false; await load(); flash("ok", t("Служителят е добавен."));
+          S.nstaff = null; S.busy = false;
+          S.removed = (S.removed || []).filter((y) => y.name !== j.name);
+          if (!S.staff.some((y) => y.name === j.name)) S.staff = S.staff.concat([{ name: j.name, rank: nf.rank.trim(), position: nf.position.trim(), hasPin: !!nf.pin }]);
+          S.logs = null; flash("ok", t("Служителят е добавен."));
           return;
         } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
         S.busy = false; render();
@@ -899,10 +921,12 @@
         const s = S.staff[+fm.dataset.staff]; const pin = fm.pin.value.trim();
         if (pin && !/^\d{4,8}$/.test(pin)) { flash("err", lang === "en" ? "The PIN is 4–8 digits." : "ПИН-ът е от 4 до 8 цифри."); return; }
         try {
+          const btn = fm.querySelector('button[type="submit"]'); btn.disabled = true; btn.innerHTML = `<span class="spin light"></span>${t("Записва се…")}`;
           const j = await call("tasksStaffSave", Object.assign({ name: s.name, rank: fm.rank.value, position: fm.position.value }, pin ? { pin } : {}));
           if (!j.success) throw new Error(j.error);
-          await load(); flash("ok", t("Записано."));
-        } catch (err) { if (!err.handled) flash("err", err.message); }
+          Object.assign(s, { rank: fm.rank.value.trim(), position: fm.position.value.trim() }, pin ? { hasPin: true } : {});
+          flash("ok", lang === "en" ? `✓ ${s.name} saved.` : `✓ ${s.name} — записано.`);
+        } catch (err) { if (!err.handled) flash("err", err.message); else render(); }
       };
     });
     const q = document.getElementById("q");
@@ -923,19 +947,30 @@
     ["nt-text", "st-due", "st-note", "st-hours"].forEach((id) => { const n = document.getElementById(id); if (n) n.oninput = n.onchange = syncDetail; });
   }
   /* Нова снимка: "__me" = собственият профил, иначе — служител. */
-  async function setPhoto(who, file) {
-    if (S.busy) return;
-    let photo;
-    try { photo = await shrinkPhoto(file); } catch (err) { flash("err", err.message); return; }
-    S.busy = true; render();
+  /* Снимките се сменят веднага на екрана (оптимистично); записът върви
+     във фона. Ако сървърът откаже — връщаме старата и казваме защо. */
+  function photoSet(who, photo) {
+    const P = S.photos || (S.photos = { ver: "", staff: {}, admins: {} });
+    if (who === "__me") { const k = S.session.user.toLowerCase(), a = P.admins[k] || { name: "" }; const old = a.photo || ""; P.admins[k] = Object.assign({}, a, { photo }); return old; }
+    const old = P.staff[who] || ""; if (photo) P.staff[who] = photo; else delete P.staff[who]; return old;
+  }
+  function meMsg(kind, text) { if (S.menu) { S.menuMsg = { kind, text }; render(); } else flash(kind, text); }
+  async function savePhoto(who, photo) {
+    S.saving = Object.assign({}, S.saving, { [who]: true });
+    const old = photoSet(who, photo); render();
     try {
       const j = who === "__me" ? await call("tasksProfileSave", { photo }) : await call("tasksStaffPhoto", { name: who, photo });
       if (!j.success) throw new Error(j.error);
-      S.busy = false; await loadPhotos();
-      if (who === "__me" && S.menu) { S.menuMsg = { kind: "ok", text: t("Снимката е записана.") }; render(); } else flash("ok", t("Снимката е записана."));
-      return;
-    } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
-    S.busy = false; render();
+      if (j.ver && S.photos) S.photos.ver = j.ver;
+      delete S.saving[who];
+      meMsg("ok", photo ? t("Снимката е записана.") : t("Записано."));
+    } catch (err) { photoSet(who, old); delete S.saving[who]; if (!err.handled) meMsg("err", err.message); else render(); }
+  }
+  async function setPhoto(who, file) {
+    if (S.saving && S.saving[who]) return;
+    let photo;
+    try { photo = await shrinkPhoto(file); } catch (err) { meMsg("err", err.message); return; }
+    savePhoto(who, photo);
   }
   /* Полетата в детайла пазят стойностите си при прерисуване. */
   function syncDetail() {
@@ -976,7 +1011,7 @@
       try {
         const j = await call("tasksRate", { id: S.open, score, comment });
         if (!j.success) throw new Error(j.error);
-        S.editRate = false; S.score = 0; S.comment = null; S.busy = false; await load(); flash("ok", t("Оценката е записана."));
+        S.editRate = false; S.score = 0; S.comment = null; S.busy = false; if (!putTask(j.task)) await load(); flash("ok", t("Оценката е записана."));
         return;
       } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
       S.busy = false; render(); return;
@@ -989,7 +1024,7 @@
       try {
         const j = await call("tasksNote", { id: S.open, text });
         if (!j.success) throw new Error(j.error);
-        S.noteText = ""; S.busy = false; await load(); flash("ok", t("Коментарът е добавен."));
+        S.noteText = ""; S.busy = false; if (!putTask(j.task)) await load(); flash("ok", t("Коментарът е добавен."));
         return;
       } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
       S.busy = false; render(); return;
@@ -1006,7 +1041,7 @@
       try {
         const j = await call("tasksSetStatus", body);
         if (!j.success) throw new Error(j.error);
-        S.st = null; S.busy = false; await load(); flash("ok", st.to === x.status ? t("Срокът е сменен.") : t("Статусът е сменен."));
+        S.st = null; S.busy = false; if (!putTask(j.task)) await load(); flash("ok", st.to === x.status ? t("Срокът е сменен.") : t("Статусът е сменен."));
         return;
       } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
       S.busy = false; render(); return;
@@ -1031,40 +1066,48 @@
           render(); return;
         }
         if (!j.success) throw new Error(j.error);
-        S.rmConfirm = ""; S.rmBusy = ""; S.logs = null; await load();
+        const gone = S.staff.find((y) => y.name === name);
+        S.staff = S.staff.filter((y) => y.name !== name);
+        if (gone) S.removed = (S.removed || []).concat([{ name: gone.name, rank: gone.rank, position: gone.position, hasPin: gone.hasPin }]);
+        S.rmConfirm = ""; S.rmBusy = ""; S.logs = null;
         flash("ok", lang === "en" ? `✓ ${name} was removed.` : `✓ ${name} е премахнат(а).`); window.scrollTo(0, 0);
       } catch (err) { S.rmConfirm = ""; S.rmBusy = ""; if (!err.handled) flash("err", err.message); }
       return;
     }
     if (act === "restore-staff") {
-      try { const j = await call("tasksStaffAdd", { name: el.dataset.name }); if (!j.success) throw new Error(j.error); await load(); flash("ok", t("Служителят е върнат.")); }
+      const name = el.dataset.name; el.disabled = true; el.innerHTML = `<span class="spin"></span>${esc(name)}`;
+      try {
+        const j = await call("tasksStaffAdd", { name }); if (!j.success) throw new Error(j.error);
+        const r = (S.removed || []).find((y) => y.name === name) || { name };
+        S.removed = (S.removed || []).filter((y) => y.name !== name);
+        S.staff = S.staff.concat([{ name: r.name, rank: r.rank || "", position: r.position || "", hasPin: !!r.hasPin }]);
+        S.logs = null; flash("ok", t("Служителят е върнат."));
+      }
       catch (err) { if (!err.handled) flash("err", err.message); }
       return;
     }
     if (act === "save-profile") {
-      S.busy = true; S.menuMsg = null; render();
+      if (S.meBusy) return;
+      const name = ((S.prof && S.prof.name) || "").trim();
+      const P = S.photos || (S.photos = { ver: "", staff: {}, admins: {} }), k = S.session.user.toLowerCase();
+      const old = Object.assign({}, P.admins[k]);
+      P.admins[k] = Object.assign({}, P.admins[k], { name });   // името се сменя веднага горе
+      S.meBusy = true; S.menuMsg = null; render();
       try {
-        const j = await call("tasksProfileSave", { name: (S.prof && S.prof.name) || "" });
+        const j = await call("tasksProfileSave", { name });
         if (!j.success) throw new Error(j.error);
-        S.busy = false; await loadPhotos(); S.prof = null;
-        if (S.menu) { S.menuMsg = { kind: "ok", text: t("Записано.") }; render(); } else flash("ok", t("Записано."));
-      } catch (err) { S.busy = false; if (!err.handled) { if (S.menu) { S.menuMsg = { kind: "err", text: err.message }; render(); } else flash("err", err.message); } }
+        if (j.ver) P.ver = j.ver;
+        S.meBusy = false; S.prof = null; meMsg("ok", t("Записано."));
+      } catch (err) { P.admins[k] = old; S.meBusy = false; if (!err.handled) meMsg("err", err.message); else render(); }
       return;
     }
     if (act === "menu") { S.menu = !S.menu; S.menuAnim = S.menu; S.menuMsg = null; S.prof = null; render(); if (S.menu) { const n = document.getElementById("pm-name"); if (n) n.focus(); } return; }
     if (act === "logs-reload") { loadLogs(); return; }
-    if (act === "nophoto") {
-      const who = el.dataset.name;
-      try {
-        const j = who === "__me" ? await call("tasksProfileSave", { photo: "" }) : await call("tasksStaffPhoto", { name: who, photo: "" });
-        if (!j.success) throw new Error(j.error);
-        await loadPhotos(); flash("ok", t("Записано."));
-      } catch (err) { if (!err.handled) flash("err", err.message); }
-      return;
-    }
+    if (act === "nophoto") { if (!(S.saving && S.saving[el.dataset.name])) savePhoto(el.dataset.name, ""); return; }
     if (act === "nopin") {
       const s = S.staff.find((y) => y.name === el.dataset.name);
-      try { const j = await call("tasksStaffSave", { name: s.name, rank: s.rank, position: s.position, pin: "" }); if (!j.success) throw new Error(j.error); await load(); flash("ok", t("Записано.")); }
+      el.disabled = true;
+      try { const j = await call("tasksStaffSave", { name: s.name, rank: s.rank, position: s.position, pin: "" }); if (!j.success) throw new Error(j.error); s.hasPin = false; S.logs = null; flash("ok", t("Записано.")); }
       catch (err) { if (!err.handled) flash("err", err.message); }
     }
   });
