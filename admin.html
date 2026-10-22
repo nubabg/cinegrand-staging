@@ -327,7 +327,7 @@
   .side-out { margin-top: auto; width: 52px; height: 52px; border-radius: 16px; border: 1px solid var(--border); background: var(--panel-2); color: var(--text); display: grid; place-items: center; cursor: pointer; flex: none; }
   .side-out:hover { background: var(--panel-3); }
   .side-out:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .main { min-width: 0; width: 100%; max-width: 1440px; padding: 24px clamp(16px, 2.6vw, 34px) 56px; }
+  .main { min-width: 0; width: 100%; max-width: 1260px; margin: 0 auto; padding: 24px clamp(16px, 2.6vw, 34px) 56px; }
 
   .top { flex-wrap: nowrap; margin-bottom: 26px; }
   .top-l { display: flex; align-items: center; gap: 12px; min-width: 0; }
@@ -427,6 +427,30 @@
   .donut-legend b { margin-left: auto; padding-left: 12px; }
   .ov-sec .stat { background: var(--panel); }
   .ov .card-head h3 { font-size: 16px; }
+  /* Обзор — по-сбито: по-малки плочки и отстъпи, за да се вижда повече наведнъж */
+  .ov { gap: 14px; }
+  .ov .card-head { padding: 14px 18px; }
+  .ov .card-body { padding: 16px 18px; }
+  .ov .tlist td { padding: 9px 12px; }
+  .ov .tlist th { padding: 9px 12px; }
+  .ov-hero, .ov-lower, .ov-grid, .kpis { gap: 14px; }
+  .kpi { min-height: 112px; padding: 15px 16px; gap: 6px; border-radius: 18px; }
+  .kpi-val { font-size: clamp(24px, 2.2vw, 30px); }
+  .chart-card { padding: 16px 18px 12px; }
+  .chart-card .bars { min-height: 150px; }
+  .quick { min-height: 124px; padding: 16px; gap: 10px; border-radius: 18px; }
+  .quick-ic { width: 38px; height: 38px; }
+  .quick-go { top: 14px; right: 14px; width: 32px; height: 32px; }
+  .quick-num { font-size: clamp(30px, 3vw, 40px); }
+  .quick-num small { font-size: 15px; }
+  .quick-sub { margin-top: 4px; font-size: 12.5px; }
+  .donut-card { padding: 16px 18px; }
+  .donut-card h3 { margin-bottom: 10px; }
+  .donut { width: 116px; height: 116px; }
+  .ov-stats .stat { padding: 12px 16px; }
+  .ov-stats .stat b { font-size: 22px; }
+  .recs .rec { padding-top: 10px; padding-bottom: 10px; }
+  .ov-more { display: flex; justify-content: center; padding: 4px 12px 12px; }
 
   /* Задачи: цветни броячи + лента с търсене + таблица */
   .tasks-page { display: grid; gap: 16px; }
@@ -613,11 +637,17 @@
   }
   function logout(msg) {
     S.session = null; S.tasks = []; S.open = null;
-    try { sessionStorage.removeItem(SESSION_KEY); localStorage.removeItem(OV_KEY); } catch (_) {}
+    try { sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(LIST_KEY); localStorage.removeItem(OV_KEY); } catch (_) {}
     S.ov = null;
     S.msg = msg ? { kind: "err", text: msg } : null;
     render();
   }
+  /* Последният списък и снимките се пазят в браузъра и се показват веднага;
+     свежите идват отзад. Списъкът е в sessionStorage (изчезва със затварянето
+     на браузъра), снимките — в localStorage (сменят се само с нова версия). */
+  const LIST_KEY = "cg_admin_list", PHOTOS_KEY = "cg_admin_photos";
+  try { const l = JSON.parse(sessionStorage.getItem(LIST_KEY) || "null"); if (S.session && l) { S.tasks = l.tasks || []; S.staff = l.staff || []; S.removed = l.removed || []; } } catch (_) {}
+  try { const p = JSON.parse(localStorage.getItem(PHOTOS_KEY) || "null"); if (p && p.ver) S.photos = p; } catch (_) {}
   /* Целият списък — само при вход и при „Обнови". След отделните действия
      сървърът връща променения запис и той се сменя на място (без чакане). */
   async function load() {
@@ -628,6 +658,7 @@
       const j = await call("tasksAdminList");
       if (!j.success) throw new Error(j.error);
       S.tasks = j.tasks || []; S.staff = j.staff || []; S.removed = j.removed || [];
+      try { sessionStorage.setItem(LIST_KEY, JSON.stringify({ tasks: S.tasks, staff: S.staff, removed: S.removed })); } catch (_) {}
       if (S.session && "owner" in j) { S.session.owner = !!j.owner; S.session.ownerStaff = j.ownerStaff || ""; try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(S.session)); } catch (_) {} }
       await photos;
       if (j.photoVer && S.photos && S.photos.ver !== j.photoVer) loadPhotos().then(render);
@@ -642,7 +673,10 @@
     return true;
   }
   async function loadPhotos() {
-    try { const p = await call("tasksPhotos"); if (p && p.success) S.photos = { ver: p.ver, staff: p.staff || {}, admins: p.admins || {} }; } catch (_) {}
+    try {
+      const p = await call("tasksPhotos");
+      if (p && p.success) { S.photos = { ver: p.ver, staff: p.staff || {}, admins: p.admins || {} }; try { localStorage.setItem(PHOTOS_KEY, JSON.stringify(S.photos)); } catch (_) {} }
+    } catch (_) {}
   }
   /* Снимка от телефона/компютъра → квадрат до 160×160 JPEG (≈10 KB). */
   async function shrinkPhoto(file) {
@@ -1014,16 +1048,22 @@
      а свежият идва отзад и го сменя. */
   const OV_KEY = "cg_admin_overview";
   try { const o = JSON.parse(localStorage.getItem(OV_KEY) || "null"); if (o && o.success) S.ov = o; } catch (_) {}
+  /* Сървърът връща готовия обзор от кеша веднага; ако е по-стар от
+     OV_STALE, свежият се смята отзад, а старият стои на екрана дотогава. */
+  const OV_STALE = 10 * 60e3;
   async function loadOverview(fresh) {
     if (S.ovBusy) return;
     S.ovBusy = true; S.ovErr = ""; if (S.tab === "overview") render();
+    let again = false;
     try {
       const j = await call("tasksOverview", fresh ? { fresh: true } : {}, { long: true });
       if (!j.success) throw new Error(j.error);
       S.ov = j;
       try { localStorage.setItem(OV_KEY, JSON.stringify(j)); } catch (_) {}
+      again = !fresh && !(j.ts > Date.now() - OV_STALE);
     } catch (err) { if (!err.handled) S.ovErr = err.message || String(err); }
-    S.ovBusy = false; if (S.tab === "overview") render();
+    S.ovBusy = false;
+    if (again) loadOverview(true); else if (S.tab === "overview") render();
   }
   /* Препоръки: sev = high (червено) / mid (жълто) / info / good (зелено).
      act = бутон „Възложи като задача" с попълнени заглавие, срок и категория. */
@@ -1090,6 +1130,7 @@
     return `<div class="donut-wrap"><svg class="donut" viewBox="0 0 100 100" role="img" aria-label="${esc(label + " — " + parts.map((p) => `${p.label} ${p.n}`).join(", "))}"><g transform="rotate(-90 50 50)">${arcs}</g><text x="50" y="57" font-size="20" text-anchor="middle">${total}</text></svg>
       <ul class="donut-legend">${parts.map((p) => `<li><i style="background:${p.color}" aria-hidden="true"></i><span>${esc(p.label)}</span><b>${p.n}</b></li>`).join("")}</ul></div>`;
   }
+  const OV_FEW = 3, OV_ZONES = 8;   // колко препоръки / зони се виждат, преди „Покажи всички"
   function overviewHtml() {
     const o = S.ov;
     if (!o) return `<div class="card fade"><div class="card-body"><div class="empty">${S.ovErr ? esc(S.ovErr) + `<div style="margin-top:12px"><button class="btn" data-act="ov-reload">${ic("refresh")}${t("Обнови")}</button></div>` : `<span class="spin"></span> ${L("Чете всички листове…", "Reading all sheets…")}`}</div></div></div>`;
@@ -1100,6 +1141,7 @@
     const stat = (big, label, extra, cls) => `<div class="stat ${cls || ""}"><b>${big}</b><span>${label}</span>${extra || ""}</div>`;
     const kpi = (big, label, extra, cls) => `<div class="kpi ${cls || ""}"><div class="kpi-label">${label}</div><div class="kpi-val">${big}</div>${extra || ""}</div>`;
     const recs = recommendations(o);
+    const more = (k, n, few) => n > few ? `<div class="ov-more"><button class="btn btn-ghost" data-act="ov-more" data-k="${k}">${S.ovAll && S.ovAll[k] ? L("Покажи по-малко", "Show less") : L(`Покажи всички (${n})`, `Show all (${n})`)}</button></div>` : "";
     const max = Math.max(1, ...(I.daily || []).map((d) => d.n));
     const sevLabel = { high: L("Спешно", "Urgent"), mid: L("Внимание", "Attention"), info: L("Информация", "Info"), good: L("Добре", "Good") };
     const daily = I.daily || [], step = Math.max(1, Math.ceil(daily.length / 7));
@@ -1134,8 +1176,8 @@
         ${F.found ? stat(F.open, L("отворени в Lost & Found", "open in Lost & Found"), F.old ? `<span class="delta down">${F.old} ${L("над 30 дни", "over 30 days")}</span>` : "") : ""}
       </div>` : ""}
       <section class="card"><div class="card-head"><h3>${ic("star")}${L("Препоръки — върху какво да се съсредоточите", "Recommendations — what to focus on")}</h3><span class="count">${recs.length}</span></div>
-        <ul class="recs">${recs.map((r, i) => `<li class="rec ${r.sev}"><span class="rec-ic">${ic(r.icon)}</span><div class="rec-body"><span class="rec-sev">${sevLabel[r.sev]}</span><div>${esc(r.text)}</div></div>
-          ${r.act ? `<button class="btn" data-act="ov-assign" data-i="${i}">${ic("plus")}${L("Възложи като задача", "Assign as task")}</button>` : r.go ? `<button class="btn" data-act="ov-go" data-f="${esc(r.go)}">${L("Виж задачите", "View tasks")}</button>` : ""}</li>`).join("")}</ul></section>
+        <ul class="recs">${recs.slice(0, S.ovAll && S.ovAll.recs ? recs.length : OV_FEW).map((r, i) => `<li class="rec ${r.sev}"><span class="rec-ic">${ic(r.icon)}</span><div class="rec-body"><span class="rec-sev">${sevLabel[r.sev]}</span><div>${esc(r.text)}</div></div>
+          ${r.act ? `<button class="btn" data-act="ov-assign" data-i="${i}">${ic("plus")}${L("Възложи като задача", "Assign as task")}</button>` : r.go ? `<button class="btn" data-act="ov-go" data-f="${esc(r.go)}">${L("Виж задачите", "View tasks")}</button>` : ""}</li>`).join("")}</ul>${more("recs", recs.length, OV_FEW)}</section>
       <section class="card"><div class="card-head"><h3>${ic("cal")}${L("Съблекални — график", "Changing rooms — schedule")}</h3></div><div class="card-body">
           ${!R.found ? `<div class="t-sub">${L("Листът „Почистване съблекални“ липсва.", "The „Почистване съблекални“ sheet is missing.")}</div>` : `
           <table class="tlist static mini"><thead><tr><th>${L("Дата", "Date")}</th><th>${L("Мъжка", "Men's")}</th><th>${L("Женска", "Women's")}</th></tr></thead><tbody>
@@ -1146,10 +1188,10 @@
       </div></section>
       <section class="card"><div class="card-head"><h3>${ic("pin")}${L("Зони — къде има най-много проблеми", "Areas — where most problems are")}</h3></div><div class="card-body">
         ${(I.locations || []).length ? `<table class="tlist static"><thead><tr><th>${L("Зона", "Area")}</th><th>${L("Проверки", "Inspections")}</th><th>${L("С проблем", "With problems")}</th><th>${L("Последна проверка", "Last inspection")}</th><th>${L("Най-чести проблеми", "Most frequent problems")}</th></tr></thead><tbody>
-          ${I.locations.map((l) => `<tr${l.n >= 3 && l.p / l.n >= .5 ? ' class="late"' : ""}><td><b>${esc(l.name)}</b></td><td><span class="mlbl">${L("Проверки", "Inspections")}: </span>${l.n}</td>
+          ${I.locations.slice(0, S.ovAll && S.ovAll.zones ? I.locations.length : OV_ZONES).map((l) => `<tr${l.n >= 3 && l.p / l.n >= .5 ? ' class="late"' : ""}><td><b>${esc(l.name)}</b></td><td><span class="mlbl">${L("Проверки", "Inspections")}: </span>${l.n}</td>
             <td><div class="meter" aria-hidden="true"><i style="width:${pct(l.p, l.n)}%"></i></div><span class="t-sub">${pct(l.p, l.n)}% (${l.p})</span></td>
             <td><span class="mlbl">${L("Последна", "Last")}: </span>${esc(l.last || "—")}${l.since != null ? `<div class="t-sub${l.since >= 3 ? " bad-text" : ""}">${l.since === 0 ? L("днес", "today") : L("преди ", "") + dd(l.since) + L("", " ago")}</div>` : ""}</td>
-            <td class="t-sub">${(l.top || []).map((x) => `${esc(x[0])} (${x[1]})`).join(", ") || "—"}</td></tr>`).join("")}</tbody></table>` : `<div class="t-sub">${L("Още няма проверки.", "No inspections yet.")}</div>`}
+            <td class="t-sub">${(l.top || []).map((x) => `${esc(x[0])} (${x[1]})`).join(", ") || "—"}</td></tr>`).join("")}</tbody></table>${more("zones", I.locations.length, OV_ZONES)}` : `<div class="t-sub">${L("Още няма проверки.", "No inspections yet.")}</div>`}
       </div></section>
       <div class="ov-grid">
         <section class="card"><div class="card-head"><h3>${ic("x")}${L("Най-чести проблеми", "Most frequent problems")}</h3></div><div class="card-body">
@@ -1340,7 +1382,7 @@
     try {
       const j = who === "__me" ? await call("tasksProfileSave", { photo }) : await call("tasksStaffPhoto", { name: who, photo });
       if (!j.success) throw new Error(j.error);
-      if (j.ver && S.photos) S.photos.ver = j.ver;
+      if (j.ver && S.photos) { S.photos.ver = j.ver; try { localStorage.setItem(PHOTOS_KEY, JSON.stringify(S.photos)); } catch (_) {} }
       delete S.saving[who];
       meMsg("ok", photo ? t("Снимката е записана.") : t("Записано."));
     } catch (err) { photoSet(who, old); delete S.saving[who]; if (!err.handled) meMsg("err", err.message); else render(); }
@@ -1372,6 +1414,7 @@
     if (act === "logout") { logout(); return; }
     if (act === "reload") { S.msg = null; load(); if (S.tab === "overview") loadOverview(true); return; }
     if (act === "ov-reload") { loadOverview(true); return; }
+    if (act === "ov-more") { S.ovAll = Object.assign({}, S.ovAll, { [el.dataset.k]: !(S.ovAll && S.ovAll[el.dataset.k]) }); render(); return; }
     if (act === "ov-go") { S.tab = "tasks"; S.filter = el.dataset.f; S.open = null; render(); window.scrollTo(0, 0); return; }
     if (act === "ov-assign") {
       const r = recommendations(S.ov)[+el.dataset.i]; if (!r || !r.act) return;
