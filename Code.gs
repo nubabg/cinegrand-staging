@@ -1814,6 +1814,7 @@ function handleTasksStaffAdd_(data) {
     if (pin) obj["ПИН"] = tkHashPin_(pin);
     tkWriteRow_(ctx, s ? s._row : ctx.sheet.getLastRow() + 1, obj);
     tkLog_(admin, s ? "Върнат служител" : "Нов служител", obj["Име"], [obj["Ранг"], obj["Позиция"]].filter(Boolean).join(", "));
+    if (s && s["Снимка"]) tkPhotoBump_();   // снимката му пак се показва
     SpreadsheetApp.flush();
     return jsonResponse_({ success: true, name: obj["Име"], restored: !!s });
   } finally { lock.releaseLock(); }
@@ -1836,6 +1837,7 @@ function handleTasksStaffRemove_(data) {
     if (open && !data.force) return jsonResponse_({ success: false, code: "HAS_OPEN", open: open, error: name + " има " + open + " отворени задачи." });
     tkWriteRow_(ctx, s._row, { "Активен": "не" });
     tkLog_(admin, "Премахнат служител", name, open ? open + " отворени задачи" : "");
+    if (s["Снимка"]) tkPhotoBump_();
     SpreadsheetApp.flush();
     return jsonResponse_({ success: true, name: name, open: open });
   } finally { lock.releaseLock(); }
@@ -1856,6 +1858,9 @@ function tkPhotoBump_() { var v = String(Date.now()); PropertiesService.getScrip
 function tkAdminRows_(ss) { return tkRows_(tkSheet_(ss, TK_ADMIN_SHEET, TK_ADMIN_HEADERS), TK_ADMIN_HEADERS); }
 /* Публично: снимки на активните служители + име и снимка на администраторите. */
 function handleTasksPhotos_(data) {
+  // Снимките се сменят рядко: пазят се в кеша, докато не се смени версията.
+  var cache = CacheService.getScriptCache(), key = "tk_photos_" + tkPhotoVer_(), hit = cache.get(key);
+  if (hit) return ContentService.createTextOutput(hit).setMimeType(ContentService.MimeType.JSON);
   var ss = tkOpen_(), staff = {}, admins = {};
   tkStaff_(ss).forEach(function (s) { if (s["Име"] && s["Активен"] !== "не" && s["Снимка"]) staff[s["Име"]] = s["Снимка"]; });
   var known = tkAdmins_();
@@ -1863,7 +1868,9 @@ function handleTasksPhotos_(data) {
     var u = String(a["Потребител"] || "").toLowerCase();
     if (u && known[u]) admins[u] = { name: a["Име"] || known[u].name, photo: a["Снимка"] || "" };
   });
-  return jsonResponse_({ success: true, ver: tkPhotoVer_(), staff: staff, admins: admins });
+  var json = JSON.stringify({ success: true, ver: tkPhotoVer_(), staff: staff, admins: admins });
+  try { if (json.length < 95000) cache.put(key, json, 3600); } catch (_) {}
+  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
 }
 function handleTasksProfile_(data) {
   var admin = tkCheckToken_(data.token);
@@ -1962,8 +1969,8 @@ function handleTasksStaffSave_(data) {
 /* ══════════════════════════════════════════════════════════════
    ОБЗОР за администратора — обобщение от всички листове: проверки (ИНФО),
    графикът за съблекалните, Lost & Found и задачите. Само чете — нищо не
-   записва. Резултатът се пази 5 минути в кеша (бутонът „Обнови" го
-   прескача), за да не се чете целият лист при всяко отваряне.
+   записва. Резултатът се пази в кеша (виж handleTasksOverview_), за да не
+   се четат листовете при всяко отваряне.
    ══════════════════════════════════════════════════════════════ */
 var TK_OVERVIEW_DAYS = 30;
 var TK_OVERVIEW_CHUNK = 1500;   // редове на едно четене от ИНФО (отдолу нагоре)
@@ -2097,23 +2104,29 @@ function tkTaskStats_(ss, today) {
   out.late = tkTop_(lateBy, 5);
   return out;
 }
-function handleTasksOverview_(data) {
-  var admin = tkCheckToken_(data.token);
-  if (!admin) return tkDeny_();
-  var cache = CacheService.getScriptCache();
-  if (!data.fresh) {
-    var hit = cache.get("tk_overview");
-    if (hit) return ContentService.createTextOutput(hit).setMimeType(ContentService.MimeType.JSON);
-  }
-  var ss = tkOpen_(), today = tkToday_(), res = { success: true, today: tkDayStr_(today), days: TK_OVERVIEW_DAYS, at: tkNow_() };
+/* Обзорът се пази в кеша до 6 часа. Обикновената заявка винаги връща
+   кеша веднага (под секунда), ако го има; admin.html сам иска свеж обзор
+   отзад, когато кешът е по-стар от 10 минути. „Обнови" (fresh) го прескача. */
+var TK_OVERVIEW_TTL = 21600;
+function tkOverviewBuild_() {
+  var ss = tkOpen_(), today = tkToday_(), res = { success: true, today: tkDayStr_(today), days: TK_OVERVIEW_DAYS, at: tkNow_(), ts: Date.now() };
   // Всеки лист поотделно: грешка в един не спира останалите.
   [["inspections", tkInspectionStats_], ["rooms", tkChangingRoomStats_], ["lostFound", tkLostFoundStats_], ["tasks", tkTaskStats_]].forEach(function (p) {
     try { res[p[0]] = p[1](ss, today); } catch (e) { res[p[0]] = { error: String(e) }; }
   });
   var json = JSON.stringify(res);
-  try { if (json.length < 90000) cache.put("tk_overview", json, 300); } catch (_) {}
-  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+  try { if (json.length < 90000) CacheService.getScriptCache().put("tk_overview", json, TK_OVERVIEW_TTL); } catch (_) {}
+  return json;
 }
+function handleTasksOverview_(data) {
+  var admin = tkCheckToken_(data.token);
+  if (!admin) return tkDeny_();
+  var hit = data.fresh ? null : CacheService.getScriptCache().get("tk_overview");
+  return ContentService.createTextOutput(hit || tkOverviewBuild_()).setMimeType(ContentService.MimeType.JSON);
+}
+/* По желание: тригер по време (Apps Script → Тригери → warmOverview, на
+   всеки 10 минути) държи обзора винаги готов в кеша. */
+function warmOverview() { tkOverviewBuild_(); }
 
 /* ══════════════════════════════════════════════════════════════
    ЛОГ НА АДМИНИСТРАТОРИТЕ — кой какво е направил и кога. Всяко действие
