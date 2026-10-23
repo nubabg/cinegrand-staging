@@ -157,6 +157,11 @@
   .scores { display: flex; gap: 6px; flex-wrap: wrap; }
   .score { width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--panel-2); font-weight: 800; cursor: pointer; color: var(--text); }
   .score[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .score.sm { width: 34px; height: 34px; border-radius: 8px; font-size: 13px; }
+  .pscores { display: grid; gap: 10px; margin-top: 10px; }
+  .pscore-row { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--border); }
+  .pscore-row:first-child { border-top: 0; }
+  .team-list { display: grid; gap: 8px; }
   .big-score { font-size: 34px; font-weight: 800; line-height: 1; }
   .big-score small { font-size: 15px; color: var(--muted); font-weight: 600; }
   .note { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; white-space: pre-wrap; }
@@ -592,6 +597,12 @@
     "Служителят е премахнат.": "Employee removed.", "Служителят е върнат.": "Employee restored.", "Името е на кирилица.": "The name must be in Cyrillic.",
     "Премахнатите не се виждат в приложението (проверки, задачи), но историята им остава.": "Removed employees disappear from the app (inspections, tasks), but their history stays.",
     "Списъкът тук е и списъкът с имена за проверките в приложението.": "This list is also the list of names for inspections in the app.", "Изпълнена със закъснение": "Completed late", "Без оценки": "No ratings", "Няма служители. Добавете ги от списъка за проверки.": "No staff yet. Add them from the inspection list.",
+    "Екип": "Team", "Приключил": "Completed by", "Обща оценка на групата": "Group rating", "Лични оценки": "Individual ratings", "Лична оценка": "Individual rating",
+    "общата": "group", "група": "group", "По желание. Който няма лична оценка, получава общата.": "Optional. Anyone without an individual rating gets the group rating.",
+    "Участници": "Participants", "Водещ": "Lead", "Изберете кой още участва.": "Choose who else takes part.", "Запази участниците": "Save participants",
+    "Само един служител. Добавете още, за да стане групова задача.": "Just one employee. Add more to make it a group task.", "Промени участниците": "Change participants",
+    "Добави участници": "Add participants", "Участниците са записани.": "Participants saved.", "Участници (по желание)": "Participants (optional)", "Групова задача": "Group task",
+    "Изберете още служители за групова задача — всеки получава лична оценка и има обща оценка на групата.": "Pick more employees for a group task — each gets an individual rating, plus one group rating.",
   };
   const t = (s) => (lang === "en" && EN[s]) || s;
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -723,6 +734,12 @@
   const adminPerson = (u) => u ? `<div class="person">${avatar(adminOf(u).name || u, adminOf(u).photo, "adm")}<span>${esc(adminOf(u).name || u)}</span></div>` : "—";
   const person = (name) => { const s = staffOf(name); const sub = [s.rank, s.position].filter(Boolean).join(" · ");
     return `<div class="person">${avatar(name, staffPhoto(name))}<span>${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ""}</span></div>`; };
+  /* Групова задача: team = водещият + участниците. Личната оценка (scores)
+     важи пред общата; без нея служителят получава общата оценка. */
+  const teamOf = (x) => x.team && x.team.length ? x.team : [x.assignee];
+  const inTeam = (x, name) => teamOf(x).includes(name);
+  const scoreOf = (x, name) => (x.scores && x.scores[name]) || x.score;
+  const teamTag = (x) => teamOf(x).length > 1 ? ` <span class="tag" title="${esc(teamOf(x).join(", "))}">${ic("users")}+${teamOf(x).length - 1}</span>` : "";
   const isoToBg = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? `${m[3]}.${m[2]}.${m[1]}` : ""; };
   const parseBg = (s) => { const m = /(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?/.exec(s || ""); return m ? new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)).getTime() : 0; };
   const days = (n) => lang === "en" ? `${n} ${n === 1 ? "day" : "days"}` : `${n} ${n === 1 ? "ден" : "дни"}`;
@@ -793,8 +810,8 @@
     const chip = (v, label) => `<button class="chip${v === "late" && counts.late ? " late" : ""}" data-filter="${v}" aria-pressed="${S.filter === v}">${label}${v ? ` · ${counts[v] || 0}` : ` · ${S.tasks.length}`}</button>`;
     const q = S.q.toLowerCase();
     const prio = (x) => x.status === "Изпълнена" ? 0 : x.overdue > 0 ? 1 : 2;
-    const list = S.tasks.filter((x) => (!S.filter || (S.filter === "late" ? x.overdue > 0 : x.status === S.filter)) && (!S.who || x.assignee === S.who)
-      && (!q || [x.title, x.description, x.assignee, x.category, x.id, x.createdBy].join(" ").toLowerCase().includes(q)))
+    const list = S.tasks.filter((x) => (!S.filter || (S.filter === "late" ? x.overdue > 0 : x.status === S.filter)) && (!S.who || inTeam(x, S.who))
+      && (!q || [x.title, x.description, teamOf(x).join(" "), x.category, x.id, x.createdBy].join(" ").toLowerCase().includes(q)))
       .sort((a, b) => prio(a) - prio(b) || (b.overdue || 0) - (a.overdue || 0) || parseBg(b.created) - parseBg(a.created));
     /* Броячи горе — само от заредените задачи. „Просрочени“ се припокрива с „Възложени“. */
     const cnt = (n) => S.listBusy && !S.tasks.length ? "—" : n;
@@ -811,7 +828,7 @@
         ${list.map((x, i) => `<tr data-open="${esc(x.id)}" tabindex="0"${x.overdue ? ' class="late"' : ""} style="animation-delay:${Math.min(i, 12) * 35}ms">
           <td class="no">${i + 1}</td>
           <td><div class="t-title">${esc(x.title)}</div><div class="t-sub">${esc([x.category, t(x.priority)].filter(Boolean).join(" · "))}</div></td>
-          <td>${esc(x.assignee)}</td><td>${adminPerson(x.createdBy)}</td>
+          <td>${esc(x.assignee)}${teamTag(x)}</td><td>${adminPerson(x.createdBy)}</td>
           <td>${x.overdue ? lateBadge(x.overdue) : badge(x.status)}${x.score ? ` <span class="tag">${esc(x.score)}/10</span>` : ""}</td>
           <td class="right"${x.overdue ? ' style="color:var(--red);font-weight:800"' : ""}>${esc(x.due || "—")}</td></tr>`).join("")}</tbody></table></div>`
         : `<div class="empty card">${S.listBusy ? `<span class="spin"></span> ${t("Зарежда…")}` : t("Няма задачи.")}</div>`}
@@ -823,6 +840,10 @@
     const sel = S.score || Number(x.score) || 0;
     const st = S.st && S.st.id === x.id ? S.st : (S.st = { id: x.id, to: x.status, due: bgToIso(x.due), note: "", hours: "" });
     const notes = x.notes || [];
+    const team = teamOf(x), group = team.length > 1;
+    const ps = S.pscores && S.pscores.id === x.id ? S.pscores : (S.pscores = { id: x.id, v: Object.assign({}, x.scores || {}) });
+    const tm = S.teamEdit && S.teamEdit.id === x.id ? S.teamEdit : null;
+    const scoreBtns = (cur, attrs, cls) => Array.from({ length: 10 }, (_, i) => `<button class="score${cls || ""}" ${attrs} data-v="${i + 1}" aria-pressed="${Number(cur) === i + 1}">${i + 1}</button>`).join("");
     return `<div class="card fade${x.overdue ? " is-late" : ""}">
       <div class="card-head"><span class="crumbs"><span>${t("Задачи")}</span><span>${esc(x.title)}</span></span>
         <button class="btn btn-ghost" data-act="close" aria-label="${t("Назад")}">${ic("x")}</button></div>
@@ -831,7 +852,7 @@
         ${msgHtml()}
         <div class="meta">
           <div class="meta-item">${ic("dots")}<div><div class="meta-label">${t("Статус")}</div><div class="meta-val tags">${badge(x.status)}${x.overdue ? lateBadge(x.overdue) : ""}</div></div></div>
-          <div class="meta-item">${ic("users")}<div style="min-width:0"><div class="meta-label">${t("Изпълнител")}</div>${person(x.assignee)}</div></div>
+          <div class="meta-item">${ic("users")}<div style="min-width:0"><div class="meta-label">${group ? `${t("Екип")} · ${team.length}` : t("Изпълнител")}</div>${group ? `<div class="team-list">${team.map(person).join("")}</div>` : person(x.assignee)}</div></div>
           <div class="meta-item">${ic("cal")}<div><div class="meta-label">${t("Дата")}</div><div class="meta-val" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">${esc(x.created)} ${ic("arrow")} <span class="${x.overdue ? "due-late" : ""}">${esc(x.due || t("Без срок"))}</span></div></div></div>
           <div class="meta-item">${ic("tag")}<div><div class="meta-label">${t("Етикети")}</div><div class="tags">${x.category ? `<span class="tag">${esc(x.category)}</span>` : ""}${prioTag(x.priority)}</div></div></div>
           <div class="meta-item">${ic("users")}<div><div class="meta-label">${t("Възложил")}</div>${adminPerson(x.createdBy)}</div></div>
@@ -840,17 +861,28 @@
         ${x.doneAt ? `<div class="section"><h3>${ic("clock")}${t("Изпълнение")}</h3>
           <div class="meta" style="margin-top:14px">
             <div><div class="meta-label">${t("Изпълнена на")}</div><div class="meta-val">${esc(x.doneAt)}</div></div>
+            ${group && x.doneBy ? `<div><div class="meta-label">${t("Приключил")}</div><div class="meta-val">${esc(x.doneBy)}</div></div>` : ""}
             <div><div class="meta-label">${t("Часове")}</div><div class="meta-val">${esc(String(x.hours).replace(".", lang === "en" ? "." : ","))} ${t("часа")}</div></div>
           </div>
           ${x.late ? `<div class="t-sub" style="margin-top:10px;color:var(--red)">${t("Изпълнена със закъснение")} · ${days(x.late)}</div>` : ""}
           ${x.note ? `<div class="meta-label" style="margin-top:14px">${t("Бележка от служителя")}</div><div class="note" style="margin-top:6px">${esc(x.note)}</div>` : ""}</div>` : ""}
-        ${canRate ? `<div class="section"><h3>${ic("star")}${t("Оценка")}</h3>
+        ${canRate ? `<div class="section"><h3>${ic("star")}${t(group ? "Обща оценка на групата" : "Оценка")}</h3>
           ${x.status === "Оценена" && !S.editRate ? `<div style="margin-top:14px;display:flex;align-items:center;gap:18px;flex-wrap:wrap"><div class="big-score">${esc(x.score)}<small>/10</small></div><div class="t-sub">${t("Оценил")}: ${esc(x.ratedBy)} · ${esc(x.ratedAt)}</div></div>
+              ${group ? `<div class="meta-label" style="margin-top:16px">${t("Лични оценки")}</div><div class="pscores">${team.map((n) => `<div class="pscore-row">${person(n)}<div><b>${esc(scoreOf(x, n))}</b>/10${x.scores && x.scores[n] ? "" : ` <span class="t-sub">(${t("общата")})</span>`}</div></div>`).join("")}</div>` : ""}
               ${x.comment ? `<div class="note" style="margin-top:12px">${esc(x.comment)}</div>` : ""}
               <button class="btn" style="margin-top:14px" data-act="edit-rate">${t("Промени оценката")}</button>`
             : `<div class="scores" role="group" aria-label="${t("Оценка")}" style="margin-top:14px">${Array.from({ length: 10 }, (_, i) => `<button class="score" data-score="${i + 1}" aria-pressed="${sel === i + 1}">${i + 1}</button>`).join("")}</div>
+              ${group ? `<div class="meta-label" style="margin-top:18px">${t("Лични оценки")}</div><div class="t-sub" style="margin-top:4px">${t("По желание. Който няма лична оценка, получава общата.")}</div>
+                <div class="pscores">${team.map((n) => `<div class="pscore-row">${person(n)}<div class="scores sm" role="group" aria-label="${t("Лична оценка")}: ${esc(n)}">${scoreBtns(ps.v[n], `data-act="pscore" data-name="${esc(n)}"`, " sm")}</div></div>`).join("")}</div>` : ""}
               <div class="field" style="margin-top:14px"><label for="rate-comment">${t("Коментар и препоръки")}</label><textarea id="rate-comment">${esc(S.comment != null ? S.comment : (x.comment || ""))}</textarea></div>
               <button class="btn btn-primary" style="margin-top:14px" data-act="rate"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ""}${t("Запази оценката")}</button>`}
+        </div>` : ""}
+        ${x.status !== "Отменена" ? `<div class="section"><h3>${ic("users")}${t("Участници")} <span class="count">${team.length}</span></h3>
+          ${tm ? `<div class="t-sub" style="margin-top:6px">${t("Водещ")}: ${esc(x.assignee)}. ${t("Изберете кой още участва.")}</div>
+              <div class="chips" style="margin-top:12px">${S.staff.filter((s) => s.name !== x.assignee).map((s) => `<button class="chip" type="button" data-act="team-toggle" data-name="${esc(s.name)}" aria-pressed="${tm.list.includes(s.name)}">${esc(s.name)}</button>`).join("")}</div>
+              <div class="row-actions"><button class="btn btn-primary" data-act="team-save"${S.busy ? " disabled" : ""}>${S.busy ? `<span class="spin"></span>` : ""}${t("Запази участниците")}</button><button class="btn btn-ghost" data-act="team-cancel">${t("Отказ")}</button></div>`
+            : `<div class="t-sub" style="margin-top:6px">${group ? esc(team.join(", ")) : t("Само един служител. Добавете още, за да стане групова задача.")}</div>
+              <div class="row-actions"><button class="btn" data-act="team-edit">${ic("plus")}${t(group ? "Промени участниците" : "Добави участници")}</button></div>`}
         </div>` : ""}
         <div class="section"><h3>${ic("text")}${t("Коментари")} <span class="count">${notes.length}</span></h3>
           ${notes.length ? `<ul class="notes">${notes.map((n) => `<li><small>${esc([n.at, n.by].filter(Boolean).join(" · "))}</small>${esc(n.text)}</li>`).join("")}</ul>` : `<div class="t-sub" style="margin-top:10px">${t("Още няма коментари.")}</div>`}
@@ -870,7 +902,8 @@
       </div></div>`;
   }
   function newHtml() {
-    const f = S.form || (S.form = { title: "", description: "", category: "", priority: "Нормален", assignee: "", due: "" });
+    const f = S.form || (S.form = { title: "", description: "", category: "", priority: "Нормален", assignee: "", due: "", team: [] });
+    f.team = (f.team || []).filter((n) => n !== f.assignee);
     return `<form class="card fade" id="new-form"><div class="card-head"><span class="crumbs"><span>${t("Задачи")}</span><span>${t("Нова задача")}</span></span></div>
       <div class="card-body">${msgHtml()}
         <div class="field" style="margin-bottom:14px"><label for="nf-title">${t("Заглавие")} *</label><input type="text" id="nf-title" maxlength="200" value="${esc(f.title)}" required></div>
@@ -878,6 +911,9 @@
         <div class="grid2">
           <div class="field"><label for="nf-who">${t("Възложи на")} *</label><select id="nf-who" required><option value="">${t("Избери служител…")}</option>
             ${S.staff.map((s) => `<option value="${esc(s.name)}"${s.name === f.assignee ? " selected" : ""}>${esc(s.name)}${s.rank || s.position ? " — " + esc([s.rank, s.position].filter(Boolean).join(", ")) : ""}</option>`).join("")}</select></div>
+          <div class="field span-2"><span class="meta-label">${t("Участници (по желание)")}</span>
+            <div class="chips" role="group" aria-label="${t("Участници (по желание)")}" style="margin-top:6px">${S.staff.filter((s) => s.name !== f.assignee).map((s) => `<button class="chip" type="button" data-act="nf-team" data-name="${esc(s.name)}" aria-pressed="${f.team.includes(s.name)}">${esc(s.name)}</button>`).join("")}</div>
+            <div class="t-sub" style="margin-top:6px">${f.team.length ? `${t("Групова задача")}: ${esc([f.assignee || "…"].concat(f.team).join(", "))}` : t("Изберете още служители за групова задача — всеки получава лична оценка и има обща оценка на групата.")}</div></div>
           <div class="field"><label for="nf-due">${t("Срок")}</label><input type="date" id="nf-due" value="${esc(f.due)}"></div>
           <div class="field"><label for="nf-cat">${t("Категория")}</label><input type="text" id="nf-cat" list="nf-cats" maxlength="60" value="${esc(f.category)}"><datalist id="nf-cats">${CATEGORIES.map((c) => `<option value="${esc(c)}">`).join("")}</datalist></div>
           <div class="field"><label for="nf-prio">${t("Приоритет")}</label><select id="nf-prio">${["Нисък", "Нормален", "Висок", "Спешен"].map((p) => `<option value="${p}"${p === f.priority ? " selected" : ""}>${t(p)}</option>`).join("")}</select></div>
@@ -922,8 +958,8 @@
   function dossierHtml() {
     const name = S.dossier, s = staffOf(name), d = (S.dsCache || {})[name];
     const sub = [s.rank, s.position].filter(Boolean).join(" · ");
-    const mine = S.tasks.filter((x) => x.assignee === name);
-    const rated = mine.filter((x) => x.score), avg = rated.length ? rated.reduce((a, x) => a + Number(x.score), 0) / rated.length : null;
+    const mine = S.tasks.filter((x) => inTeam(x, name));
+    const rated = mine.filter((x) => scoreOf(x, name)), avg = rated.length ? rated.reduce((a, x) => a + Number(scoreOf(x, name)), 0) / rated.length : null;
     const st = { open: mine.filter((x) => x.status === "Възложена").length, late: mine.filter((x) => x.overdue > 0).length, done: mine.filter((x) => x.status === "Изпълнена" || x.status === "Оценена").length };
     const head = `<div class="card-head"><span class="crumbs"><span>${t("Служители")}</span><span>${esc(name)}</span><span>${t("Досие")}</span></span>
       <button class="btn btn-ghost" data-act="ds-close" aria-label="${t("Назад")}">${ic("x")}</button></div>`;
@@ -960,7 +996,7 @@
         <div class="row-actions" style="margin-top:20px"><button class="btn btn-primary" data-act="ds-edit">${ic("text")}${t("Редактирай досието")}</button>
           <span class="t-sub">${d.updated ? `${t("Обновено")}: ${esc(d.updated)} · ${esc(adminOf(d.updatedBy).name || d.updatedBy)}` : t("Досието още е празно.")}</span></div>
         ${mine.length ? `<div class="section"><h3>${ic("list")}${t("Последни задачи")}</h3><table class="tlist static mini" style="margin-top:8px"><tbody>
-          ${mine.slice().sort((a, b) => parseBg(b.created) - parseBg(a.created)).slice(0, 6).map((x) => `<tr><td><b>${esc(x.title)}</b><div class="t-sub">${esc(x.created)}</div></td><td>${x.overdue ? lateBadge(x.overdue) : badge(x.status)}</td><td class="right">${x.score ? `<b>${esc(x.score)}</b>/10` : ""}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
+          ${mine.slice().sort((a, b) => parseBg(b.created) - parseBg(a.created)).slice(0, 6).map((x) => `<tr><td><b>${esc(x.title)}</b>${teamTag(x)}<div class="t-sub">${esc(x.created)}</div></td><td>${x.overdue ? lateBadge(x.overdue) : badge(x.status)}</td><td class="right">${scoreOf(x, name) ? `<b>${esc(scoreOf(x, name))}</b>/10` : ""}</td></tr>`).join("")}</tbody></table></div>` : ""}`;
     } else {
       const f = S.dsForm || (S.dsForm = Object.assign({}, d));
       const inp = ([k, label, type]) => type === "area"
@@ -1014,25 +1050,25 @@
   }
   function historyHtml() {
     const by = {};
-    S.tasks.forEach((x) => { (by[x.assignee] = by[x.assignee] || []).push(x); });
+    S.tasks.forEach((x) => { teamOf(x).forEach((n) => { (by[n] = by[n] || []).push(x); }); });
     const names = S.staff.map((s) => s.name).filter((n) => by[n]).concat(Object.keys(by).filter((n) => !S.staff.some((s) => s.name === n)));
     const sel = S.histName && by[S.histName] ? S.histName : "";
-    const statsOf = (arr) => { const rated = arr.filter((x) => x.score); const hours = arr.reduce((s, x) => s + (Number(x.hours) || 0), 0);
+    const statsOf = (arr, n) => { const rated = arr.filter((x) => scoreOf(x, n)); const hours = arr.reduce((s, x) => s + (Number(x.hours) || 0), 0);
       return { done: arr.filter((x) => x.status === "Изпълнена" || x.status === "Оценена").length, waiting: arr.filter((x) => x.status === "Изпълнена").length,
-        open: arr.filter((x) => x.status === "Възложена").length, late: arr.filter((x) => x.overdue > 0).length, avg: rated.length ? (rated.reduce((s, x) => s + Number(x.score), 0) / rated.length) : null, hours }; };
+        open: arr.filter((x) => x.status === "Възложена").length, late: arr.filter((x) => x.overdue > 0).length, avg: rated.length ? (rated.reduce((s, x) => s + Number(scoreOf(x, n)), 0) / rated.length) : null, hours }; };
     const fmtN = (n, d) => n == null ? "—" : (lang === "en" ? n.toFixed(d) : n.toFixed(d).replace(".", ","));
     if (!sel) {
       return `<div class="card fade"><div class="card-body">${names.length ? `<table class="tlist"><thead><tr><th>${t("Изпълнител")}</th><th>${t("Изпълнени")}</th><th>${t("Средна оценка")}</th><th class="right">${t("Общо часове")}</th></tr></thead><tbody>
-        ${names.map((n) => { const st = statsOf(by[n]); return `<tr data-hist="${esc(n)}" tabindex="0"><td>${person(n)}</td><td>${st.done}${st.waiting ? ` <span class="t-sub">(${st.waiting} ${t("Чакат оценка").toLowerCase()})</span>` : ""}${st.late ? ` <span class="late-badge">${st.late} ${t("Просрочени").toLowerCase()}</span>` : ""}</td><td>${st.avg == null ? `<span class="t-sub">${t("Без оценки")}</span>` : `<b>${fmtN(st.avg, 1)}</b>/10`}</td><td class="right">${fmtN(st.hours, 1)}</td></tr>`; }).join("")}
+        ${names.map((n) => { const st = statsOf(by[n], n); return `<tr data-hist="${esc(n)}" tabindex="0"><td>${person(n)}</td><td>${st.done}${st.waiting ? ` <span class="t-sub">(${st.waiting} ${t("Чакат оценка").toLowerCase()})</span>` : ""}${st.late ? ` <span class="late-badge">${st.late} ${t("Просрочени").toLowerCase()}</span>` : ""}</td><td>${st.avg == null ? `<span class="t-sub">${t("Без оценки")}</span>` : `<b>${fmtN(st.avg, 1)}</b>/10`}</td><td class="right">${fmtN(st.hours, 1)}</td></tr>`; }).join("")}
         </tbody></table>` : `<div class="empty">${t("Няма задачи.")}</div>`}</div></div>`;
     }
-    const arr = by[sel].slice().sort((a, b) => parseBg(b.created) - parseBg(a.created)); const st = statsOf(arr);
+    const arr = by[sel].slice().sort((a, b) => parseBg(b.created) - parseBg(a.created)); const st = statsOf(arr, sel);
     return `<div class="card fade"><div class="card-head"><span class="crumbs"><span>${t("История")}</span><span>${esc(sel)}</span></span><button class="btn btn-ghost" data-act="hist-close" aria-label="${t("Назад")}">${ic("x")}</button></div>
       <div class="card-body">${person(sel)}
         <div class="stats" style="margin-top:16px"><div class="stat"><b>${st.done}</b><span>${t("Изпълнени")}</span></div><div class="stat"><b>${st.avg == null ? "—" : fmtN(st.avg, 1)}</b><span>${t("Средна оценка")}</span></div>
           <div class="stat"><b>${fmtN(st.hours, 1)}</b><span>${t("Общо часове")}</span></div><div class="stat"><b>${st.open}</b><span>${t("Възложени")}</span></div>${st.late ? `<div class="stat" style="border-color:var(--red);background:var(--red-soft)"><b style="color:var(--red)">${st.late}</b><span>${t("Просрочени")}</span></div>` : ""}</div>
         <table class="tlist"><thead><tr><th>${t("Задача")}</th><th>${t("Статус")}</th><th>${t("Часове")}</th><th>${t("Оценка")}</th></tr></thead><tbody>
-          ${arr.map((x) => `<tr data-open="${esc(x.id)}" tabindex="0"${x.overdue ? ' class="late"' : ""}><td><div class="t-title">${esc(x.title)}</div>${x.comment ? `<div class="t-sub">${esc(x.comment)}</div>` : ""}</td><td>${x.overdue ? lateBadge(x.overdue) : badge(x.status)}</td><td>${esc(x.hours || "—")}</td><td>${x.score ? `<b>${esc(x.score)}</b>/10` : "—"}</td></tr>`).join("")}
+          ${arr.map((x) => `<tr data-open="${esc(x.id)}" tabindex="0"${x.overdue ? ' class="late"' : ""}><td><div class="t-title">${esc(x.title)}${teamTag(x)}</div>${x.comment ? `<div class="t-sub">${esc(x.comment)}</div>` : ""}</td><td>${x.overdue ? lateBadge(x.overdue) : badge(x.status)}</td><td>${esc(x.hours || "—")}</td><td>${scoreOf(x, sel) ? `<b>${esc(scoreOf(x, sel))}</b>/10${teamOf(x).length > 1 && x.score ? ` <span class="t-sub">(${t("група")} ${esc(x.score)})</span>` : ""}` : "—"}</td></tr>`).join("")}
         </tbody></table></div></div>`;
   }
 
@@ -1297,14 +1333,14 @@
       const f = S.form;
       const sync = () => { f.title = nf.querySelector("#nf-title").value; f.description = nf.querySelector("#nf-desc").value; f.assignee = nf.querySelector("#nf-who").value;
         f.due = nf.querySelector("#nf-due").value; f.category = nf.querySelector("#nf-cat").value; f.priority = nf.querySelector("#nf-prio").value; };
-      nf.oninput = sync; nf.onchange = sync;
+      nf.oninput = sync; nf.onchange = (e) => { sync(); if (e.target.id === "nf-who") render(); };
       nf.onsubmit = async (e) => {
         e.preventDefault(); sync(); if (S.busy) return;
         if (!f.title.trim() || !f.assignee) { flash("err", lang === "en" ? "Fill in the title and the assignee." : "Попълнете заглавие и на кого е задачата."); return; }
         S.busy = true; render();
         try {
           f.id = f.id || newId();
-          const j = await call("tasksCreate", { id: f.id, task: { title: f.title, description: f.description, category: f.category, priority: f.priority, assignee: f.assignee, due: isoToBg(f.due) } });
+          const j = await call("tasksCreate", { id: f.id, task: { title: f.title, description: f.description, category: f.category, priority: f.priority, assignee: f.assignee, team: f.team || [], due: isoToBg(f.due) } });
           if (!j.success) throw new Error(j.error);
           S.form = null; S.busy = false; S.tab = "tasks"; S.filter = ""; if (!putTask(j.task)) await load(); flash("ok", t("Задачата е възложена."));
           return;
@@ -1406,7 +1442,7 @@
     if (el.dataset.tab === "logs") { S.menu = false; loadLogs(); }
     if (el.dataset.tab) { S.tab = el.dataset.tab; S.open = null; S.msg = null; S.histName = ""; S.prof = null; S.dossier = ""; render(); return; }
     if (el.dataset.filter != null && el.classList.contains("chip")) { S.filter = el.dataset.filter; render(); return; }
-    if (el.dataset.open) { S.open = el.dataset.open; S.tab = "tasks"; S.score = 0; S.comment = null; S.editRate = false; S.confirm = ""; S.st = null; S.noteText = ""; S.msg = null; render(); window.scrollTo(0, 0); return; }
+    if (el.dataset.open) { S.open = el.dataset.open; S.tab = "tasks"; S.score = 0; S.comment = null; S.editRate = false; S.confirm = ""; S.st = null; S.noteText = ""; S.msg = null; S.pscores = null; S.teamEdit = null; render(); window.scrollTo(0, 0); return; }
     if (el.dataset.hist) { S.histName = el.dataset.hist; render(); return; }
     if (el.dataset.st) { syncDetail(); S.st.to = el.dataset.st; render(); return; }
     if (el.dataset.score) { S.score = +el.dataset.score; const rc = document.getElementById("rate-comment"); if (rc) S.comment = rc.value; render(); return; }
@@ -1419,21 +1455,37 @@
     if (act === "ov-assign") {
       const r = recommendations(S.ov)[+el.dataset.i]; if (!r || !r.act) return;
       const a = r.act, m = /^(\d{2})\.(\d{2})\.(\d{4})/.exec(a.due || "");
-      S.form = { title: a.title, description: a.description || "", category: a.category || "", priority: a.priority || "Нормален", assignee: "", due: m ? `${m[3]}-${m[2]}-${m[1]}` : "" };
+      S.form = { title: a.title, description: a.description || "", category: a.category || "", priority: a.priority || "Нормален", assignee: "", due: m ? `${m[3]}-${m[2]}-${m[1]}` : "", team: [] };
       S.tab = "new"; S.msg = null; render(); window.scrollTo(0, 0); return;
     }
     if (act === "close") { S.open = null; S.msg = null; render(); return; }
     if (act === "hist-close") { S.histName = ""; render(); return; }
     if (act === "edit-rate") { S.editRate = true; render(); return; }
+    if (act === "nf-team" && S.form) { const n = el.dataset.name, tm = S.form.team || (S.form.team = []); S.form.team = tm.includes(n) ? tm.filter((y) => y !== n) : tm.concat(n); render(); return; }
+    if (act === "pscore" && S.pscores) { syncDetail(); const rc = document.getElementById("rate-comment"); if (rc) S.comment = rc.value; const n = el.dataset.name, v = +el.dataset.v; S.pscores.v[n] = Number(S.pscores.v[n]) === v ? "" : v; render(); return; }
+    if (act === "team-edit") { syncDetail(); const x = S.tasks.find((y) => y.id === S.open); if (x) S.teamEdit = { id: x.id, list: teamOf(x).slice(1) }; render(); return; }
+    if (act === "team-cancel") { S.teamEdit = null; render(); return; }
+    if (act === "team-toggle" && S.teamEdit) { syncDetail(); const n = el.dataset.name, l = S.teamEdit.list; S.teamEdit.list = l.includes(n) ? l.filter((y) => y !== n) : l.concat(n); render(); return; }
+    if (act === "team-save" && S.teamEdit) {
+      syncDetail(); S.busy = true; render();
+      try {
+        const j = await call("tasksTeam", { id: S.teamEdit.id, team: S.teamEdit.list });
+        if (!j.success) throw new Error(j.error);
+        S.teamEdit = null; S.pscores = null; S.busy = false; if (!putTask(j.task)) await load(); flash("ok", t(j.unchanged ? "Няма промяна." : "Участниците са записани."));
+        return;
+      } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
+      S.busy = false; render(); return;
+    }
     if (act === "rate") {
       const x = S.tasks.find((y) => y.id === S.open); const score = S.score || Number(x && x.score) || 0;
       if (!score) { flash("err", t("Изберете оценка от 1 до 10.")); return; }
       const rc = document.getElementById("rate-comment"); const comment = rc ? rc.value : "";
       S.busy = true; render();
       try {
-        const j = await call("tasksRate", { id: S.open, score, comment });
+        const scores = {}; if (x && teamOf(x).length > 1 && S.pscores && S.pscores.id === x.id) teamOf(x).forEach((n) => { if (S.pscores.v[n]) scores[n] = Number(S.pscores.v[n]); });
+        const j = await call("tasksRate", { id: S.open, score, comment, scores });
         if (!j.success) throw new Error(j.error);
-        S.editRate = false; S.score = 0; S.comment = null; S.busy = false; if (!putTask(j.task)) await load(); flash("ok", t("Оценката е записана."));
+        S.editRate = false; S.score = 0; S.comment = null; S.pscores = null; S.busy = false; if (!putTask(j.task)) await load(); flash("ok", t("Оценката е записана."));
         return;
       } catch (err) { if (!err.handled) S.msg = { kind: "err", text: err.message }; }
       S.busy = false; render(); return;

@@ -2022,6 +2022,8 @@
       .tk-hrow { padding: var(--s4); }
       .tk-score { font-size: var(--fs-body); color: var(--muted); }
       .tk-score b { font-size: 20px; color: var(--text); }
+      .tk-grp { display: block; font-size: 12px; color: var(--muted); }
+      .tk-team { display: grid; gap: 6px; margin-top: 8px; }
       .tk-comment { margin-top: 10px; padding: 10px 12px; background: var(--panel-2); border-radius: 10px; white-space: pre-wrap; color: var(--text); }
       /* Карта на задача по дизайна „ProjectDetailView" */
       .tk-pd { padding: 0; overflow: hidden; }
@@ -8801,11 +8803,13 @@
       const TK_SUM_KEY = "cg_tk_sum_v1";
       let tkSum = null, tkSumBusy = false, tkSumAt = 0;
       try { tkSum = JSON.parse(localStorage.getItem(TK_SUM_KEY) || "null"); } catch (_) {}
+      /* Групова задача: водещият + участниците (team). */
+      const tkTeamOf = (x) => x.team && x.team.length ? x.team : [x.assignee];
       function tkSummarize(b) {
         const today = tkDayNum(b.today), open = (b.tasks || []).filter((x) => x.status === "Възложена");
         const sum = { open: open.length, late: open.filter((x) => x.overdue > 0).length,
           fresh: open.filter((x) => { const d = tkDayNum(x.created); return d != null && today - d <= 1; }).length, by: {} };
-        open.forEach((x) => { const p = sum.by[x.assignee] || (sum.by[x.assignee] = { open: 0, late: 0 }); p.open++; if (x.overdue) p.late++; });
+        open.forEach((x) => { tkTeamOf(x).forEach((n) => { const p = sum.by[n] || (sum.by[n] = { open: 0, late: 0 }); p.open++; if (x.overdue) p.late++; }); });
         return sum;
       }
       function tkSetSummary(b) {
@@ -8957,15 +8961,15 @@
         const fil = F[tkb.filter] ? tkb.filter : "open";
         const count = (k) => all.filter(F[k]).length;
         const people = new Map();
-        all.filter(isOpen).forEach((x) => {
-          const p = people.get(x.assignee) || { name: x.assignee, open: 0, late: 0 };
-          p.open++; if (x.overdue) p.late++; people.set(x.assignee, p);
-        });
+        all.filter(isOpen).forEach((x) => tkTeamOf(x).forEach((n) => {
+          const p = people.get(n) || { name: n, open: 0, late: 0 };
+          p.open++; if (x.overdue) p.late++; people.set(n, p);
+        }));
         const plist = [...people.values()].sort((a, c) => c.late - a.late || c.open - a.open || a.name.localeCompare(c.name, "bg"));
-        const who = tkb.who && all.some((x) => x.assignee === tkb.who) ? tkb.who : "";
+        const who = tkb.who && all.some((x) => tkTeamOf(x).includes(tkb.who)) ? tkb.who : "";
         const dn = (s) => { const v = tkDayNum(s); return v == null ? 1e9 : v; };
         const rank = (x) => x.overdue ? 0 : isOpen(x) ? 1 : 2;
-        const rows = all.filter((x) => F[fil](x) && (!who || x.assignee === who)).sort(fil === "done"
+        const rows = all.filter((x) => F[fil](x) && (!who || tkTeamOf(x).includes(who))).sort(fil === "done"
           ? (a, c) => (tkDayNum(c.doneAt) || 0) - (tkDayNum(a.doneAt) || 0)
           : (a, c) => rank(a) - rank(c) || (c.overdue || 0) - (a.overdue || 0) || dn(a.due) - dn(c.due) || a.assignee.localeCompare(c.assignee, "bg"));
         const nLate = count("late");
@@ -8981,7 +8985,7 @@
             <tbody>${rows.map((x, i) => { const sub = [x.rank, x.position].filter(Boolean).join(" · ");
               return `<tr class="${x.overdue ? "tk-late" : ""}${tkb.anim ? " tk-in" : ""}"${tkb.anim ? ` style="animation-delay:${Math.min(i, 10) * 35}ms"` : ""} data-tk-id="${escapeHtml(x.id)}">
               <td>${tkDueHtml(x, today)}</td>
-              <td><div class="tk-person">${tkAvatar(x.assignee)}<span>${escapeHtml(x.assignee)}${sub ? `<small>${escapeHtml(sub)}</small>` : ""}</span></div></td>
+              <td><div class="tk-person">${tkAvatar(x.assignee)}<span>${escapeHtml(x.assignee)}${tkTeamOf(x).length > 1 ? ` <span class="tk-tag" title="${escapeHtml(tkTeamOf(x).join(", "))}">+${tkTeamOf(x).length - 1}</span>` : ""}${sub ? `<small>${escapeHtml(sub)}</small>` : ""}${tkTeamOf(x).length > 1 ? `<small>${escapeHtml(tkTeamOf(x).slice(1).join(", "))}</small>` : ""}</span></div></td>
               <td><div class="tk-tt">${escapeHtml(x.title)}</div>${x.category || (x.priority && x.priority !== "Нормален") ? `<div class="tk-metas">${x.category ? `<span class="tk-tag">${escapeHtml(x.category)}</span>` : ""}${x.priority !== "Нормален" ? tkPrio(x.priority) : ""}</div>` : ""}</td>
               <td>${x.createdBy ? `<div class="tk-person tk-by"><span class="tk-mlbl">${tkT("Възложил:", "Assigned by:")}</span>${tkAdminAvatar(x.createdBy)}<span>${escapeHtml(tkAdminName(x.createdBy))}</span></div>` : "—"}</td>
               <td>${x.overdue ? tkLateBadge(x.overdue) : tkBadge(x.status)}</td></tr>`; }).join("")}</tbody></table></div>`
@@ -9017,8 +9021,9 @@
             <h2 class="tk-pd-title">${escapeHtml(x.title)}</h2>
             <div class="tk-pd-meta">
               <div class="tk-mi">${tkIc("dots")}<div><div class="tk-ml">${tkT("Статус", "Status")}</div><div class="tk-mv tk-metas">${tkBadge(x.status)}${x.overdue ? tkLateBadge(x.overdue) : ""}</div></div></div>
-              <div class="tk-mi">${tkIc("users")}<div class="tk-min0"><div class="tk-ml">${tkT("Изпълнител", "Assignee")}</div>
-                <div class="tk-person">${tkAvatar(tk.name)}<span>${escapeHtml(tk.name)}${sub ? `<small>${escapeHtml(sub)}</small>` : ""}</span></div></div></div>
+              <div class="tk-mi">${tkIc("users")}<div class="tk-min0"><div class="tk-ml">${tkTeamOf(x).length > 1 ? tkT("Групова задача", "Group task") : tkT("Изпълнител", "Assignee")}</div>
+                <div class="tk-person">${tkAvatar(tk.name)}<span>${escapeHtml(tk.name)}${sub ? `<small>${escapeHtml(sub)}</small>` : ""}</span></div>
+                ${tkTeamOf(x).length > 1 ? `<div class="tk-team">${tkTeamOf(x).filter((n) => n !== tk.name).map((n) => `<div class="tk-person">${tkAvatar(n)}<span>${escapeHtml(n)}</span></div>`).join("")}</div>` : ""}</div></div>
               <div class="tk-mi">${tkIc("cal")}<div><div class="tk-ml">${tkT("Дата", "Date")}</div>
                 <div class="tk-mv tk-dates">${escapeHtml(x.created)} ${tkIc("arrow")} ${escapeHtml(x.due || tkT("без срок", "no due date"))}</div></div></div>
               <div class="tk-mi">${tkIc("tag")}<div><div class="tk-ml">${tkT("Етикети", "Tags")}</div>
@@ -9071,7 +9076,7 @@
               <td><div class="tk-tt">${escapeHtml(x.title)}</div>${h && h.comment ? `<div class="tk-cm"><span>${tkT("Коментар", "Comment")} (${escapeHtml(h.ratedBy || "")}):</span> ${escapeHtml(h.comment)}</div>` : ""}${h && h.notes ? h.notes.map((n) => `<div class="tk-cm"><span>${escapeHtml(n.by || tkT("Коментар", "Comment"))} · ${escapeHtml(n.at)}:</span> ${escapeHtml(n.text)}</div>`).join("") : ""}</td>
               <td>${escapeHtml(x.category || "—")}</td>
               <td>${x.overdue ? tkLateBadge(x.overdue) : tkBadge(x.status)}</td>
-              ${rated ? `<td>${h && h.score ? `<span class="tk-score"><b>${escapeHtml(h.score)}</b>/10</span>` : "—"}</td>` : ""}
+              ${rated ? `<td>${h && h.score ? `<span class="tk-score"><b>${escapeHtml(h.score)}</b>/10</span>${h.team && h.team.length > 1 && h.groupScore ? `<small class="tk-grp">${tkT("група", "group")} ${escapeHtml(h.groupScore)}/10</small>` : ""}` : "—"}</td>` : ""}
               <td class="tk-r">${escapeHtml(x.due || "—")}</td></tr>`; }).join("")}</tbody></table></div>`
           : `<p class="tk-note">${tkT("Още няма задачи.", "No tasks yet.")}</p>`;
         let pinBox = "";

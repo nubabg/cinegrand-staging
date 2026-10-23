@@ -144,6 +144,7 @@ function doPost(e) {
     if (data.action === "tasksAdminList") return handleTasksAdminList_(data);
     if (data.action === "tasksCreate") return handleTasksCreate_(data);
     if (data.action === "tasksRate") return handleTasksRate_(data);
+    if (data.action === "tasksTeam") return handleTasksTeam_(data);
     if (data.action === "tasksCancel") return handleTasksCancel_(data);
     if (data.action === "tasksBoard") return handleTasksBoard_(data);
     if (data.action === "tasksSetStatus") return handleTasksSetStatus_(data);
@@ -1397,7 +1398,8 @@ var TK_SHEET = "Tasks";
 var TK_STAFF_SHEET = "Служители";
 var TK_HEADERS = ["ID", "Създадена", "Създал", "Заглавие", "Описание", "Категория", "Приоритет",
   "Възложена на", "Срок", "Статус", "Изпълнена на", "Изпълнил", "Часове", "Бележка от служителя",
-  "Оценка", "Коментар", "Оценена на", "Оценил", "Обновено", "Бележки"];
+  "Оценка", "Коментар", "Оценена на", "Оценил", "Обновено", "Бележки", "Участници", "Лични оценки"];
+var TK_TEAM_MAX = 10;   // участници освен водещия
 var TK_STAFF_HEADERS = ["Име", "Ранг", "Позиция", "ПИН", "Активен", "Снимка"];
 var TK_STATUSES = ["Възложена", "Изпълнена", "Оценена", "Отменена"];
 var TK_PRIORITIES = ["Нисък", "Нормален", "Висок", "Спешен"];
@@ -1519,13 +1521,40 @@ function tkForbidden_(admin, what) {
   return jsonResponse_({ success: false, code: "FORBIDDEN", error: "Този профил е защитен — само главният администратор може да го променя." });
 }
 
+/* ── Групови задачи ──
+   „Възложена на" е водещият служител (както досега), „Участници" — още
+   служители към същата задача („Мария, Иван"). Всеки от екипа вижда и
+   може да приключи задачата. „Оценка" е общата оценка на групата, а
+   „Лични оценки" — оценката на всеки („Мария: 8, Иван: 9"). Който няма
+   лична оценка, получава общата. Задача без участници работи както преди. */
+function tkTeam_(t) {
+  var out = [];
+  [t["Възложена на"]].concat(String(t["Участници"] || "").split(",")).forEach(function (n) {
+    n = String(n || "").trim();
+    if (n && out.indexOf(n) < 0) out.push(n);
+  });
+  return out;
+}
+function tkInTeam_(t, name) { return tkTeam_(t).indexOf(name) >= 0; }
+function tkScores_(t) {
+  var out = {};
+  String(t["Лични оценки"] || "").split(",").forEach(function (p) {
+    var m = /^\s*(.+?)\s*:\s*(\d{1,2})\s*$/.exec(p);
+    if (m) out[m[1]] = m[2];
+  });
+  return out;
+}
+function tkScoresText_(obj) { return Object.keys(obj).map(function (k) { return k + ": " + obj[k]; }).join(", "); }
+/* Оценката на един служител за задачата: личната, иначе общата. */
+function tkScoreOf_(t, name) { return tkScores_(t)[name] || t["Оценка"]; }
+
 /* ── Данни ── */
 function tkPublicTask_(t, withRating) {
   var o = { id: t["ID"], created: t["Създадена"], title: t["Заглавие"], description: t["Описание"],
-    category: t["Категория"], priority: t["Приоритет"], assignee: t["Възложена на"], due: t["Срок"],
+    category: t["Категория"], priority: t["Приоритет"], assignee: t["Възложена на"], team: tkTeam_(t), due: t["Срок"],
     status: t["Статус"], doneAt: t["Изпълнена на"], doneBy: t["Изпълнил"], hours: t["Часове"], note: t["Бележка от служителя"],
     createdBy: t["Създал"], overdue: tkOverdue_(t), late: tkLate_(t) };
-  if (withRating) { o.score = t["Оценка"]; o.comment = t["Коментар"]; o.ratedAt = t["Оценена на"]; o.ratedBy = t["Оценил"]; o.updated = t["Обновено"]; o.notes = tkNotes_(t["Бележки"]); }
+  if (withRating) { o.score = t["Оценка"]; o.comment = t["Коментар"]; o.ratedAt = t["Оценена на"]; o.ratedBy = t["Оценил"]; o.updated = t["Обновено"]; o.notes = tkNotes_(t["Бележки"]); o.scores = tkScores_(t); }
   return o;
 }
 /* Дни от „dd.MM.yyyy" (за сравнение на дати без часова зона). */
@@ -1587,13 +1616,18 @@ function handleTasksMine_(data) {
     if (!tkPinOk_(me, data.pin)) { tkFail_("pin_" + name); return jsonResponse_({ success: false, code: "BAD_PIN", error: "Грешен ПИН." }); }
     withHistory = true;
   }
-  var tasks = tkRows_(tkSheet_(ss, TK_SHEET, TK_HEADERS), TK_HEADERS).filter(function (t) { return t["ID"] && t["Възложена на"] === name; });
+  var tasks = tkRows_(tkSheet_(ss, TK_SHEET, TK_HEADERS), TK_HEADERS).filter(function (t) { return t["ID"] && tkInTeam_(t, name); });
   var open = tasks.filter(function (t) { return t["Статус"] === "Възложена"; }).map(function (t) { return tkPublicTask_(t, false); });
   // Приключените — без оценка и коментар (те са само с ПИН, в history).
   var done = tasks.filter(function (t) { return t["Статус"] !== "Възложена"; }).slice(-30).map(function (t) { return tkPublicTask_(t, false); });
   var res = { success: true, name: name, hasPin: !!(me && me["ПИН"]), rank: me ? me["Ранг"] : "", position: me ? me["Позиция"] : "", open: open, done: done, photoVer: tkPhotoVer_() };
   // С ПИН — всички задачи (и отворените — заради коментарите на администратора).
-  if (withHistory) res.history = tasks.map(function (t) { return tkPublicTask_(t, true); });
+  // „score" е личната оценка на служителя, „groupScore" — общата на групата.
+  if (withHistory) res.history = tasks.map(function (t) {
+    var o = tkPublicTask_(t, true);
+    o.groupScore = t["Оценка"]; o.score = tkScoreOf_(t, name); delete o.scores;
+    return o;
+  });
   return jsonResponse_(res);
 }
 function handleTasksComplete_(data) {
@@ -1613,7 +1647,7 @@ function handleTasksComplete_(data) {
     var ctx = tkSheet_(ss, TK_SHEET, TK_HEADERS);
     var t = tkRows_(ctx, TK_HEADERS).filter(function (x) { return x["ID"] === id; })[0];
     if (!t) return jsonResponse_({ success: false, code: "NOT_FOUND", error: "Задачата не е намерена." });
-    if (t["Възложена на"] !== name) return jsonResponse_({ success: false, code: "NOT_YOURS", error: "Тази задача е възложена на " + t["Възложена на"] + "." });
+    if (!tkInTeam_(t, name)) return jsonResponse_({ success: false, code: "NOT_YOURS", error: "Тази задача е възложена на " + tkTeam_(t).join(", ") + "." });
     if (t["Статус"] === "Изпълнена" && t["Изпълнил"] === name) return jsonResponse_({ success: true, duplicate: true, id: id });
     if (t["Статус"] !== "Възложена") return jsonResponse_({ success: false, code: "BAD_STATE", error: "Задачата вече е „" + t["Статус"] + "“." });
     var now = tkNow_();
@@ -1664,17 +1698,33 @@ function handleTasksCreate_(data) {
     var ss = tkOpen_();
     var staff = tkStaffPublic_(tkStaff_(ss)).map(function (s) { return s.name; });
     if (staff.indexOf(rec.assignee) < 0) return jsonResponse_({ success: false, code: "BAD_ASSIGNEE", error: "„" + rec.assignee + "“ не е в списъка със служители." });
+    var team = tkTeamIn_(it.team, rec.assignee, staff);
+    if (team.error) return jsonResponse_({ success: false, code: "BAD_TEAM", error: team.error });
     var ctx = tkSheet_(ss, TK_SHEET, TK_HEADERS);
     if (tkRows_(ctx, TK_HEADERS).some(function (t) { return t["ID"] === id; })) return jsonResponse_({ success: true, duplicate: true, id: id });
     var now = tkNow_();
     var row = { "ID": id, "Създадена": now, "Създал": admin, "Заглавие": rec.title,
       "Описание": rec.description, "Категория": rec.category, "Приоритет": rec.priority, "Възложена на": rec.assignee,
-      "Срок": rec.due, "Статус": "Възложена", "Обновено": now + " · възложена от " + admin };
+      "Срок": rec.due, "Статус": "Възложена", "Обновено": now + " · възложена от " + admin, "Участници": team.list.join(", ") };
     tkWriteRow_(ctx, ctx.sheet.getLastRow() + 1, row);
-    tkLog_(admin, "Нова задача", rec.title, "на " + rec.assignee + (rec.due ? ", срок " + rec.due : "") + ", " + rec.priority);
+    tkLog_(admin, "Нова задача", rec.title, "на " + [rec.assignee].concat(team.list).join(", ") + (rec.due ? ", срок " + rec.due : "") + ", " + rec.priority);
     SpreadsheetApp.flush();
     return jsonResponse_({ success: true, id: id, task: tkAfter_({}, row) });
   } finally { lock.releaseLock(); }
+}
+/* Участниците от admin.html: само активни служители, без водещия и без
+   повторения. Връща { list } или { error }. */
+function tkTeamIn_(raw, lead, staff) {
+  var list = [];
+  (Array.isArray(raw) ? raw : []).forEach(function (n) {
+    n = tkClean_(n, 80);
+    if (n && n !== lead && list.indexOf(n) < 0) list.push(n);
+  });
+  for (var i = 0; i < list.length; i++) {
+    if (staff.indexOf(list[i]) < 0) return { error: "„" + list[i] + "“ не е в списъка със служители." };
+  }
+  if (list.length > TK_TEAM_MAX) return { error: "Най-много " + TK_TEAM_MAX + " участници освен водещия." };
+  return { list: list };
 }
 /* Задачата след промяната — връща се на admin.html, за да не презарежда
    целия списък след всяко действие. */
@@ -1700,15 +1750,50 @@ function tkAdminTask_(data, fn) {
 }
 function handleTasksRate_(data) {
   var score = Number(data.score);
-  if (!(score >= 1 && score <= 10 && Math.round(score) === score)) return jsonResponse_({ success: false, code: "BAD_SCORE", error: "Оценката е от 1 до 10." });
+  var okScore = function (n) { return n >= 1 && n <= 10 && Math.round(n) === n; };
+  if (!okScore(score)) return jsonResponse_({ success: false, code: "BAD_SCORE", error: "Оценката е от 1 до 10." });
   return tkAdminTask_(data, function (ctx, t, admin) {
     if (t["Статус"] !== "Изпълнена" && t["Статус"] !== "Оценена") return jsonResponse_({ success: false, code: "BAD_STATE", error: "Може да се оцени само изпълнена задача." });
-    var now = tkNow_();
-    var ch = { "Статус": "Оценена", "Оценка": String(score), "Коментар": tkClean_(data.comment, 2000),
-      "Оценена на": now, "Оценил": admin, "Обновено": now + " · оценена " + score + "/10 от " + admin };
+    // Групова задача: лична оценка за всеки от екипа (по желание — без нея важи общата).
+    var team = tkTeam_(t), mine = {}, raw = data.scores && typeof data.scores === "object" ? data.scores : {};
+    if (team.length > 1) {
+      for (var i = 0; i < team.length; i++) {
+        var v = raw[team[i]];
+        if (v == null || v === "" || v === 0) continue;
+        v = Number(v);
+        if (!okScore(v)) return jsonResponse_({ success: false, code: "BAD_SCORE", error: "Личната оценка на " + team[i] + " е от 1 до 10." });
+        mine[team[i]] = String(v);
+      }
+    }
+    var now = tkNow_(), personal = tkScoresText_(mine);
+    var ch = { "Статус": "Оценена", "Оценка": String(score), "Коментар": tkClean_(data.comment, 2000), "Лични оценки": personal,
+      "Оценена на": now, "Оценил": admin, "Обновено": now + " · оценена " + score + "/10" + (team.length > 1 ? " (група)" : "") + " от " + admin };
     tkWriteRow_(ctx, t._row, ch);
-    tkLog_(admin, "Оценка", t["Заглавие"], score + "/10 за " + t["Възложена на"]);
+    tkLog_(admin, "Оценка", t["Заглавие"], score + "/10 за " + (team.length > 1 ? "групата " + team.join(", ") + (personal ? "; лични: " + personal : "") : t["Възложена на"]));
     return jsonResponse_({ success: true, id: t["ID"], status: "Оценена", task: tkAfter_(t, ch) });
+  });
+}
+/* Смяна на участниците в задача (освен отменена). Лична оценка на махнат
+   участник се изтрива; промяната се записва в „Бележки". */
+function handleTasksTeam_(data) {
+  return tkAdminTask_(data, function (ctx, t, admin) {
+    if (t["Статус"] === "Отменена") return jsonResponse_({ success: false, code: "BAD_STATE", error: "Задачата е отменена." });
+    var staff = tkStaffPublic_(tkStaff_(tkOpen_())).map(function (s) { return s.name; });
+    var before = tkTeam_(t).slice(1);
+    // Вече записан участник, който после е премахнат от служителите, може да остане.
+    var team = tkTeamIn_(data.team, t["Възложена на"], staff.concat(before));
+    if (team.error) return jsonResponse_({ success: false, code: "BAD_TEAM", error: team.error });
+    var added = team.list.filter(function (n) { return before.indexOf(n) < 0; });
+    var gone = before.filter(function (n) { return team.list.indexOf(n) < 0; });
+    if (!added.length && !gone.length) return jsonResponse_({ success: true, id: t["ID"], unchanged: true, task: tkAfter_(t, {}) });
+    var scores = tkScores_(t);
+    gone.forEach(function (n) { delete scores[n]; });
+    var log = (added.length ? "добавени: " + added.join(", ") : "") + (added.length && gone.length ? "; " : "") + (gone.length ? "махнати: " + gone.join(", ") : "");
+    var ch = { "Участници": team.list.join(", "), "Лични оценки": tkScoresText_(scores),
+      "Бележки": tkAddNote_(t, admin, "участници — " + log), "Обновено": tkNow_() + " · участници · " + admin };
+    tkWriteRow_(ctx, t._row, ch);
+    tkLog_(admin, "Участници в задача", t["Заглавие"], log);
+    return jsonResponse_({ success: true, id: t["ID"], task: tkAfter_(t, ch) });
   });
 }
 function handleTasksCancel_(data) {
@@ -1717,7 +1802,7 @@ function handleTasksCancel_(data) {
     var now = tkNow_();
     var ch = { "Статус": "Отменена", "Обновено": now + " · отменена от " + admin };
     tkWriteRow_(ctx, t._row, ch);
-    tkLog_(admin, "Отмяна на задача", t["Заглавие"], t["Възложена на"]);
+    tkLog_(admin, "Отмяна на задача", t["Заглавие"], tkTeam_(t).join(", "));
     return jsonResponse_({ success: true, id: t["ID"], status: "Отменена", task: tkAfter_(t, ch) });
   });
 }
@@ -1738,7 +1823,7 @@ function handleTasksBoard_(data) {
   }).map(function (t) {
     var s = staff[t["Възложена на"]] || {};
     return { id: t["ID"], title: t["Заглавие"], category: t["Категория"], priority: t["Приоритет"],
-      assignee: t["Възложена на"], rank: s.rank || "", position: s.position || "", createdBy: t["Създал"],
+      assignee: t["Възложена на"], team: tkTeam_(t), rank: s.rank || "", position: s.position || "", createdBy: t["Създал"],
       created: t["Създадена"], due: t["Срок"], status: t["Статус"], doneAt: t["Изпълнена на"],
       overdue: tkOverdue_(t), late: tkLate_(t) };
   });
@@ -1758,12 +1843,12 @@ function handleTasksSetStatus_(data) {
     var from = t["Статус"], changes = {}, log = [];
     if (due !== null && due !== t["Срок"]) { changes["Срок"] = due; log.push("срок " + (t["Срок"] || "—") + " → " + (due || "—")); }
     if (to !== from) {
-      log.push("статус „" + from + "“ → „" + to + "“" + (from === "Оценена" ? " (беше " + t["Оценка"] + "/10" + (t["Коментар"] ? ": " + t["Коментар"] : "") + ")" : ""));
+      log.push("статус „" + from + "“ → „" + to + "“" + (from === "Оценена" ? " (беше " + t["Оценка"] + "/10" + (t["Лични оценки"] ? "; лични: " + t["Лични оценки"] : "") + (t["Коментар"] ? ": " + t["Коментар"] : "") + ")" : ""));
       var clear = function (keys) { keys.forEach(function (k) { changes[k] = ""; }); };
       if (to === "Възложена") {
-        clear(["Оценка", "Коментар", "Оценена на", "Оценил", "Изпълнена на", "Изпълнил", "Часове"]);
+        clear(["Оценка", "Лични оценки", "Коментар", "Оценена на", "Оценил", "Изпълнена на", "Изпълнил", "Часове"]);
       } else if (to === "Изпълнена") {
-        clear(["Оценка", "Коментар", "Оценена на", "Оценил"]);
+        clear(["Оценка", "Лични оценки", "Коментар", "Оценена на", "Оценил"]);
         if (from === "Възложена" || from === "Отменена" || !t["Изпълнена на"]) {
           changes["Изпълнена на"] = tkNow_(); changes["Изпълнил"] = t["Възложена на"];
           if (hours !== null) changes["Часове"] = String(Math.round(hours * 100) / 100);
@@ -1833,7 +1918,7 @@ function handleTasksStaffRemove_(data) {
     var ctx = tkSheet_(ss, TK_STAFF_SHEET, TK_STAFF_HEADERS);
     var s = tkRows_(ctx, TK_STAFF_HEADERS).filter(function (x) { return x["Име"] === name; })[0];
     if (!s) return jsonResponse_({ success: false, code: "NOT_FOUND", error: "Няма такъв служител." });
-    var open = tkRows_(tkSheet_(ss, TK_SHEET, TK_HEADERS), TK_HEADERS).filter(function (t) { return t["Възложена на"] === name && t["Статус"] === "Възложена"; }).length;
+    var open = tkRows_(tkSheet_(ss, TK_SHEET, TK_HEADERS), TK_HEADERS).filter(function (t) { return t["Статус"] === "Възложена" && tkInTeam_(t, name); }).length;
     if (open && !data.force) return jsonResponse_({ success: false, code: "HAS_OPEN", open: open, error: name + " има " + open + " отворени задачи." });
     tkWriteRow_(ctx, s._row, { "Активен": "не" });
     tkLog_(admin, "Премахнат служител", name, open ? open + " отворени задачи" : "");
@@ -2090,7 +2175,7 @@ function tkTaskStats_(ss, today) {
     if (!t["ID"]) return;
     if (t["Статус"] === "Възложена") {
       out.open++;
-      if (tkOverdue_(t)) { out.overdue++; lateBy[t["Възложена на"]] = (lateBy[t["Възложена на"]] || 0) + 1; }
+      if (tkOverdue_(t)) { out.overdue++; tkTeam_(t).forEach(function (n) { lateBy[n] = (lateBy[n] || 0) + 1; }); }
     }
     if (t["Статус"] === "Изпълнена") out.waiting++;
     var dd = tkDay_(t["Изпълнена на"]);
