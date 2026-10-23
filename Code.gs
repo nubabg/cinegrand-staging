@@ -61,7 +61,7 @@ function doGet(e) {
         data = header.concat(body);
         limited = true;
       } else {
-        data = sheet.getDataRange().getDisplayValues();
+        data = infoAll_(sheet);
       }
       // limited казва на клиента, че липсва история — само тогава той си
       // дърпа пълния лист, когато потребителят отвори „Данни".
@@ -108,6 +108,73 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
+// -----------------------------------------------------------
+// Основна база на ИНФО в кеша
+// -----------------------------------------------------------
+// Целият лист се чете бавно (над 30 с), а старите проверки не се менят.
+// Затова копие на листа стои в кеша на Apps Script до 6 часа, а при всяка
+// заявка от таблицата се дочитат само новите редове плюс последните
+// INFO_SNAP_RECHECK (ако някой е поправил скорошен ред на ръка). Целият лист
+// се чете само когато копието липсва — най-много веднъж на 6 часа.
+var INFO_SNAP_TTL = 21600;
+var INFO_SNAP_RECHECK = 30;
+var INFO_SNAP_PART = 40000;   // знаци на парче (кешът побира до 100 KB на ключ)
+
+function infoSnapRead_(cache) {
+  var meta = cache.get("info_snap_meta");
+  if (!meta) return null;
+  try { meta = JSON.parse(meta); } catch (_) { return null; }
+  // Подновяването пази часа на последното пълно четене — иначе ръчна
+  // поправка в стар ред можеше никога да не стигне до копието.
+  if (!(Date.now() - meta.full < INFO_SNAP_TTL * 1000)) return null;
+  var keys = [];
+  for (var i = 0; i < meta.parts; i++) keys.push("info_snap_" + meta.id + "_" + i);
+  var got = keys.length ? cache.getAll(keys) : {}, rows = [];
+  for (var k = 0; k < keys.length; k++) {
+    if (!got[keys[k]]) return null;   // част е изтрита от кеша → чете се наново
+    rows = rows.concat(JSON.parse(got[keys[k]]));
+  }
+  if (rows.length !== meta.last - 1) return null;
+  return { last: meta.last, cols: meta.cols, full: meta.full, rows: rows };
+}
+
+function infoSnapWrite_(cache, rows, last, cols, full) {
+  try {
+    var id = String(Date.now()), parts = {}, n = 0, chunk = [], size = 0;
+    rows.forEach(function (r) {
+      var len = JSON.stringify(r).length + 1;
+      if (chunk.length && size + len > INFO_SNAP_PART) { parts["info_snap_" + id + "_" + n++] = JSON.stringify(chunk); chunk = []; size = 0; }
+      chunk.push(r); size += len;
+    });
+    if (chunk.length) parts["info_snap_" + id + "_" + n++] = JSON.stringify(chunk);
+    cache.putAll(parts, INFO_SNAP_TTL);
+    // Описанието се записва последно: докато го няма, старото копие важи.
+    cache.put("info_snap_meta", JSON.stringify({ id: id, parts: n, last: last, cols: cols, full: full }), INFO_SNAP_TTL);
+  } catch (e) { Logger.log("infoSnapWrite_: " + e); }
+}
+
+/* Целият лист ИНФО (заглавие + редове) като getDataRange().getDisplayValues(). */
+function infoAll_(sheet) {
+  var cache = CacheService.getScriptCache();
+  var last = sheet.getLastRow(), cols = sheet.getLastColumn();
+  if (last < 1 || cols < 1) return [];
+  var header = sheet.getRange(1, 1, 1, cols).getDisplayValues();
+  if (last < 2) return header;
+  var snap = infoSnapRead_(cache);
+  // Изтрити редове или нови колони → копието не става, чете се наново.
+  if (snap && snap.cols === cols && last >= snap.last) {
+    var from = Math.max(2, snap.last - INFO_SNAP_RECHECK + 1);
+    var tail = sheet.getRange(from, 1, last - from + 1, cols).getDisplayValues();
+    var rows = snap.rows.slice(0, from - 2).concat(tail);
+    // Копието се подновява, когато са се натрупали много нови редове.
+    if (last - snap.last >= 100) infoSnapWrite_(cache, rows, last, cols, snap.full);
+    return header.concat(rows);
+  }
+  var body = sheet.getRange(2, 1, last - 1, cols).getDisplayValues();
+  infoSnapWrite_(cache, body, last, cols, Date.now());
+  return header.concat(body);
+}
+
 // -----------------------------------------------------------
 // 2. doPost(e) - получава данни от сайта и записва в ИНФО
 // -----------------------------------------------------------
@@ -2125,8 +2192,13 @@ function handleTasksOverview_(data) {
   return ContentService.createTextOutput(hit || tkOverviewBuild_()).setMimeType(ContentService.MimeType.JSON);
 }
 /* По желание: тригер по време (Apps Script → Тригери → warmOverview, на
-   всеки 10 минути) държи обзора винаги готов в кеша. */
-function warmOverview() { tkOverviewBuild_(); }
+   всеки 10 минути) държи обзора и основната база на ИНФО винаги готови
+   в кеша, така че никой не чака пълното четене. */
+function warmOverview() {
+  tkOverviewBuild_();
+  var ss = tkOpen_();
+  infoAll_(ss.getSheetByName("ИНФО") || ss.getSheetByName("Sheet1") || ss.getSheets()[0]);
+}
 
 /* ══════════════════════════════════════════════════════════════
    ЛОГ НА АДМИНИСТРАТОРИТЕ — кой какво е направил и кога. Всяко действие
