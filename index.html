@@ -9064,7 +9064,7 @@
         if (tk.history) {
           const r = tk.history.filter((x) => x.score);
           const avg = r.length ? r.reduce((s, x) => s + Number(x.score), 0) / r.length : null;
-          const hours = tk.history.reduce((s, x) => s + (Number(x.hours) || 0), 0);
+          const hours = tk.history.reduce((s, x) => s + (tkTeamOf(x).length < 2 || x.doneBy === tk.name ? Number(x.hours) || 0 : 0), 0);
           stats = `<div class="tk-stats"><div><b>${tk.history.filter(tkIsDone).length}</b><span>${tkT("Изпълнени", "Completed")}</span></div>
             <div><b>${avg == null ? "—" : fmt1(avg)}</b><span>${tkT("Средна оценка", "Average rating")}</span></div>
             <div><b>${fmt1(hours)}</b><span>${tkT("Общо часове", "Total hours")}</span></div></div>`;

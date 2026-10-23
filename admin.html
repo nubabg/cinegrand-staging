@@ -739,6 +739,8 @@
   const teamOf = (x) => x.team && x.team.length ? x.team : [x.assignee];
   const inTeam = (x, name) => teamOf(x).includes(name);
   const scoreOf = (x, name) => (x.scores && x.scores[name]) || x.score;
+  /* Часовете са на този, който приключи задачата — не на целия екип. */
+  const hoursOf = (x, name) => teamOf(x).length < 2 || x.doneBy === name ? Number(x.hours) : 0;
   const teamTag = (x) => teamOf(x).length > 1 ? ` <span class="tag" title="${esc(teamOf(x).join(", "))}">${ic("users")}+${teamOf(x).length - 1}</span>` : "";
   const isoToBg = (iso) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? `${m[3]}.${m[2]}.${m[1]}` : ""; };
   const parseBg = (s) => { const m = /(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?/.exec(s || ""); return m ? new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)).getTime() : 0; };
@@ -1053,7 +1055,7 @@
     S.tasks.forEach((x) => { teamOf(x).forEach((n) => { (by[n] = by[n] || []).push(x); }); });
     const names = S.staff.map((s) => s.name).filter((n) => by[n]).concat(Object.keys(by).filter((n) => !S.staff.some((s) => s.name === n)));
     const sel = S.histName && by[S.histName] ? S.histName : "";
-    const statsOf = (arr, n) => { const rated = arr.filter((x) => scoreOf(x, n)); const hours = arr.reduce((s, x) => s + (Number(x.hours) || 0), 0);
+    const statsOf = (arr, n) => { const rated = arr.filter((x) => scoreOf(x, n)); const hours = arr.reduce((s, x) => s + (hoursOf(x, n) || 0), 0);
       return { done: arr.filter((x) => x.status === "Изпълнена" || x.status === "Оценена").length, waiting: arr.filter((x) => x.status === "Изпълнена").length,
         open: arr.filter((x) => x.status === "Възложена").length, late: arr.filter((x) => x.overdue > 0).length, avg: rated.length ? (rated.reduce((s, x) => s + Number(scoreOf(x, n)), 0) / rated.length) : null, hours }; };
     const fmtN = (n, d) => n == null ? "—" : (lang === "en" ? n.toFixed(d) : n.toFixed(d).replace(".", ","));
@@ -1068,7 +1070,7 @@
         <div class="stats" style="margin-top:16px"><div class="stat"><b>${st.done}</b><span>${t("Изпълнени")}</span></div><div class="stat"><b>${st.avg == null ? "—" : fmtN(st.avg, 1)}</b><span>${t("Средна оценка")}</span></div>
           <div class="stat"><b>${fmtN(st.hours, 1)}</b><span>${t("Общо часове")}</span></div><div class="stat"><b>${st.open}</b><span>${t("Възложени")}</span></div>${st.late ? `<div class="stat" style="border-color:var(--red);background:var(--red-soft)"><b style="color:var(--red)">${st.late}</b><span>${t("Просрочени")}</span></div>` : ""}</div>
         <table class="tlist"><thead><tr><th>${t("Задача")}</th><th>${t("Статус")}</th><th>${t("Часове")}</th><th>${t("Оценка")}</th></tr></thead><tbody>
-          ${arr.map((x) => `<tr data-open="${esc(x.id)}" tabindex="0"${x.overdue ? ' class="late"' : ""}><td><div class="t-title">${esc(x.title)}${teamTag(x)}</div>${x.comment ? `<div class="t-sub">${esc(x.comment)}</div>` : ""}</td><td>${x.overdue ? lateBadge(x.overdue) : badge(x.status)}</td><td>${esc(x.hours || "—")}</td><td>${scoreOf(x, sel) ? `<b>${esc(scoreOf(x, sel))}</b>/10${teamOf(x).length > 1 && x.score ? ` <span class="t-sub">(${t("група")} ${esc(x.score)})</span>` : ""}` : "—"}</td></tr>`).join("")}
+          ${arr.map((x) => `<tr data-open="${esc(x.id)}" tabindex="0"${x.overdue ? ' class="late"' : ""}><td><div class="t-title">${esc(x.title)}${teamTag(x)}</div>${x.comment ? `<div class="t-sub">${esc(x.comment)}</div>` : ""}</td><td>${x.overdue ? lateBadge(x.overdue) : badge(x.status)}</td><td>${hoursOf(x, sel) ? esc(x.hours) : "—"}</td><td>${scoreOf(x, sel) ? `<b>${esc(scoreOf(x, sel))}</b>/10${teamOf(x).length > 1 && x.score ? ` <span class="t-sub">(${t("група")} ${esc(x.score)})</span>` : ""}` : "—"}</td></tr>`).join("")}
         </tbody></table></div></div>`;
   }
 
