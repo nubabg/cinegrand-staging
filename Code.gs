@@ -124,6 +124,9 @@ function infoSnapRead_(cache) {
   var meta = cache.get("info_snap_meta");
   if (!meta) return null;
   try { meta = JSON.parse(meta); } catch (_) { return null; }
+  // Подновяването пази часа на последното пълно четене — иначе ръчна
+  // поправка в стар ред можеше никога да не стигне до копието.
+  if (!(Date.now() - meta.full < INFO_SNAP_TTL * 1000)) return null;
   var keys = [];
   for (var i = 0; i < meta.parts; i++) keys.push("info_snap_" + meta.id + "_" + i);
   var got = keys.length ? cache.getAll(keys) : {}, rows = [];
@@ -132,10 +135,10 @@ function infoSnapRead_(cache) {
     rows = rows.concat(JSON.parse(got[keys[k]]));
   }
   if (rows.length !== meta.last - 1) return null;
-  return { last: meta.last, cols: meta.cols, rows: rows };
+  return { last: meta.last, cols: meta.cols, full: meta.full, rows: rows };
 }
 
-function infoSnapWrite_(cache, rows, last, cols) {
+function infoSnapWrite_(cache, rows, last, cols, full) {
   try {
     var id = String(Date.now()), parts = {}, n = 0, chunk = [], size = 0;
     rows.forEach(function (r) {
@@ -146,7 +149,7 @@ function infoSnapWrite_(cache, rows, last, cols) {
     if (chunk.length) parts["info_snap_" + id + "_" + n++] = JSON.stringify(chunk);
     cache.putAll(parts, INFO_SNAP_TTL);
     // Описанието се записва последно: докато го няма, старото копие важи.
-    cache.put("info_snap_meta", JSON.stringify({ id: id, parts: n, last: last, cols: cols }), INFO_SNAP_TTL);
+    cache.put("info_snap_meta", JSON.stringify({ id: id, parts: n, last: last, cols: cols, full: full }), INFO_SNAP_TTL);
   } catch (e) { Logger.log("infoSnapWrite_: " + e); }
 }
 
@@ -164,11 +167,11 @@ function infoAll_(sheet) {
     var tail = sheet.getRange(from, 1, last - from + 1, cols).getDisplayValues();
     var rows = snap.rows.slice(0, from - 2).concat(tail);
     // Копието се подновява, когато са се натрупали много нови редове.
-    if (last - snap.last >= 100) infoSnapWrite_(cache, rows, last, cols);
+    if (last - snap.last >= 100) infoSnapWrite_(cache, rows, last, cols, snap.full);
     return header.concat(rows);
   }
   var body = sheet.getRange(2, 1, last - 1, cols).getDisplayValues();
-  infoSnapWrite_(cache, body, last, cols);
+  infoSnapWrite_(cache, body, last, cols, Date.now());
   return header.concat(body);
 }
 
