@@ -2698,10 +2698,11 @@
       .cg-action-tile {
         appearance: none;
         display: grid;
-        grid-template-rows: auto 1fr;
-        gap: var(--s2);
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 6px;
         width: 100%;
         min-width: 0;
+        min-height: 0;
         aspect-ratio: 1;
         padding: clamp(10px, 2cqi, 15px);
         border: 1px solid var(--border-strong);
@@ -2731,8 +2732,8 @@
       .cg-action-tile-icon {
         display: grid;
         place-items: center;
-        width: 36px;
-        height: 36px;
+        width: clamp(28px, 6cqi, 36px);
+        height: clamp(28px, 6cqi, 36px);
         border: 1px solid rgba(var(--gold-rgb),.28);
         border-radius: 7px;
         background: var(--gold-soft);
@@ -2753,7 +2754,7 @@
       }
       .cg-action-tile-sub {
         color: var(--muted);
-        font-size: var(--fs-meta);
+        font-size: clamp(.6875rem, 2.2cqi, var(--fs-meta));
         line-height: 1.25;
       }
       @container home-actions (max-width: 600px) {
