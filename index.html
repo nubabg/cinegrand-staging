@@ -2685,6 +2685,83 @@
           padding-inline: 0;
         }
       }
+      .cg-home-actions {
+        container: home-actions / inline-size;
+        margin-bottom: var(--s6);
+        padding: clamp(12px, 3vw, 20px);
+      }
+      .cg-action-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 176px));
+        gap: var(--s3);
+      }
+      .cg-action-tile {
+        appearance: none;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        gap: var(--s2);
+        width: 100%;
+        min-width: 0;
+        aspect-ratio: 1;
+        padding: clamp(10px, 2cqi, 15px);
+        border: 1px solid var(--border-strong);
+        border-radius: 8px;
+        background: linear-gradient(150deg, var(--panel-2), var(--panel));
+        color: var(--text);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), var(--shadow-2);
+        text-align: start;
+        font: inherit;
+        cursor: pointer;
+        transition: background .15s ease, border-color .15s ease;
+      }
+      .cg-action-tile:hover {
+        background: var(--panel-2-hover);
+        border-color: var(--gold-2);
+      }
+      .cg-action-tile:focus-visible {
+        outline: 2px solid var(--gold-2);
+        outline-offset: 2px;
+      }
+      .cg-action-tile-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--s2);
+      }
+      .cg-action-tile-icon {
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        border: 1px solid rgba(var(--gold-rgb),.28);
+        border-radius: 7px;
+        background: var(--gold-soft);
+        color: var(--gold-2);
+      }
+      .cg-action-tile-arrow { color: var(--gold-2); }
+      .cg-action-tile-copy {
+        align-self: end;
+        display: grid;
+        gap: var(--s1);
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .cg-action-tile-title {
+        font-size: clamp(.9375rem, 2.5cqi, 1.0625rem);
+        font-weight: 700;
+        line-height: 1.2;
+      }
+      .cg-action-tile-sub {
+        color: var(--muted);
+        font-size: var(--fs-meta);
+        line-height: 1.25;
+      }
+      @container home-actions (max-width: 600px) {
+        .cg-action-grid { grid-template-columns: repeat(2, minmax(0, 176px)); }
+      }
+      @container home-actions (max-width: 249px) {
+        .cg-action-grid { grid-template-columns: minmax(0, 176px); }
+      }
     </style>
   </head>
   <body>
@@ -2779,6 +2856,9 @@
         <ellipse cx="12" cy="16.25" rx="8.25" ry="4.25" fill="none" stroke="currentColor" stroke-width="1.75"/>
         <path d="M8.4 5.25h7.2l-.85 10.3a2 2 0 0 1-2 1.85h-1.5a2 2 0 0 1-2-1.85L8.4 5.25Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
         <path d="M7.65 7.8h8.7M10.4 3.25h3.2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+      </symbol>
+      <symbol id="cg-popcorn" viewBox="0 0 24 24">
+        <path d="M4 9h16l-2.5 11H6.5L4 9ZM9 12l1 5m5-5-1 5M6 9a2.5 2.5 0 0 1 3-3 3.1 3.1 0 0 1 6 0 2.5 2.5 0 0 1 3 3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
       </symbol>
       <symbol id="cg-cinema-seat" viewBox="0 0 24 24">
         <rect x="7" y="3.25" width="10" height="10.5" rx="2.75" fill="none" stroke="currentColor" stroke-width="1.75"/>
@@ -4205,6 +4285,7 @@
         "Нова Проверка": "New Inspection",
         "Избери типа на проверката и започни въвеждането.": "Choose the inspection type and start.",
         "Кинозала": "Cinema Hall", "Тоалетни": "Restrooms", "Тоалетна": "Restroom",
+        "Санитарен Възел": "Restroom", "Съблекални": "Changing Rooms", "Машини за пуканки": "Popcorn Machines",
         "Зали 1–6": "Halls 1–6", "Започни проверка": "Start Inspection",
         "Почистване на съблекалня": "Changing Room Cleaning", "Мъжка / Женска": "Male / Female",
         "Отчети почистване": "Cleaning Reports",
@@ -4212,7 +4293,7 @@
         "Солена и карамел": "Salted and caramel", "Отвори графика": "Open schedule",
         "Машина": "Machine", "Участници": "Participants", "Солена": "Salted", "Карамел": "Caramel",
         "Вписани участници": "Recorded participants",
-        "Имена могат да се вписват само на датата на почистването по софийско време.": "Names can only be recorded on the cleaning date in Sofia time.",
+        "Имена могат да се вписват само на датата, посочена в графика.": "Names can only be recorded on the date shown in the schedule.",
         "Вписването е възможно само на датата на почистването.": "Names can only be recorded on the cleaning date.",
         "Няма вписани имена": "No names recorded", "Впиши имена": "Enter names",
         "Имена на участниците, разделени със запетая": "Participant names, separated by commas",
@@ -6843,6 +6924,15 @@
       }
 
       function renderHome() {
+        const quickActions = [
+          ...Object.entries(CONFIGS).map(([type, cfg]) => ({
+            action: "start-inspection", type, title: cfg.shortTitle,
+            sub: type === "hall" ? "Зали 1–6" : "Тоалетни",
+            icon: type === "hall" ? "hall" : "restroom-women",
+          })),
+          { action: "start-changing-room", title: "Съблекални", sub: "Мъжка / Женска", icon: "locker-women" },
+          { action: "start-popcorn", title: "Машини за пуканки", sub: "Солена и карамел", icon: "popcorn" },
+        ];
         const _ann = cgGetAnn();
         const _annHtml = _ann
           ? renderAnnouncementBanner(_ann)
@@ -6868,44 +6958,19 @@
           ${renderFeatureAnnouncement()}
           ${_annHtml}
 
-          <div style="margin-bottom:24px;">
-            <div class="panel">
-              <div class="toolbar"><h3 class="section-title" style="margin:0;">Нова Проверка</h3><span class="meta-chip">Quick Start</span></div>
-              <div class="muted" style="margin-bottom:16px;">Избери типа на проверката и започни въвеждането.</div>
-              <div class="grid cards-2 cg-action-grid">${Object.entries(CONFIGS).map(([key, cfg]) => `
-                <div class="panel card-pick" data-action="start-inspection" data-type="${key}">
-                  <div class="card-head" style="border-left:3px solid ${key === "hall" ? "var(--gold)" : "var(--blue)"};">
-                    <span class="card-text-icon">${key === "hall" ? "КИНО ЗАЛА" : "WC"}</span>
-                    <div style="font-size:22px;font-weight:700;position:relative;z-index:1;">${cfg.shortTitle}</div>
-                    <div class="muted" style="position:relative;z-index:1;">${key === "hall" ? "Зали 1–6" : "Тоалетни"}</div>
-                  </div>
-                  <div class="card-body">
-                    <div class="tag-list">${cfg.tags.map((t) => `<span class="tag">${t}</span>`).join("")}</div>
-                    <div class="btn btn-gold" style="text-align:center;">Започни проверка</div>
-                  </div>
-                </div>`).join("")}
-                <div class="panel card-pick" data-action="start-changing-room">
-                  <div class="card-head" style="border-left:3px solid var(--purple);">
-                    <span class="card-text-icon">СЪБЛЕКАЛНИЯ</span>
-                    <div style="font-size:22px;font-weight:700;position:relative;z-index:1;">Почистване на съблекалня</div>
-                    <div class="muted" style="position:relative;z-index:1;">Мъжка / Женска</div>
-                  </div>
-                  <div class="card-body">
-                    <div class="tag-list"><span class="tag">График</span><span class="tag">Отчет</span><span class="tag">Почистване</span></div>
-                    <div class="btn btn-gold" style="text-align:center;">Отчети почистване</div>
-                  </div>
-                </div>
-                <div class="panel card-pick" data-action="start-popcorn">
-                  <div class="card-head" style="border-left:3px solid var(--gold);">
-                    ${cgIcon("inspection", 24)}
-                    <div style="font-size:22px;font-weight:700;">Почистване на машини за пуканки</div>
-                    <div class="muted">Солена и карамел</div>
-                  </div>
-                  <div class="card-body">
-                    <div class="btn btn-gold" style="text-align:center;">Отвори графика</div>
-                  </div>
-                </div>
-              </div>
+          <div class="panel cg-home-actions">
+            <div class="toolbar"><h3 class="section-title" style="margin:0;">Нова Проверка</h3><span class="meta-chip">Quick Start</span></div>
+            <div class="cg-action-grid">${quickActions.map(({ action, type, title, sub, icon }) => `
+              <button type="button" class="cg-action-tile" data-action="${action}"${type ? ` data-type="${type}"` : ""}>
+                <span class="cg-action-tile-top">
+                  <span class="cg-action-tile-icon">${cgIcon(icon, 21)}</span>
+                  <span class="cg-action-tile-arrow">${cgIcon("tk-arrow", 18)}</span>
+                </span>
+                <span class="cg-action-tile-copy">
+                  <span class="cg-action-tile-title">${title}</span>
+                  <span class="cg-action-tile-sub">${sub}</span>
+                </span>
+              </button>`).join("")}
             </div>
           </div>
 
@@ -9776,7 +9841,7 @@
               <h2 class="section-title" style="margin:0;">Почистване на машини за пуканки</h2>
               <button type="button" class="btn btn-outline" data-action="start-popcorn" ${busy ? "disabled" : ""}>Обнови</button>
             </div>
-            <p class="muted">Имена могат да се вписват само на датата на почистването по софийско време.</p>
+            <p class="muted">Имена могат да се вписват само на датата, посочена в графика.</p>
             ${popcorn.loading ? `<div class="charts-loading" role="status">${spokes("")}<span>Зареждане на график…</span></div>` : ""}
             ${popcorn.error ? `<p role="alert" style="color:var(--red-2);">${escapeHtml(popcorn.error)}</p>` : ""}
             ${entry ? `<form id="popcorn-entry-form" style="margin-bottom:var(--s4);">
