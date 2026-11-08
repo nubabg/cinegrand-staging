@@ -4208,6 +4208,16 @@
         "Зали 1–6": "Halls 1–6", "Започни проверка": "Start Inspection",
         "Почистване на съблекалня": "Changing Room Cleaning", "Мъжка / Женска": "Male / Female",
         "Отчети почистване": "Cleaning Reports",
+        "Почистване на машини за пуканки": "Popcorn Machine Cleaning",
+        "Солена и карамел": "Salted and caramel", "Отвори графика": "Open schedule",
+        "Машина": "Machine", "Участници": "Participants", "Солена": "Salted", "Карамел": "Caramel",
+        "Няма вписани имена": "No names recorded", "Впиши имена": "Enter names",
+        "Имена на участниците, разделени със запетая": "Participant names, separated by commas",
+        "Запиши участниците": "Save participants", "Няма записи в графика.": "No entries in the schedule.",
+        "Графикът за пуканки не се зареди. Натисни „Обнови“.": "Could not load the popcorn schedule. Select Refresh.",
+        "Въведи до 20 имена, разделени със запетаи.": "Enter up to 20 names, separated by commas.",
+        "Записът не е потвърден. Опитай отново.": "The save was not confirmed. Try again.",
+        "Редът е променен или вече попълнен. Провери обновения график.": "The row changed or was already filled. Check the updated schedule.",
         "График": "Schedule", "Отчет": "Report", "Почистване": "Cleaning",
         "＋ Добави важно съобщение": "＋ Add important announcement",
         /* Статус на проверките */
@@ -6871,7 +6881,7 @@
                     <div class="btn btn-gold" style="text-align:center;">Започни проверка</div>
                   </div>
                 </div>`).join("")}
-                <div class="panel card-pick" data-action="start-changing-room" style="grid-column:1/-1;">
+                <div class="panel card-pick" data-action="start-changing-room">
                   <div class="card-head" style="border-left:3px solid var(--purple);">
                     <span class="card-text-icon">СЪБЛЕКАЛНИЯ</span>
                     <div style="font-size:22px;font-weight:700;position:relative;z-index:1;">Почистване на съблекалня</div>
@@ -6880,6 +6890,16 @@
                   <div class="card-body">
                     <div class="tag-list"><span class="tag">График</span><span class="tag">Отчет</span><span class="tag">Почистване</span></div>
                     <div class="btn btn-gold" style="text-align:center;">Отчети почистване</div>
+                  </div>
+                </div>
+                <div class="panel card-pick" data-action="start-popcorn">
+                  <div class="card-head" style="border-left:3px solid var(--gold);">
+                    ${cgIcon("inspection", 24)}
+                    <div style="font-size:22px;font-weight:700;">Почистване на машини за пуканки</div>
+                    <div class="muted">Солена и карамел</div>
+                  </div>
+                  <div class="card-body">
+                    <div class="btn btn-gold" style="text-align:center;">Отвори графика</div>
                   </div>
                 </div>
               </div>
@@ -9717,6 +9737,113 @@
       }
       return t;
     }
+
+      const popcorn = { rows: [], selected: null, names: "", loading: false, saving: false, error: "" };
+
+      function renderPopcornSchedule() {
+        const entry = popcorn.selected;
+        const busy = popcorn.loading || popcorn.saving;
+        const table = popcorn.rows.length ? `
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Дата</th><th>Машина</th><th>Участници</th><th></th></tr></thead>
+              <tbody>${popcorn.rows.map(row => `
+                <tr>
+                  <td>${escapeHtml(row.date)}</td>
+                  <td><span class="tag">${row.machine === "СОЛЕНА" ? "Солена" : "Карамел"}</span></td>
+                  <td>${row.names ? escapeHtml(row.names) : '<span class="muted">Няма вписани имена</span>'}</td>
+                  <td>${row.names ? "" : `<button type="button" class="btn btn-outline" data-action="popcorn-select" data-row="${row.row}" ${busy ? "disabled" : ""}>Впиши имена</button>`}</td>
+                </tr>
+              `).join("")}</tbody>
+            </table>
+          </div>` : "";
+        return `<div class="page">
+          <div class="panel">
+            <div class="toolbar">
+              <button type="button" class="btn-back" data-action="go-home">← Назад</button>
+              <h2 class="section-title" style="margin:0;">Почистване на машини за пуканки</h2>
+              <button type="button" class="btn btn-outline" data-action="start-popcorn" ${busy ? "disabled" : ""}>Обнови</button>
+            </div>
+            ${popcorn.loading ? `<div class="charts-loading" role="status">${spokes("")}<span>Зареждане на график…</span></div>` : ""}
+            ${popcorn.error ? `<p role="alert" style="color:var(--red-2);">${escapeHtml(popcorn.error)}</p>` : ""}
+            ${entry ? `<form id="popcorn-entry-form" style="margin-bottom:var(--s4);">
+              <div class="field">
+                <label for="popcorn-names">Имена на участниците, разделени със запетая</label>
+                <p class="muted">${escapeHtml(entry.date)} · <span>${entry.machine === "СОЛЕНА" ? "Солена" : "Карамел"}</span></p>
+                <input id="popcorn-names" type="text" value="${escapeHtml(popcorn.names)}" required maxlength="240" autocomplete="off" ${busy ? "disabled" : ""}>
+              </div>
+              <button class="btn btn-gold" type="submit" ${busy ? "disabled" : ""}>${popcorn.saving ? "Записване…" : "Запиши участниците"}</button>
+            </form>` : ""}
+            ${table}
+            ${!popcorn.loading && !popcorn.error && !table ? '<p class="muted">Няма записи в графика.</p>' : ""}
+          </div>
+        </div>`;
+      }
+
+      async function loadPopcornSchedule() {
+        if (popcorn.loading || popcorn.saving) return;
+        popcorn.loading = true;
+        popcorn.error = "";
+        popcorn.selected = null;
+        render();
+        try {
+          if (!isSheetsConfigured()) throw new Error("Sheets is not configured");
+          const query = new URLSearchParams({ action: "getPopcornSchedule", _token: SHEETS_SECRET_TOKEN });
+          const result = await fetchJsonRetry(SHEETS_WEB_APP_URL + "?" + query, { cache: "no-store", redirect: "follow" });
+          if (!result || !result.success || !Array.isArray(result.rows)) throw new Error("Invalid schedule");
+          popcorn.rows = result.rows;
+        } catch (_) {
+          popcorn.error = "Графикът за пуканки не се зареди. Натисни „Обнови“.";
+        } finally {
+          popcorn.loading = false;
+          if (state.screen === "popcorn") render();
+        }
+      }
+
+      async function savePopcornEntry() {
+        const entry = popcorn.selected;
+        if (!entry || popcorn.loading || popcorn.saving) return;
+        popcorn.saving = true;
+        popcorn.error = "";
+        let reload = false;
+        render();
+        try {
+          const result = await fetchJsonRetry(SHEETS_WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            body: JSON.stringify({
+              action: "updatePopcornCleaning", _token: SHEETS_SECRET_TOKEN,
+              row: entry.row, label: entry.label, names: popcorn.names
+            })
+          }, { timeouts: [20000, 28000], backoffs: [1200] });
+          if (result && result.success) {
+            entry.names = result.names;
+            popcorn.selected = null;
+            popcorn.names = "";
+            if (state.screen === "popcorn") showToast("Записано успешно!", "success");
+          } else if (result && ["row_changed", "already_filled"].includes(result.error)) {
+            reload = true;
+          } else if (result && ["invalid_names", "invalid_entry"].includes(result.error)) {
+            popcorn.error = "Въведи до 20 имена, разделени със запетаи.";
+          } else {
+            throw new Error("Write failed");
+          }
+        } catch (_) {
+          popcorn.error = "Записът не е потвърден. Опитай отново.";
+        } finally {
+          popcorn.saving = false;
+        }
+        if (reload) {
+          if (state.screen === "popcorn") {
+            await loadPopcornSchedule();
+            if (state.screen === "popcorn") showToast("Редът е променен или вече попълнен. Провери обновения график.", "error");
+          } else {
+            popcorn.selected = null;
+          }
+        }
+        if (state.screen === "popcorn") render();
+      }
+
       /* Fetch all rows from "Почистване съблекални" sheet през Apps Script */
       async function fetchChangingRoomData() {
         state.crLoading = true;
@@ -10028,6 +10155,7 @@
           state.screen === "tasks" ? renderTasksScreen() :
           state.screen === "select-cr" ? renderChangingRoomSelect() :
           state.screen === "cr-detail" ? renderChangingRoomDetail() :
+          state.screen === "popcorn" ? renderPopcornSchedule() :
           state.screen === "phone-photo-upload" ? renderPhonePhotoUpload() :
           renderHome();
         app.innerHTML = renderShell(content);
@@ -10069,6 +10197,7 @@
         { icon: "hall", label: "Проверка на зали", sub: "Кинозала — Зали 1–6", action: "start-inspection", type: "hall" },
         { icon: "restroom-women", label: "Проверка на тоалетни", sub: "Санитарен Възел — WC", action: "start-inspection", type: "bathroom" },
         { icon: "locker-women", label: "Почистване на съблекалня", sub: "Мъжка / Женска съблекалня", action: "start-changing-room" },
+        { icon: "inspection", label: "Почистване на машини за пуканки", sub: "Солена и карамел", action: "start-popcorn" },
         { icon: "data", label: "Данни и статистики", sub: "Графики от Sheets", action: "go-charts" },
         { icon: "inspection", label: "Начало", sub: "Главен екран", action: "go-home" },
         { icon: "qr", label: "QR кодове", sub: "Генерирай и принтирай QR", action: "open-qr" },
@@ -10272,6 +10401,12 @@
         bind("export-range-select", "change", (e) => { state.exportRange = e.target.value; render(); });
         bind("history-type-filter", "change", (e) => { state.historyTypeFilter = e.target.value; render(); });
         bind("history-location-filter", "change", (e) => { state.historyLocationFilter = e.target.value; render(); });
+        bind("popcorn-names", "input", (e) => { popcorn.names = e.target.value; });
+        bind("popcorn-entry-form", "submit", (e) => {
+          e.preventDefault();
+          popcorn.names = el("popcorn-names").value;
+          savePopcornEntry();
+        });
         bind("cr-name-input", "input", (e) => {
           const filtered = e.target.value.replace(/[^\u0400-\u04FF ]/g, "");
           e.target.value = filtered;
@@ -10370,6 +10505,21 @@
           document.querySelectorAll('.day-filter-btn').forEach(b => b.classList.remove('active'));
           cgRenderDayChart(keys);
           _calClose();
+          return;
+        }
+
+        if (action === "start-popcorn") {
+          state.screen = "popcorn";
+          if (popcorn.loading || popcorn.saving) render();
+          else loadPopcornSchedule();
+          return;
+        }
+        if (action === "popcorn-select") {
+          if (state.screen !== "popcorn" || popcorn.loading || popcorn.saving) return;
+          popcorn.selected = popcorn.rows.find(row => row.row === Number(btn.dataset.row) && !row.names) || null;
+          popcorn.error = "";
+          render();
+          document.getElementById("popcorn-names")?.focus();
           return;
         }
 

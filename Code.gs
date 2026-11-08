@@ -86,6 +86,8 @@ function doGet(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+    if (action === "getPopcornSchedule") return popcornSchedule_(ss);
+
     if (action === "getChangingRooms") {
       var sheet = getSheetLoose_(ss, CHANGING_ROOMS_SHEET);
       if (!sheet) {
@@ -128,6 +130,7 @@ function doPost(e) {
     if (data.action === "checkLock") return handleCheckLock_(data);
     if (data.action === "acquireLockFirstFree") return handleAcquireLockFirstFree_(data);
     if (data.action === "updateChangingRoom") return handleUpdateChangingRoom_(data);
+    if (data.action === "updatePopcornCleaning") return handleUpdatePopcornCleaning_(data);
     if (data.action === "uploadPhoto") return handleUploadPhoto_(data);
     if (data.action === "getPhotosBySession") return handleGetPhotosBySession_(data);
     // Lost and Found — регистърът на вещите (виж края на файла).
@@ -699,6 +702,74 @@ function applyDesignFull1000() {
   Logger.log("Готово! Форматирани " + totalRows + " реда.");
   SpreadsheetApp.getActiveSpreadsheet().toast("Дизайн приложен на " + totalRows + " реда!", "Cine Grand", 5);
 }
+// ── График за почистване на машините за пуканки ──
+var POPCORN_CLEANING_SHEET = "Почистване на машини за пуканки";
+
+function popcornScheduleEntry_(label) {
+  var match = /^(\d{2})\.(\d{2})\.(\d{4})\s*[-–—]\s*(СОЛЕНА|КАРАМЕЛ)$/i.exec(label);
+  if (!match) return null;
+  var date = new Date(Date.UTC(+match[3], +match[2] - 1, +match[1]));
+  if (date.getUTCDate() !== +match[1] || date.getUTCMonth() !== +match[2] - 1 ||
+      date.getUTCFullYear() !== +match[3]) return null;
+  return { date: match[1] + "." + match[2] + "." + match[3], machine: match[4].toUpperCase() };
+}
+
+function popcornSchedule_(ss) {
+  var sheet = getSheetLoose_(ss, POPCORN_CLEANING_SHEET);
+  if (!sheet) return jsonResponse_({ success: false, error: "Sheet not found" });
+  var lastRow = sheet.getLastRow();
+  var rows = [];
+  if (lastRow > 1) {
+    sheet.getRange(2, 1, lastRow - 1, 2).getDisplayValues().forEach(function (cells, i) {
+      var label = cells[0].trim();
+      var entry = popcornScheduleEntry_(label);
+      if (entry) rows.push({
+        row: i + 2, label: label, date: entry.date, machine: entry.machine, names: cells[1].trim()
+      });
+    });
+  }
+  return jsonResponse_({ success: true, rows: rows });
+}
+
+function handleUpdatePopcornCleaning_(data) {
+  if (!Number.isInteger(data.row) || data.row < 2 || typeof data.label !== "string" ||
+      !popcornScheduleEntry_(data.label) || typeof data.names !== "string" || data.names.length > 240) {
+    return jsonResponse_({ success: false, error: "invalid_entry" });
+  }
+  var names = data.names.split(",").map(function (name) { return name.trim().replace(/\s+/g, " "); });
+  if (names.length > 20 || !names.every(function (name) {
+    return /^\p{L}[\p{L}\p{M} .'’\-]*$/u.test(name);
+  })) return jsonResponse_({ success: false, error: "invalid_names" });
+  var seen = new Set();
+  var entry = names.filter(function (name) {
+    var key = name.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).join(", ");
+
+  var sheet = getSheetLoose_(tkOpen_(), POPCORN_CLEANING_SHEET);
+  if (!sheet) return jsonResponse_({ success: false, error: "Sheet not found" });
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    if (data.row > sheet.getLastRow() || sheet.getRange(data.row, 1).getDisplayValue().trim() !== data.label) {
+      return jsonResponse_({ success: false, error: "row_changed" });
+    }
+    var cell = sheet.getRange(data.row, 2);
+    var existing = cell.getValue();
+    if (cell.getFormula() || existing !== "") {
+      if (!cell.getFormula() && existing === entry) return jsonResponse_({ success: true, names: entry });
+      return jsonResponse_({ success: false, error: "already_filled" });
+    }
+    cell.setValue(entry);
+    SpreadsheetApp.flush();
+    return jsonResponse_({ success: true, names: entry });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 // -------------------------------------------------------
 // Почистване съблекални — записва ime в колона B или C
 // -------------------------------------------------------
