@@ -2543,6 +2543,148 @@
         color: var(--green-2);
       }
       .cg-hall-last-check { margin-top:8px; text-align:right; font-size:var(--fs-micro); color:var(--muted-2); }
+
+      /* Стъклени панели за екрана „Данни“. */
+      .cg-data-page {
+        --data-inset: clamp(12px, 2.3vw, 28px);
+        --data-edge: color-mix(in srgb, var(--border-strong) 65%, transparent);
+        container: data-dashboard / inline-size;
+        padding: var(--data-inset);
+        border: 1px solid var(--border);
+        border-radius: var(--r-lg);
+        background:
+          radial-gradient(ellipse at 0 0, rgba(var(--green-rgb), .20), transparent 58%),
+          radial-gradient(ellipse at 100% 8%, rgba(var(--gold-rgb), .15), transparent 50%),
+          linear-gradient(155deg, var(--panel-2), var(--bg) 78%);
+      }
+      .cg-data-page :is(.cg-data-header, .kpi-card, .chart-card, .charts-loading) {
+        min-width: 0;
+        background: var(--panel);
+        background: color-mix(in srgb, var(--panel) 78%, transparent);
+        border: 1px solid var(--border);
+        border-color: var(--data-edge);
+        border-radius: var(--r-lg);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.12), var(--shadow-2);
+      }
+      .cg-data-page .cg-data-header {
+        padding: clamp(16px, 3vw, 28px);
+        margin-bottom: var(--s4);
+        backdrop-filter: blur(14px) saturate(125%);
+        -webkit-backdrop-filter: blur(14px) saturate(125%);
+      }
+      .cg-data-page .cg-data-heading {
+        display: flex;
+        align-items: center;
+        gap: var(--s3);
+        min-width: 0;
+      }
+      .cg-data-page .cg-data-heading .section-title {
+        margin: 0;
+        font-size: clamp(1.65rem, 3.5vw, 2.25rem);
+        line-height: 1.1;
+      }
+      .cg-data-page .cg-data-icon {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        flex: none;
+        border-radius: var(--r-md);
+        background: var(--green-soft);
+        color: var(--green-2);
+      }
+      .cg-data-page #charts-refresh-btn {
+        border-radius: var(--r-pill);
+      }
+      .cg-data-page .cg-fresh:not(:empty) {
+        padding: var(--s2) var(--s3);
+        border: 1px solid var(--border);
+        border-radius: var(--r-md);
+        background: var(--panel);
+      }
+      .cg-data-page .kpi-row {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 118px), 1fr));
+      }
+      .cg-data-page .kpi-card {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--s1);
+      }
+      .cg-data-page .kpi-card .cg-data-icon {
+        width: 32px;
+        height: 32px;
+        margin-bottom: var(--s2);
+      }
+      .cg-data-page .kpi-card .kpi-value {
+        font-size: clamp(1.6rem, 3.5vw, 2.15rem);
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      .cg-data-page .kpi-card .kpi-label {
+        margin: 0;
+        font-size: var(--fs-meta);
+        letter-spacing: 0;
+        text-transform: none;
+      }
+      .cg-data-page .kpi-card .kpi-badge {
+        margin-top: auto;
+      }
+      .cg-data-page .charts-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .cg-data-page .cg-data-overview {
+        grid-template-columns: minmax(0, .88fr) minmax(0, 1.35fr);
+      }
+      .cg-data-page .chart-card {
+        padding: clamp(14px, 2vw, 22px);
+      }
+      .cg-data-page .chart-card::before {
+        display: none;
+      }
+      .cg-data-page .chart-title {
+        font-family: var(--font-ui);
+        font-weight: 700;
+      }
+      .cg-data-page .day-filter-btn {
+        border-radius: var(--r-pill);
+      }
+      .cg-data-page .day-filter-btn.active {
+        background: var(--green-soft);
+        color: var(--green-2);
+        border-color: var(--green);
+      }
+      .cg-data-page .charts-donut {
+        box-shadow: 0 0 0 5px var(--panel-3);
+      }
+      .cg-data-page .hourly-histogram {
+        gap: clamp(2px, .5vw, 4px);
+      }
+      .cg-data-page .hourly-col {
+        min-width: 0;
+      }
+      .cg-data-page :is(.leaderboard-item, .issue-item) {
+        gap: var(--s2);
+        overflow-wrap: anywhere;
+      }
+      .cg-data-page .charts-table {
+        min-width: 490px;
+        background: var(--panel);
+        font-variant-numeric: tabular-nums;
+      }
+      @container data-dashboard (max-width: 760px) {
+        .cg-data-page .charts-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      @container data-dashboard (max-width: 380px) {
+        .cg-data-page .issue-item .charts-bar-bg {
+          max-width: 16%;
+        }
+        .cg-data-page .leaderboard-item {
+          padding-inline: 0;
+        }
+      }
     </style>
   </head>
   <body>
@@ -6800,12 +6942,15 @@
       }
       /* ── Charts Screen ──────────────────────────────────────────────────── */
       function renderCharts() {
-        return `<div class="page">
-          <div class="panel" style="margin-bottom:16px;">
+        return `<div class="page cg-data-page">
+          <div class="panel cg-data-header">
             <div class="toolbar">
-              <div>
-                <h3 class="section-title" style="margin:0;">Данни</h3>
-                <div class="muted" style="font-size:var(--fs-body);margin-top:4px;">Данни от Google Sheets</div>
+              <div class="cg-data-heading">
+                <span class="cg-data-icon">${cgIcon("data", 24)}</span>
+                <div>
+                  <h3 class="section-title">Данни</h3>
+                  <div class="muted" style="font-size:var(--fs-body);margin-top:4px;">Данни от Google Sheets</div>
+                </div>
               </div>
               <button class="btn btn-secondary" id="charts-refresh-btn" onclick="refreshChartsData()">⟳ Обнови</button>
             </div>
@@ -8022,16 +8167,16 @@
         /* ── Dashboard с визуално разнообразие: KPI, Donut, Leaderboard, Issue, Zone, Heatmap ── */
         container.innerHTML = `
           <!-- Ред 1: KPI cards -->
-          <div class="kpi-row" style="margin-bottom:16px;">
-            <div class="kpi-card"><div class="kpi-value" style="color:var(--gold);">${total}</div><div class="kpi-label">Общо проверки</div><div class="kpi-badge" style="background:var(--gold-soft);color:var(--gold-2);">активност</div></div>
-            <div class="kpi-card"><div class="kpi-value" style="color:var(--green);">${cleanPct}%</div><div class="kpi-label">Чисто</div><div class="kpi-badge" style="background:var(--green-soft);color:var(--green-2);">${cleanCount} проверки</div></div>
-            <div class="kpi-card"><div class="kpi-value" style="color:var(--red);">${problemCount}</div><div class="kpi-label">Проблеми</div><div class="kpi-badge" style="background:var(--red-soft);color:var(--red-2);">${totalIssues} общо</div></div>
-            <div class="kpi-card"><div class="kpi-value" style="color:var(--blue);">${inspEntries.length}</div><div class="kpi-label">Служители</div><div class="kpi-badge" style="background:var(--blue-soft);color:var(--blue-2);">активни</div></div>
-            <div class="kpi-card"><div class="kpi-value" style="color:var(--purple-2);">${lastDay}</div><div class="kpi-label">Последна активност</div><div class="kpi-badge" style="background:var(--purple-soft);color:var(--purple-2);">${lastDayCount} проверки</div></div>
+          <div class="kpi-row">
+            <div class="kpi-card"><span class="cg-data-icon">${cgIcon("data", 17)}</span><div class="kpi-value">${total}</div><div class="kpi-label">Общо проверки</div><div class="kpi-badge" style="background:var(--gold-soft);color:var(--gold-2);">активност</div></div>
+            <div class="kpi-card"><span class="cg-data-icon">${cgIcon("inspection", 17)}</span><div class="kpi-value">${cleanPct}%</div><div class="kpi-label">Чисто</div><div class="kpi-badge" style="background:var(--green-soft);color:var(--green-2);">${cleanCount} проверки</div></div>
+            <div class="kpi-card"><span class="cg-data-icon">${cgIcon("no-data", 17)}</span><div class="kpi-value">${problemCount}</div><div class="kpi-label">Проблеми</div><div class="kpi-badge" style="background:var(--red-soft);color:var(--red-2);">${totalIssues} общо</div></div>
+            <div class="kpi-card"><span class="cg-data-icon">${cgIcon("tk-users", 17)}</span><div class="kpi-value">${inspEntries.length}</div><div class="kpi-label">Служители</div><div class="kpi-badge" style="background:var(--blue-soft);color:var(--blue-2);">активни</div></div>
+            <div class="kpi-card"><span class="cg-data-icon">${cgIcon("tk-clock", 17)}</span><div class="kpi-value">${lastDay}</div><div class="kpi-label">Последна активност</div><div class="kpi-badge" style="background:var(--purple-soft);color:var(--purple-2);">${lastDayCount} проверки</div></div>
           </div>
 
           <!-- Ред 2: Donut + Daily activity -->
-          <div class="charts-grid">
+          <div class="charts-grid cg-data-overview">
             <div class="chart-card card-donut">
               <div class="chart-title">Чисто vs Проблем</div>
               <div class="chart-subtitle">Обща оценка на всички проверки</div>
@@ -8120,21 +8265,23 @@
           <div class="chart-card" style="margin-bottom:16px;">
             <div class="chart-title">Детайли по служители</div>
             <div class="chart-subtitle">Брой проверки и процент от общите</div>
-            <table class="charts-table">
-              <thead><tr><th>#</th><th>Служител</th><th>Проверки</th><th>% от общо</th><th>Визуализация</th></tr></thead>
-              <tbody>
-                ${inspEntries.map(([name, count], i) => {
-                  const maxC = (inspEntries[0] && inspEntries[0][1]) || 1;
-                  return `<tr>
-                  <td style="color:var(--muted-2);">${i+1}</td>
-                  <td style="color:var(--text);font-weight:600;">${escapeHtml(name)}</td>
-                  <td>${count}</td>
-                  <td>${total ? Math.round(count/total*100) : 0}%</td>
-                  <td><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${Math.round(count/maxC*100)}%;"></div></div></td>
-                </tr>`;
-                }).join('')}
-              </tbody>
-            </table>
+            <div class="table-wrap">
+              <table class="charts-table">
+                <thead><tr><th>#</th><th>Служител</th><th>Проверки</th><th>% от общо</th><th>Визуализация</th></tr></thead>
+                <tbody>
+                  ${inspEntries.map(([name, count], i) => {
+                    const maxC = (inspEntries[0] && inspEntries[0][1]) || 1;
+                    return `<tr>
+                    <td style="color:var(--muted-2);">${i+1}</td>
+                    <td style="color:var(--text);font-weight:600;">${escapeHtml(name)}</td>
+                    <td>${count}</td>
+                    <td>${total ? Math.round(count/total*100) : 0}%</td>
+                    <td><div class="charts-bar-bg"><div class="charts-bar-fill" style="width:${Math.round(count/maxC*100)}%;"></div></div></td>
+                  </tr>`;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
           </div>`;
 
         /* Initial render: last 7 days */
