@@ -4211,6 +4211,9 @@
         "Почистване на машини за пуканки": "Popcorn Machine Cleaning",
         "Солена и карамел": "Salted and caramel", "Отвори графика": "Open schedule",
         "Машина": "Machine", "Участници": "Participants", "Солена": "Salted", "Карамел": "Caramel",
+        "Вписани участници": "Recorded participants",
+        "Имена могат да се вписват само на датата на почистването по софийско време.": "Names can only be recorded on the cleaning date in Sofia time.",
+        "Вписването е възможно само на датата на почистването.": "Names can only be recorded on the cleaning date.",
         "Няма вписани имена": "No names recorded", "Впиши имена": "Enter names",
         "Имена на участниците, разделени със запетая": "Participant names, separated by commas",
         "Запиши участниците": "Save participants", "Няма записи в графика.": "No entries in the schedule.",
@@ -9738,21 +9741,30 @@
       return t;
     }
 
-      const popcorn = { rows: [], selected: null, names: "", loading: false, saving: false, error: "" };
+      const popcorn = { rows: [], selected: null, names: "", loading: false, saving: false, error: "", shownDate: "" };
+      const popcornDateFormat = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/Sofia", day: "2-digit", month: "2-digit", year: "numeric"
+      });
+
+      function popcornToday() {
+        return popcornDateFormat.format(new Date()).replaceAll("/", ".");
+      }
 
       function renderPopcornSchedule() {
-        const entry = popcorn.selected;
+        const today = popcornToday();
+        popcorn.shownDate = today;
+        const entry = popcorn.selected?.date === today ? popcorn.selected : null;
         const busy = popcorn.loading || popcorn.saving;
         const table = popcorn.rows.length ? `
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Дата</th><th>Машина</th><th>Участници</th><th></th></tr></thead>
+              <thead><tr><th>Дата</th><th>Машина</th><th>Вписани участници</th><th></th></tr></thead>
               <tbody>${popcorn.rows.map(row => `
                 <tr>
-                  <td>${escapeHtml(row.date)}</td>
+                  <td>${escapeHtml(row.date)} ${row.date === today ? '<span class="tag">Днес</span>' : ""}</td>
                   <td><span class="tag">${row.machine === "СОЛЕНА" ? "Солена" : "Карамел"}</span></td>
-                  <td>${row.names ? escapeHtml(row.names) : '<span class="muted">Няма вписани имена</span>'}</td>
-                  <td>${row.names ? "" : `<button type="button" class="btn btn-outline" data-action="popcorn-select" data-row="${row.row}" ${busy ? "disabled" : ""}>Впиши имена</button>`}</td>
+                  <td>${row.names ? `<strong>${escapeHtml(row.names)}</strong>` : '<span class="muted">Няма вписани имена</span>'}</td>
+                  <td>${!row.names && row.date === today ? `<button type="button" class="btn btn-outline" data-action="popcorn-select" data-row="${row.row}" ${busy ? "disabled" : ""}>Впиши имена</button>` : ""}</td>
                 </tr>
               `).join("")}</tbody>
             </table>
@@ -9764,6 +9776,7 @@
               <h2 class="section-title" style="margin:0;">Почистване на машини за пуканки</h2>
               <button type="button" class="btn btn-outline" data-action="start-popcorn" ${busy ? "disabled" : ""}>Обнови</button>
             </div>
+            <p class="muted">Имена могат да се вписват само на датата на почистването по софийско време.</p>
             ${popcorn.loading ? `<div class="charts-loading" role="status">${spokes("")}<span>Зареждане на график…</span></div>` : ""}
             ${popcorn.error ? `<p role="alert" style="color:var(--red-2);">${escapeHtml(popcorn.error)}</p>` : ""}
             ${entry ? `<form id="popcorn-entry-form" style="margin-bottom:var(--s4);">
@@ -9803,6 +9816,12 @@
       async function savePopcornEntry() {
         const entry = popcorn.selected;
         if (!entry || popcorn.loading || popcorn.saving) return;
+        if (entry.date !== popcornToday()) {
+          popcorn.selected = null;
+          popcorn.error = "Вписването е възможно само на датата на почистването.";
+          render();
+          return;
+        }
         popcorn.saving = true;
         popcorn.error = "";
         let reload = false;
@@ -9823,6 +9842,9 @@
             if (state.screen === "popcorn") showToast("Записано успешно!", "success");
           } else if (result && ["row_changed", "already_filled"].includes(result.error)) {
             reload = true;
+          } else if (result?.error === "wrong_date") {
+            popcorn.selected = null;
+            popcorn.error = "Вписването е възможно само на датата на почистването.";
           } else if (result && ["invalid_names", "invalid_entry"].includes(result.error)) {
             popcorn.error = "Въведи до 20 имена, разделени със запетаи.";
           } else {
@@ -10516,7 +10538,8 @@
         }
         if (action === "popcorn-select") {
           if (state.screen !== "popcorn" || popcorn.loading || popcorn.saving) return;
-          popcorn.selected = popcorn.rows.find(row => row.row === Number(btn.dataset.row) && !row.names) || null;
+          const today = popcornToday();
+          popcorn.selected = popcorn.rows.find(row => row.row === Number(btn.dataset.row) && !row.names && row.date === today) || null;
           popcorn.error = "";
           render();
           document.getElementById("popcorn-names")?.focus();
@@ -10955,7 +10978,10 @@
         }, 3 * 60 * 1000);
         /* Lighter every-minute re-render so the "преди X" ages tick over
            without an extra Sheets request. */
-        setInterval(() => { if (state.screen === "home") render(); }, 60 * 1000);
+        setInterval(() => {
+        if (state.screen === "home" ||
+            (state.screen === "popcorn" && popcorn.shownDate !== popcornToday() && !popcorn.saving)) render();
+      }, 60 * 1000);
         /* Cine Grand прожекции (next-clean табло) — първоначално + на всеки 60с.
            Обновява се във фонов режим (нужно за sticky „свърши" таймера) и
            пре-рендерира на всеки 30с докато сме на екрана „Зали". */

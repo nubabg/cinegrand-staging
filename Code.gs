@@ -732,8 +732,9 @@ function popcornSchedule_(ss) {
 }
 
 function handleUpdatePopcornCleaning_(data) {
-  if (!Number.isInteger(data.row) || data.row < 2 || typeof data.label !== "string" ||
-      !popcornScheduleEntry_(data.label) || typeof data.names !== "string" || data.names.length > 240) {
+  var scheduled = typeof data.label === "string" ? popcornScheduleEntry_(data.label) : null;
+  if (!Number.isInteger(data.row) || data.row < 2 || !scheduled ||
+      typeof data.names !== "string" || data.names.length > 240) {
     return jsonResponse_({ success: false, error: "invalid_entry" });
   }
   var names = data.names.split(",").map(function (name) { return name.trim().replace(/\s+/g, " "); });
@@ -755,6 +756,9 @@ function handleUpdatePopcornCleaning_(data) {
   try {
     if (data.row > sheet.getLastRow() || sheet.getRange(data.row, 1).getDisplayValue().trim() !== data.label) {
       return jsonResponse_({ success: false, error: "row_changed" });
+    }
+    if (scheduled.date !== Utilities.formatDate(new Date(), "Europe/Sofia", "dd.MM.yyyy")) {
+      return jsonResponse_({ success: false, error: "wrong_date" });
     }
     var cell = sheet.getRange(data.row, 2);
     var existing = cell.getValue();
