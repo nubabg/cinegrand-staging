@@ -2685,6 +2685,28 @@
           padding-inline: 0;
         }
       }
+      .cg-actions-now {
+        margin-bottom: var(--s6);
+        padding: clamp(14px, 3vw, 22px);
+        border-left: 4px solid var(--amber);
+      }
+      .cg-actions-now-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+        gap: var(--s2);
+      }
+      .cg-actions-now-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: var(--s2) var(--s3);
+        padding: var(--s3);
+        border: 1px solid var(--border);
+        border-radius: var(--r-sm);
+        background: var(--panel-2);
+      }
+      .cg-actions-now-row .muted { font-size: var(--fs-meta); }
       .cg-home-actions {
         container: home-actions / inline-size;
         margin-bottom: var(--s6);
@@ -6924,6 +6946,65 @@
           </div>`;
       }
 
+
+      const homeActionsClock = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/Sofia", day: "2-digit", month: "2-digit", year: "numeric",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+      });
+
+      function getHomeHallActions(now = Date.now()) {
+        if (!_nextCleanFetchedAt || now - _nextCleanFetchedAt > 120000) return [];
+        const candidates = new Map(_recentlyEndedHalls().map(show => [show.hallNum, show]));
+        for (const show of _nextCleanShows) {
+          if (show.status === "green") candidates.set(show.hallNum, show);
+        }
+        if (!candidates.size) return [];
+        // ИНФО пази софийските часове като текст. Сравняваме всички времена
+        // в същото представяне, независимо от часовата зона на устройството.
+        const sofiaNow = parseChartDate(homeActionsClock.format(new Date(now)));
+        const lastBy = getLastCheckedByLocation();
+        const completedLocally = new Map();
+        for (const record of state.records) {
+          if (record.type !== "hall" || !HALLS.includes(record.location)) continue;
+          const stamp = Date.parse(record.timestamp);
+          if (!Number.isFinite(stamp) || stamp <= (completedLocally.get(record.location) || 0)) continue;
+          completedLocally.set(record.location, stamp);
+        }
+        const actions = [];
+        for (const [hallNum, show] of candidates) {
+          const location = HALLS[hallNum - 1];
+          const time = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(show.end || "");
+          if (!location || !time || _currentShowForHall(hallNum)) continue;
+          const end = new Date(sofiaNow);
+          end.setHours(+time[1], +time[2], 0, 0);
+          if (end - sofiaNow > 12 * 3600000) end.setDate(end.getDate() - 1);
+          if (end > sofiaNow || lastBy[location]?.date >= end) continue;
+          const localStamp = completedLocally.get(location);
+          if (localStamp && parseChartDate(homeActionsClock.format(new Date(localStamp))) >= end) continue;
+          actions.push({ location, time: show.end, end });
+        }
+        return actions.sort((a, b) => a.end - b.end);
+      }
+
+      function renderHomeActionsNow() {
+        const actions = getHomeHallActions();
+        if (!actions.length) return "";
+        const en = currentLang === "en";
+        return `<section class="panel cg-actions-now" aria-labelledby="home-actions-now-title">
+          <h2 id="home-actions-now-title" class="section-title">${en ? "Action needed now" : "За действие сега"}</h2>
+          <div class="cg-actions-now-list">${actions.map(({ location, time }) => `
+            <div class="cg-actions-now-row">
+              <div><strong>${escapeHtml(location)}</strong>
+                <div class="muted">${en ? "Screening ended at" : "Прожекцията приключи в"} <strong>${escapeHtml(time)}</strong></div>
+              </div>
+              <button type="button" class="btn btn-gold" data-action="home-check-now" data-location="${escapeHtml(location)}">
+                ${en ? "Inspect the hall" : "Провери залата"}
+              </button>
+            </div>`).join("")}
+          </div>
+        </section>`;
+      }
+
       function renderHome() {
         const quickActions = [
           ...Object.entries(CONFIGS).map(([type, cfg]) => ({
@@ -6953,6 +7034,7 @@
             </div>
           </div>
 
+          ${renderHomeActionsNow()}
           ${renderSyncBanner()}
           ${tkHomeAlert()}
           ${renderLastCheckedBadges()}
@@ -10813,6 +10895,16 @@
           // за да е „топъл" при следващото заключване (по-малко cold-start).
           warmUpBackend();
           render();
+          return;
+        }
+        if (action === "home-check-now") {
+          if (state.screen !== "home" || isQROnlySession()) return;
+          const location = btn.dataset.location;
+          if (!getHomeHallActions().some(item => item.location === location)) {
+            render();
+            return;
+          }
+          lockAndStart("hall", location);
           return;
         }
         if (action === "select-hall-location") {
