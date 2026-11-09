@@ -2712,58 +2712,69 @@
         margin-bottom: var(--s6);
         padding: clamp(12px, 3vw, 20px);
       }
+      /* „Нова проверка": четири еднакви карти, които запълват целия ред —
+         иконата, заглавието и стрелката са центрирани, за да са симетрични
+         при всяка ширина (4 в ред → 2×2 на телефон → 1 на много тесен екран). */
       .cg-action-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 176px));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-auto-rows: 1fr;
         gap: var(--s3);
       }
       .cg-action-tile {
         appearance: none;
+        position: relative;
         display: grid;
-        grid-template-rows: auto minmax(0, 1fr);
-        gap: 6px;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        justify-items: center;
+        gap: 10px;
         width: 100%;
         min-width: 0;
-        min-height: 0;
-        aspect-ratio: 1;
-        padding: clamp(10px, 2cqi, 15px);
+        min-height: clamp(132px, 34cqi, 164px);
+        padding: clamp(14px, 3cqi, 20px) clamp(10px, 2cqi, 16px) clamp(12px, 2.4cqi, 16px);
         border: 1px solid var(--border-strong);
-        border-radius: 8px;
-        background: linear-gradient(150deg, var(--panel-2), var(--panel));
+        border-radius: var(--r-md);
+        background: linear-gradient(180deg, var(--panel-2), var(--panel));
         color: var(--text);
         box-shadow: inset 0 1px 0 rgba(255,255,255,.06), var(--shadow-2);
-        text-align: start;
+        text-align: center;
         font: inherit;
         cursor: pointer;
-        transition: background .15s ease, border-color .15s ease;
+        overflow: hidden;
+        transition: background .15s ease, border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+      }
+      /* Тънка златна линия отгоре — еднаква на всички карти. */
+      .cg-action-tile::before {
+        content: "";
+        position: absolute; inset: 0 0 auto 0; height: 3px;
+        background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        opacity: .55;
+        transition: opacity .15s ease;
       }
       .cg-action-tile:hover {
         background: var(--panel-2-hover);
         border-color: var(--gold-2);
+        transform: translateY(-2px);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 24px rgba(var(--gold-rgb),.14);
       }
+      .cg-action-tile:hover::before { opacity: 1; }
+      .cg-action-tile:active { transform: translateY(0); }
       .cg-action-tile:focus-visible {
         outline: 2px solid var(--gold-2);
         outline-offset: 2px;
       }
-      .cg-action-tile-top {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: var(--s2);
-      }
       .cg-action-tile-icon {
         display: grid;
         place-items: center;
-        width: clamp(28px, 6cqi, 36px);
-        height: clamp(28px, 6cqi, 36px);
+        width: clamp(44px, 12cqi, 52px);
+        height: clamp(44px, 12cqi, 52px);
         border: 1px solid rgba(var(--gold-rgb),.28);
-        border-radius: 7px;
+        border-radius: 14px;
         background: var(--gold-soft);
         color: var(--gold-2);
       }
-      .cg-action-tile-arrow { color: var(--gold-2); }
       .cg-action-tile-copy {
-        align-self: end;
+        align-self: center;
         display: grid;
         gap: var(--s1);
         min-width: 0;
@@ -2776,15 +2787,30 @@
       }
       .cg-action-tile-sub {
         color: var(--muted);
-        font-size: clamp(.6875rem, 2.2cqi, var(--fs-meta));
+        font-size: clamp(.75rem, 2.2cqi, var(--fs-meta));
         line-height: 1.25;
       }
+      .cg-action-tile-go {
+        display: grid; place-items: center;
+        width: 26px; height: 26px;
+        border-radius: 50%;
+        color: var(--gold-2);
+        background: transparent;
+        transition: background .15s ease, color .15s ease, transform .15s ease;
+      }
+      .cg-action-tile:hover .cg-action-tile-go { background: var(--gold); color: var(--gold-ink); transform: translateX(2px); }
       @container home-actions (max-width: 600px) {
-        .cg-action-grid { grid-template-columns: repeat(2, minmax(0, 176px)); }
+        .cg-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
       @container home-actions (max-width: 249px) {
-        .cg-action-grid { grid-template-columns: minmax(0, 176px); }
+        .cg-action-grid { grid-template-columns: minmax(0, 1fr); }
       }
+      @media (prefers-reduced-motion: reduce) {
+        .cg-action-tile, .cg-action-tile-go { transition: none; }
+        .cg-action-tile:hover { transform: none; }
+        .cg-action-tile:hover .cg-action-tile-go { transform: none; }
+      }
+      body.low-perf .cg-action-tile:hover { transform: none; box-shadow: inset 0 1px 0 rgba(255,255,255,.06), var(--shadow-2); }
     </style>
   </head>
   <body>
@@ -7037,25 +7063,23 @@
           ${renderHomeActionsNow()}
           ${renderSyncBanner()}
           ${tkHomeAlert()}
-          ${renderLastCheckedBadges()}
-          ${renderFeatureAnnouncement()}
-          ${_annHtml}
-
           <div class="panel cg-home-actions">
             <div class="toolbar"><h3 class="section-title" style="margin:0;">Нова Проверка</h3><span class="meta-chip">Quick Start</span></div>
             <div class="cg-action-grid">${quickActions.map(({ action, type, title, sub, icon }) => `
               <button type="button" class="cg-action-tile" data-action="${action}"${type ? ` data-type="${type}"` : ""}>
-                <span class="cg-action-tile-top">
-                  <span class="cg-action-tile-icon">${cgIcon(icon, 21)}</span>
-                  <span class="cg-action-tile-arrow">${cgIcon("tk-arrow", 18)}</span>
-                </span>
+                <span class="cg-action-tile-icon">${cgIcon(icon, 24)}</span>
                 <span class="cg-action-tile-copy">
                   <span class="cg-action-tile-title">${title}</span>
                   <span class="cg-action-tile-sub">${sub}</span>
                 </span>
+                <span class="cg-action-tile-go" aria-hidden="true">${cgIcon("tk-arrow", 16)}</span>
               </button>`).join("")}
             </div>
           </div>
+
+          ${renderLastCheckedBadges()}
+          ${renderFeatureAnnouncement()}
+          ${_annHtml}
 
           <div id="cg-reviews-section" class="cg-reviews-wrap">
             <div class="cg-reviews-loading">${spokes("sm")}<span>Зареждане на ревюта...</span></div>
