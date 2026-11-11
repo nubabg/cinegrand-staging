@@ -2517,8 +2517,7 @@
       .cg-hall-show-time { font-size:14px; color:var(--muted); font-variant-numeric:tabular-nums; }
       .cg-hall-show-time strong { color:var(--text); }
       .cg-hall-show-empty { font-size:12px; color:var(--muted-2); }
-      /* Компактно напомняне за проверка вътре в картата на залата.
-         Стои на реда под часа на края и не променя ширината на картата. */
+      /* Отброяването стои при часа на края, а сигналът за проверка — над прожекцията. */
       .cg-hall-check-badge {
         display: inline-flex;
         align-items: center;
@@ -2538,6 +2537,11 @@
       }
       .cg-hall-check-badge .cg-icon { flex-shrink: 0; }
       .cg-hall-check-badge--ready {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+        padding: 8px 10px;
+        font-size: var(--fs-card);
         border-color: var(--green);
         background: var(--green-soft);
         color: var(--green-2);
@@ -6605,7 +6609,13 @@
           const url = new URL(show.poster || "");
           if (url.protocol === "https:" || url.protocol === "http:") poster = url.href;
         } catch (_) {}
-        return `<div class="cg-hall-show">
+        return `${!running ? `
+          <div class="cg-hall-check-badge cg-hall-check-badge--ready">
+            ${cgIcon("inspection", 18)}
+            <span>${label("Провери залата", "Inspect the hall")}</span>
+          </div>
+        ` : ""}
+        <div class="cg-hall-show">
           <div class="cg-hall-show-thumb" aria-hidden="true">
             ${cgIcon("screening", 16)}
             ${poster ? `<img src="${escapeHtml(poster)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove();">` : ""}
@@ -6622,12 +6632,6 @@
                   ${Math.ceil(remaining)}
                   ${label("мин", "min")}
                 </span>
-              </div>
-            ` : ""}
-            ${!running ? `
-              <div class="cg-hall-check-badge cg-hall-check-badge--ready">
-                ${cgIcon("inspection", 14)}
-                <span>${label("Провери залата", "Inspect the hall")}</span>
               </div>
             ` : ""}
           </div>
